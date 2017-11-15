@@ -73,16 +73,14 @@ public class MongoDBService {
 
     public <T> boolean addOne(String databaseName, String collectionName, Class<T> clazz,
                               Map<String, Object> queryFilterMap, Map<String, Object> valueMap) {
-        Map<String, Object> toConvert = (Map<String, Object>) valueMap.get("addOrRemove");
         return process(databaseName, collectionName, clazz, queryFilterMap,
-                toConvert, this::convert);
+                valueMap, this::convert);
     }
 
     public <T> boolean removeOne(String databaseName, String collectionName, Class<T> clazz,
-                                 Map<String, Object> queryFilterMap, Map<String, Map<String, Object>> valueMap) {
-        Map<String, Object> toConvert = (Map<String, Object>) valueMap.get("addOrRemove");
+                                 Map<String, Object> queryFilterMap, Map<String, Object> valueMap) {
         return process(databaseName, collectionName, clazz, queryFilterMap,
-                toConvert, this::convert);
+                valueMap, this::convert);
     }
 
     public <T> boolean updateOne(String databaseName, String collectionName, Class<T> clazz,
@@ -136,26 +134,22 @@ public class MongoDBService {
                 .stream()
                 .map(key -> Filters.eq(key, queryFilterMap.get(key)))
                 .collect(toList());
-        List<Bson> addedOrRemoved = convert.apply(valueMap);
-        UpdateResult result = collection.updateOne(Filters.and(filters), combine(addedOrRemoved));
-        if(result.getModifiedCount() == 1L) {
-            return true;
-        } else {
-            return false;
-        }
+        List<Bson>  updates = convert.apply(valueMap);
+        collection.updateOne(Filters.and(filters), combine(updates));
+        return true;
     }
 
     private List<Bson> convert(Map<String, Object> valueMap) {
-        List<Bson> addOrRemoveOperators = convertAddOrRemove(Optional.of((Map<String, Object>)
+        List<Bson> addOrRemoveOperators = convertAddOrRemove(Optional.ofNullable((Map<String, Object>)
                 valueMap.get("addOrRemove")));
 
-        List<Bson> increaseOperators = convertIncreaseOperators(Optional.of((Map<String, Object>)
+        List<Bson> increaseOperators = convertIncreaseOperators(Optional.ofNullable((Map<String, Object>)
                 valueMap.get("increase")));
 
-        List<Bson> decreaseOperators = convertDecreaseOperators(Optional.of((Map<String, Object>)
+        List<Bson> decreaseOperators = convertDecreaseOperators(Optional.ofNullable((Map<String, Object>)
                 valueMap.get("decrease")));
 
-        List<Bson> pullOperators = convertIncreaseOperators(Optional.of((Map<String, Object>)
+        List<Bson> pullOperators = convertIncreaseOperators(Optional.ofNullable((Map<String, Object>)
                 valueMap.get("pull")));
 
         List<Bson> combined = new ArrayList<>();

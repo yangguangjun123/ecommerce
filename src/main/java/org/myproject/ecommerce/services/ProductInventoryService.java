@@ -95,7 +95,7 @@ public class ProductInventoryService {
         filterMap.put("sku", "00e8da9b");
         Map<String, Object> valueUpdateMap = new HashMap<>();
         valueUpdateMap.put("carted", new ArrayList<>());
-        Map<String, Map<String, Object>> removed = new HashMap<>();
+        Map<String, Object> removed = new HashMap<>();
         removed.put("addOrRemove", valueUpdateMap);
         mongoDBService.removeOne("ecommerce", "product", AudioAlbum.class,
                 filterMap, removed);
@@ -103,6 +103,7 @@ public class ProductInventoryService {
         valueUpdateMap.clear();
         valueUpdateMap.put("carted", Arrays.asList(cartedItem));
         Map<String, Object> added = new HashMap<>();
+        added.put("addOrRemove", valueUpdateMap);
         mongoDBService.addOne("ecommerce", "product", AudioAlbum.class,
                 filterMap, added);
     }
