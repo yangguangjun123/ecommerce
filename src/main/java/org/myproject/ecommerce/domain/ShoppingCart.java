@@ -1,4 +1,4 @@
-package org.myproject.ecommerce.datamodel;
+package org.myproject.ecommerce.domain;
 
 import org.bson.codecs.pojo.annotations.BsonId;
 import org.bson.codecs.pojo.annotations.BsonProperty;

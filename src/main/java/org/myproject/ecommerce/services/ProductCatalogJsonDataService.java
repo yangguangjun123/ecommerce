@@ -2,9 +2,9 @@ package org.myproject.ecommerce.services;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
-import org.myproject.ecommerce.datamodel.AudioAlbum;
-import org.myproject.ecommerce.datamodel.Film;
-import org.myproject.ecommerce.datamodel.ProductType;
+import org.myproject.ecommerce.domain.AudioAlbum;
+import org.myproject.ecommerce.domain.Film;
+import org.myproject.ecommerce.domain.ProductType;
 import org.myproject.ecommerce.utilities.SKUCodeGenerator;
 import org.springframework.stereotype.Service;
 
