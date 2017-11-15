@@ -1,6 +1,6 @@
-package org.myproject.mongodb.sharding.services;
+package org.myproject.ecommerce.services;
 
-import org.myproject.mongodb.sharding.datamodel.*;
+import org.myproject.ecommerce.datamodel.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 

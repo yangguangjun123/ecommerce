@@ -1,4 +1,4 @@
-package org.myproject.mongodb.sharding.datamodel;
+package org.myproject.ecommerce.datamodel;
 
 import org.bson.codecs.pojo.annotations.BsonProperty;
 import org.bson.types.ObjectId;

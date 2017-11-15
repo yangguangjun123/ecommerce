@@ -1,6 +1,6 @@
-package org.myproject.mongodb.sharding.utilities;
+package org.myproject.ecommerce.utilities;
 
-import org.myproject.mongodb.sharding.datamodel.ProductType;
+import org.myproject.ecommerce.datamodel.ProductType;
 
 // SKU - Stock Keeping Unit
 public class SKUCodeGenerator {

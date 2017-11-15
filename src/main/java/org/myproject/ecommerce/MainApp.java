@@ -1,22 +1,14 @@
-package org.myproject.mongodb.sharding;
+package org.myproject.ecommerce;
 
-import org.myproject.mongodb.sharding.datamodel.AudioAlbum;
-import org.myproject.mongodb.sharding.datamodel.Film;
-import org.myproject.mongodb.sharding.datamodel.Product;
-import org.myproject.mongodb.sharding.services.MongoDBService;
-import org.myproject.mongodb.sharding.services.ProductCatalogService;
-import org.myproject.mongodb.sharding.services.ProductCatalogJsonDataService;
-import org.myproject.mongodb.sharding.services.ProductInventoryService;
+import org.myproject.ecommerce.services.MongoDBService;
+import org.myproject.ecommerce.services.ProductCatalogService;
+import org.myproject.ecommerce.services.ProductInventoryService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.stereotype.Component;
-
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
 
 @EnableAutoConfiguration
 @Component

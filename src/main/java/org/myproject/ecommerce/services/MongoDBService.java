@@ -1,4 +1,4 @@
-package org.myproject.mongodb.sharding.services;
+package org.myproject.ecommerce.services;
 
 import static com.mongodb.client.model.Updates.set;
 import static com.mongodb.client.model.Updates.unset;

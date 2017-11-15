@@ -1,21 +1,17 @@
-package org.myproject.mongodb.sharding.services;
+package org.myproject.ecommerce.services;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
-import org.myproject.mongodb.sharding.datamodel.AudioAlbum;
-import org.myproject.mongodb.sharding.datamodel.Film;
-import org.myproject.mongodb.sharding.datamodel.Product;
-import org.myproject.mongodb.sharding.datamodel.ProductType;
-import org.myproject.mongodb.sharding.utilities.IsoDateSerializer;
-import org.myproject.mongodb.sharding.utilities.SKUCodeGenerator;
+import org.myproject.ecommerce.datamodel.AudioAlbum;
+import org.myproject.ecommerce.datamodel.Film;
+import org.myproject.ecommerce.datamodel.ProductType;
+import org.myproject.ecommerce.utilities.SKUCodeGenerator;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
 import java.sql.Date;
 import java.time.LocalDate;
 import java.time.ZoneOffset;
-import java.time.format.DateTimeFormatter;
-import java.util.HashMap;
 import java.util.Map;
 
 @Service

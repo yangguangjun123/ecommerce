@@ -1,4 +1,4 @@
-package org.myproject.mongodb.sharding.utilities;
+package org.myproject.ecommerce.utilities;
 
 import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.databind.JsonSerializer;
