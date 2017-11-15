@@ -1,21 +1,11 @@
 package org.myproject.ecommerce.services;
 
-import static com.mongodb.client.model.Updates.set;
-import static com.mongodb.client.model.Updates.unset;
-import static com.mongodb.client.model.Updates.pushEach;
-import static com.mongodb.client.model.Updates.popLast;
-import static com.mongodb.client.model.Updates.pull;
-import static com.mongodb.client.model.Updates.inc;
-import static com.mongodb.client.model.Updates.combine;
-import static java.util.stream.Collectors.toList;
-
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.mongodb.MongoClient;
 import com.mongodb.MongoClientOptions;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
 import com.mongodb.client.model.Filters;
-import com.mongodb.client.result.UpdateResult;
 import com.mongodb.util.JSON;
 import org.bson.Document;
 import org.bson.codecs.configuration.CodecRegistries;
@@ -33,6 +23,9 @@ import java.util.Optional;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+
+import static com.mongodb.client.model.Updates.*;
+import static java.util.stream.Collectors.toList;
 
 @Service
 public class MongoDBService {
