@@ -9,7 +9,6 @@ import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.stereotype.Component;
 
 @EnableAutoConfiguration
 @Configuration
@@ -29,15 +28,7 @@ public class MainApp implements CommandLineRunner {
         // run Spring boot application
         SpringApplication.run(MainApp.class, args).close();
 
-//        ConfigurableApplicationContext ctx = SpringApplication.run(MainApp.class, args);
-//        MainApp mainObj = ctx.getBean(MainApp.class);
-//        mainObj.init();
-//        System.out.println("Application exited");
     }
-
-//    public void init() {
-//        System.out.println("inside init method");
-//    }
 
     @Override
     public void run(String... strings) throws Exception {
