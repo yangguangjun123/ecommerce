@@ -1,0 +1,34 @@
+{
+  "type" : "Audio Album",
+  "genre": "Jazz",
+  "title": "A Love Supreme",
+  "description": "by John Coltrane",
+  "asin": "B0000A118M",
+  "shipping": {
+    "weight": 6,
+    "dimensions": {
+      "width": 10,
+      "height": 10,
+      "depth": 1
+    }
+  },
+  "pricing": {
+    "list": 1200,
+    "retail": 1100,
+    "savings": 100,
+    "pct_savings": 8
+  },
+  "details": {
+    "title": "A Love Supreme [Original Recording Reissued]",
+    "artist": "John Coltrane",
+    "genre_others": [
+      "General"
+    ],
+    "tracks": [
+      "A Love Supreme Part I: Acknowledgement",
+      "A Love Supreme Part II - Resolution",
+      "A Love Supreme, Part III: Pursuance",
+      "A Love Supreme, Part IV-Psalm"
+    ]
+  }
+}

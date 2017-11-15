@@ -1,0 +1,38 @@
+{
+  "type" : "Film",
+  "genre" : "Thriller",
+  "title" : "The Matrix [1999][DVD]",
+  "description" : "by Joel Silver",
+  "asin" : "B000P0J0AQ",
+  "shipping" : {
+    "weight" : 6,
+    "dimensions" : {
+      "width" : 10,
+      "height" : 10,
+      "depth" : 1
+    }
+  },
+  "pricing" : {
+    "list" : 374,
+    "retail" : 374,
+    "savings" : 0,
+    "pct_savings" : 0
+  },
+  "details" : {
+    "title" : "The Matrix",
+    "director" : [
+      "Andy Wachowski",
+      "Larry Wachowski"
+    ],
+    "writer" : [
+      "Andy Wachowski",
+      "Larry Wachowski"
+    ],
+    "aspect_ratio" : "1.66:1",
+    "genre_others" : [
+      "Science Fiction",
+      "Action & Adventure"
+    ],
+    "actor" : "Keanu Reeves"
+  }
+}
