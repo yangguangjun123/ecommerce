@@ -6,5 +6,5 @@ import org.springframework.test.context.junit4.SpringRunner;
 
 @Ignore
 @RunWith(SpringRunner.class)
-public class ProductCatalogServiceTest {
+public class ProductCatalogServiceIT {
 }

@@ -1,6 +1,6 @@
 package org.myproject.ecommerce.services;
 
-import org.myproject.ecommerce.datamodel.*;
+import org.myproject.ecommerce.domain.*;
 import org.myproject.ecommerce.utilities.SKUCodeGenerator;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;

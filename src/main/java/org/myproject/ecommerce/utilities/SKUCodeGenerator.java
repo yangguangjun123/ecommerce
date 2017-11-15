@@ -1,6 +1,6 @@
 package org.myproject.ecommerce.utilities;
 
-import org.myproject.ecommerce.datamodel.ProductType;
+import org.myproject.ecommerce.domain.ProductType;
 
 // SKU - Stock Keeping Unit
 public class SKUCodeGenerator {

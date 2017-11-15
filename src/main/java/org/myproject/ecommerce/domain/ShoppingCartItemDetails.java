@@ -1,4 +1,4 @@
-package org.myproject.ecommerce.datamodel;
+package org.myproject.ecommerce.domain;
 
 public class ShoppingCartItemDetails {
 

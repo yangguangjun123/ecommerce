@@ -1,4 +1,4 @@
-package org.myproject.ecommerce.datamodel;
+package org.myproject.ecommerce.domain;
 
 import java.util.Map;
 import java.util.function.Function;
