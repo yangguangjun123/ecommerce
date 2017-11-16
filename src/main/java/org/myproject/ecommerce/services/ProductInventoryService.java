@@ -11,9 +11,13 @@ import java.time.ZoneOffset;
 import java.util.*;
 
 @Service
-public class ProductInventoryService {
+public class ProductInventoryService implements org.myproject.ecommerce.interfaces.IProductInventoryService {
+    private final MongoDBService mongoDBService;
+
     @Autowired
-    private MongoDBService mongoDBService;
+    public ProductInventoryService(MongoDBService mongoDBService) {
+        this.mongoDBService = mongoDBService;
+    }
 
     @PostConstruct
     public void initialise() {

@@ -12,10 +12,14 @@ import java.util.*;
 import java.util.function.Consumer;
 
 @Service
-public class ProductCatalogService {
+public class ProductCatalogService implements org.myproject.ecommerce.interfaces.IProductCatalogService {
+
+    private final MongoDBService mongoDBService;
 
     @Autowired
-    private MongoDBService mongoDBService;
+    public ProductCatalogService(MongoDBService mongoDBService) {
+        this.mongoDBService = mongoDBService;
+    }
 
     @PostConstruct
     public void initialise() {

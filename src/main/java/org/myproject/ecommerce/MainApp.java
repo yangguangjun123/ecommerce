@@ -1,8 +1,8 @@
 package org.myproject.ecommerce;
 
+import org.myproject.ecommerce.interfaces.IProductCatalogService;
+import org.myproject.ecommerce.interfaces.IProductInventoryService;
 import org.myproject.ecommerce.services.MongoDBService;
-import org.myproject.ecommerce.services.ProductCatalogService;
-import org.myproject.ecommerce.services.ProductInventoryService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.SpringApplication;
@@ -14,15 +14,18 @@ import org.springframework.context.annotation.Configuration;
 @Configuration
 @ComponentScan
 public class MainApp implements CommandLineRunner {
+    private final MongoDBService mongoDBService;
 
     @Autowired
-    private MongoDBService mongoDBService;
+    private IProductCatalogService productCatalogService;
 
     @Autowired
-    private ProductCatalogService productCatalogService;
+    private IProductInventoryService productInventoryService;
 
     @Autowired
-    private ProductInventoryService productInventoryService;
+    public MainApp(MongoDBService mongoDBService) {
+        this.mongoDBService = mongoDBService;
+    }
 
     public static void main(String[] args) {
         // run Spring boot application
