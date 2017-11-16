@@ -1,6 +1,7 @@
 package org.myproject.ecommerce.services;
 
 import org.myproject.ecommerce.domain.*;
+import org.myproject.ecommerce.interfaces.IProductInventoryService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -11,7 +12,7 @@ import java.time.ZoneOffset;
 import java.util.*;
 
 @Service
-public class ProductInventoryService implements org.myproject.ecommerce.interfaces.IProductInventoryService {
+public class ProductInventoryService implements IProductInventoryService {
     private final MongoDBService mongoDBService;
 
     @Autowired

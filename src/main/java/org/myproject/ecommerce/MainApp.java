@@ -4,6 +4,7 @@ import org.myproject.ecommerce.interfaces.IProductCatalogService;
 import org.myproject.ecommerce.interfaces.IProductInventoryService;
 import org.myproject.ecommerce.services.MongoDBService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
@@ -23,7 +24,7 @@ public class MainApp implements CommandLineRunner {
     private IProductInventoryService productInventoryService;
 
     @Autowired
-    public MainApp(MongoDBService mongoDBService) {
+    public MainApp(@Qualifier("mongoDBService") MongoDBService mongoDBService) {
         this.mongoDBService = mongoDBService;
     }
 
