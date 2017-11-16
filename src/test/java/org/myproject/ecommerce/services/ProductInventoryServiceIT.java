@@ -11,14 +11,14 @@ import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
 @RunWith(SpringJUnit4ClassRunner.class)
-@ContextConfiguration(classes = { ProductCatalogServiceIT.CustomConfiguration.class})
-public class ProductCatalogServiceIT {
+@ContextConfiguration(classes = { ProductInventoryServiceIT.CustomConfiguration.class})
+public class ProductInventoryServiceIT {
 
     @Autowired
     private MongoDBService mongoDBService;
 
     @Autowired
-    private ProductCatalogService productCatalogService;
+    private ProductInventoryService productInventoryService;
 
     @Before
     public void setUp() {
@@ -28,9 +28,8 @@ public class ProductCatalogServiceIT {
     public void tearDown() {
     }
 
-    @Ignore
     @Test
-    public void test() {
+    public void shouldAddItemToCart() {
         // when
 
 
@@ -42,7 +41,7 @@ public class ProductCatalogServiceIT {
     }
 
     @Configuration
-    public static class CustomConfiguration {
+    static class CustomConfiguration {
         @Autowired
         private MongoDBService mongoDBService;
 
@@ -52,9 +51,10 @@ public class ProductCatalogServiceIT {
         }
 
         @Bean
-        ProductCatalogService productCatalogService() {
-            return new ProductCatalogService(mongoDBService);
+        ProductInventoryService productInventoryService() {
+            return new ProductInventoryService(mongoDBService);
         }
+
     }
 
 }
