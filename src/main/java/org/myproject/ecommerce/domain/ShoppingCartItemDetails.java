@@ -20,6 +20,21 @@ public class ShoppingCartItemDetails {
     }
 
     @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+
+        ShoppingCartItemDetails that = (ShoppingCartItemDetails) o;
+
+        return details != null ? details.equals(that.details) : that.details == null;
+    }
+
+    @Override
+    public int hashCode() {
+        return details != null ? details.hashCode() : 0;
+    }
+
+    @Override
     public String toString() {
         return "ItemDetails{}";
     }

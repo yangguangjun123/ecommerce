@@ -60,6 +60,21 @@ public class MongoDBService {
         return result;
     }
 
+    public <T> List<T> readAll(String databaseName, String collectionName, Class<T> clazz) {
+        MongoDatabase mongoDatabase = mongoClient.getDatabase(databaseName);
+        MongoCollection<T> collection = mongoDatabase.getCollection(collectionName, clazz);
+        List<T> result = new ArrayList<>();
+        Consumer<? super T> consumer = t -> result.add(t);
+        collection.find().forEach(consumer);
+        return result;
+    }
+
+    public <T> T readOne(String databaseName, String collectionName, Class<T> clazz,
+                                            Map<String, Object> filter) {
+        List<T> results = readByEqualFiltering(databaseName, collectionName, clazz, filter);
+        return results.get(0);
+    }
+
     public <T> long getDocumentCount(String databaseName, String collectionName, Class<T> clazz) {
         MongoDatabase mongoDatabase = mongoClient.getDatabase(databaseName);
         MongoCollection<T> collection = mongoDatabase.getCollection(collectionName, clazz);

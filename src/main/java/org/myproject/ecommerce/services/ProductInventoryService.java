@@ -44,7 +44,7 @@ public class ProductInventoryService implements IProductInventoryService {
             throws EcommerceException {
         Date now = new Date();
 
-        // Make sure the cart is still active and addOne the line item
+        // Make sure the cart is still active and add the line item
         Map<String, Object> filterMap = new HashMap<>();
         filterMap.put("_id", cartId);
         filterMap.put("status", ShoppingCartStatus.ACTIVE.toString());
@@ -86,6 +86,12 @@ public class ProductInventoryService implements IProductInventoryService {
             throw new InadequateInventoryException("Inadquate Inventory: " + "cart id: " +
                     cartId + ", quantity: " + quantity);
         }
+    }
+
+    public ShoppingCart readOne(int cartId) {
+        Map<String, Object> filterMap = new HashMap<>();
+        filterMap.put("_id", cartId);
+        return mongoDBService.readOne("ecommerce", "cart", ShoppingCart.class, filterMap);
     }
 
     private void populateCarts() {
