@@ -1,0 +1,36 @@
+-- start configuration server and initiate the server
+start mongod --configsvr --config E:\E-Commerce\database\mongodb_sharding\config_server\config\config_server.conf
+mongo --port 27019
+rs.status()
+rs.intiate()
+(in production, recommend to run a config server cluster with at least 3 config servers)
+
+-- start route server and add shard servers
+start mongos --configdb configSet/Lenovo-PC:27019 --config E:\E-Commerce\database\mongodb_sharding\route_server\config\route_server.conf
+
+mongo --port 27017
+sh.addShard("Lenovo-PC:30001")
+sh.addShard("Lenovo-PC:30002")
+
+-- start shard servers
+start mongod --config E:\E-Commerce\database\mongodb_sharding\m1\config\mongod.conf
+start mongod --config E:\E-Commerce\database\mongodb_sharding\m2\config\mongod.conf
+
+Login into MongoDB route server to configure sharding
+mongo --port 27017
+
+-- create shard key
+db.product.createIndex({type:1, genre:1, sku:1})
+
+-- shard collection
+sh.enableSharding("ecommerce")
+db.runCommand({shardCollection:"ecommerce.product", key:{type:1, genre:1, sku:1}})
+sh.status()
+db.collection.getShardDistribution()
+db.collection.stats()
+
+-- create other indexes for performance
+db.product.createIndex({type:1, "details.genre_others":1, "details.issue_date":-1})
+db.product.createIndex({"pricing.pct_savings":1})
+db.product.createIndex({type:1, "details.actor":1, "details.issue_date":-1})
+db.product.createIndex({type:1, "details.issue_date":-1, title:1})
