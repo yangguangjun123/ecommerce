@@ -1,6 +1,7 @@
 package org.myproject.ecommerce.services;
 
 import org.myproject.ecommerce.domain.*;
+import org.myproject.ecommerce.interfaces.IProductCatalogService;
 import org.myproject.ecommerce.utilities.SKUCodeGenerator;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -12,10 +13,14 @@ import java.util.*;
 import java.util.function.Consumer;
 
 @Service
-public class ProductCatalogService {
+public class ProductCatalogService implements IProductCatalogService {
+
+    private final MongoDBService mongoDBService;
 
     @Autowired
-    private MongoDBService mongoDBService;
+    public ProductCatalogService(MongoDBService mongoDBService) {
+        this.mongoDBService = mongoDBService;
+    }
 
     @PostConstruct
     public void initialise() {

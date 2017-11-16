@@ -12,6 +12,7 @@ import org.bson.codecs.configuration.CodecRegistries;
 import org.bson.codecs.configuration.CodecRegistry;
 import org.bson.codecs.pojo.PojoCodecProvider;
 import org.bson.conversions.Bson;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
 
 import javax.annotation.PreDestroy;
@@ -27,7 +28,8 @@ import java.util.stream.Collectors;
 import static com.mongodb.client.model.Updates.*;
 import static java.util.stream.Collectors.toList;
 
-@Service
+@Service("mongoDBService")
+@Qualifier("mongoDBService")
 public class MongoDBService {
     private MongoClient mongoClient;
 
