@@ -5,7 +5,6 @@ import com.mongodb.MongoClient;
 import com.mongodb.MongoClientOptions;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
-import com.mongodb.client.model.Filters;
 import com.mongodb.util.JSON;
 import org.bson.Document;
 import org.bson.codecs.configuration.CodecRegistries;
@@ -17,14 +16,12 @@ import org.springframework.stereotype.Service;
 
 import javax.annotation.PreDestroy;
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
+import static com.mongodb.client.model.Filters.*;
 import static com.mongodb.client.model.Updates.*;
 import static java.util.stream.Collectors.toList;
 
@@ -52,7 +49,7 @@ public class MongoDBService {
         MongoCollection<T> collection = mongoDatabase.getCollection(collectionName, clazz);
         List<Bson> filters = filter.keySet()
                 .stream()
-                .map(key -> Filters.eq(key, filter.get(key)))
+                .map(key -> mapBsonFilter(key, filter))
                 .collect(Collectors.toList());
         List<T> result = new ArrayList<>();
         Consumer<? super T> consumer = t -> result.add(t);
@@ -137,35 +134,42 @@ public class MongoDBService {
         MongoDatabase mongoDatabase = mongoClient.getDatabase(databaseName);
         MongoCollection<Document> collection = mongoDatabase.getCollection(collectionName);
         List<Document> documents = readByEqualFiltering("ecommerce",
-                "product", Document.class, queryFilterMap);
+                collectionName, Document.class, queryFilterMap);
         Document document  = documents.get(0);
         queryFilterMap.put("_id", document.get("_id"));
         List<Bson> filters = queryFilterMap.keySet()
                 .stream()
-                .map(key -> Filters.eq(key, queryFilterMap.get(key)))
+                .map(key -> mapBsonFilter(key, queryFilterMap))
                 .collect(toList());
         List<Bson>  updates = convert.apply(valueMap);
-        collection.updateOne(Filters.and(filters), combine(updates));
+        collection.updateOne(and(filters), combine(updates));
         return true;
+    }
+
+    private Bson mapBsonFilter(String key, final Map<String, Object>  queryFilterMap) {
+        Objects.requireNonNull(key);
+        if(key.equals("$gte")) {
+            Map<String, Object> fieldValueMap = (Map<String, Object>) queryFilterMap.get("$gte");
+            List<String> keys = fieldValueMap.keySet().stream().collect(toList());
+            return gte(keys.get(0), fieldValueMap.get(keys.get(0)));
+        } else {
+            return eq(key, queryFilterMap.get(key));
+        }
     }
 
     private List<Bson> convert(Map<String, Object> valueMap) {
         List<Bson> addOrRemoveOperators = convertAddOrRemove(Optional.ofNullable((Map<String, Object>)
                 valueMap.get("addOrRemove")));
 
-        List<Bson> increaseOperators = convertIncreaseOperators(Optional.ofNullable((Map<String, Object>)
-                valueMap.get("increase")));
+        List<Bson> incOperators = convertIncOperators(Optional.ofNullable((Map<String, Object>)
+                valueMap.get("inc")));
 
-        List<Bson> decreaseOperators = convertDecreaseOperators(Optional.ofNullable((Map<String, Object>)
-                valueMap.get("decrease")));
-
-        List<Bson> pullOperators = convertIncreaseOperators(Optional.ofNullable((Map<String, Object>)
+        List<Bson> pullOperators = convertPullOperators(Optional.ofNullable((Map<String, Object>)
                 valueMap.get("pull")));
 
         List<Bson> combined = new ArrayList<>();
         combined.addAll(addOrRemoveOperators);
-        combined.addAll(increaseOperators);
-        combined.addAll(decreaseOperators);
+        combined.addAll(incOperators);
         combined.addAll(pullOperators);
         return combined;
     }
@@ -195,7 +199,7 @@ public class MongoDBService {
                 .collect(toList());
     }
 
-    private List<Bson> convertIncreaseOperators(Optional<Map<String, Object>> valueMapOptional) {
+    private List<Bson> convertIncOperators(Optional<Map<String, Object>> valueMapOptional) {
         if (!valueMapOptional.isPresent()) {
             return new ArrayList<>();
         }
@@ -203,17 +207,6 @@ public class MongoDBService {
         return valueMap.keySet()
                 .stream()
                 .map(key -> inc(key, (Integer) valueMap.get(key)))
-                .collect(toList());
-    }
-
-    private List<Bson> convertDecreaseOperators(Optional<Map<String, Object>> valueMapOptional) {
-        if (!valueMapOptional.isPresent()) {
-            return new ArrayList<>();
-        }
-        Map<String, Object> valueMap = valueMapOptional.get();
-        return valueMap.keySet()
-                .stream()
-                .map(key -> inc(key, Math.negateExact((Integer) valueMap.get(key))))
                 .collect(toList());
     }
 
@@ -227,4 +220,5 @@ public class MongoDBService {
                 .map(key -> pull(key, valueMap.get(key)))
                 .collect(toList());
     }
+
 }

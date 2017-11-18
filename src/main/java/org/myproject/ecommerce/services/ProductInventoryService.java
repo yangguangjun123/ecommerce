@@ -59,14 +59,20 @@ public class ProductInventoryService implements IProductInventoryService {
             throw new CartInactiveException("Cart Inactive: " + cartId);
         }
 
-        HashMap<String, Object> quantityMap = new HashMap<>();
-        quantityMap.put("qty", quantity);
+        // Update inventory
+        HashMap<String, Object> quantityQueryMap = new HashMap<>();
+        quantityQueryMap.put("qty", quantity);
+        filterMap.clear();
+        filterMap.put("sku", sku);
+        filterMap.put("$gte", quantityQueryMap);
+        HashMap<String, Object> quantityUpdateMap = new HashMap<>();
+        quantityUpdateMap.put("qty", Math.negateExact(quantity));
         valueMap.clear();
         valueMap.put("carted",new Product.CartedItem(quantity, cartId, now));
         Map<String, Object> combined = new HashMap<>();
         combined.put("addOrRemove", valueMap);
-        combined.put("decrease", quantityMap);
-        result = mongoDBService.updateOne("ecommerce", "cart", ShoppingCart.class,
+        combined.put("inc", quantityUpdateMap);
+        result = mongoDBService.updateOne("ecommerce", "product", Product.class,
                                             filterMap, combined);
         if(!result) {
             // roll back our cart update
