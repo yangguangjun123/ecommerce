@@ -24,6 +24,16 @@ public class ProductInventoryService implements IProductInventoryService {
     public void initialise() {
         deleteAllCarts("ecommerce");
         populateCarts();
+        Map<String, Object> queryFilterMap = new HashMap<>();
+        Map<String, Object> fieldValueMap = new HashMap<>();
+        fieldValueMap.put("sku", "00e8da9b");
+        queryFilterMap.put("$eq", fieldValueMap);
+        Map<String, Object> valueMap = new HashMap<>();
+        valueMap.put("qty", 16);
+        Map<String, Object> updateMap = new HashMap<>();
+        updateMap.put("addOrRemove", valueMap);
+        boolean result = mongoDBService.updateOne("ecommerce", "product", Product.class,
+                queryFilterMap, updateMap);
     }
 
     public void deleteAllCarts(String database) {
@@ -68,7 +78,7 @@ public class ProductInventoryService implements IProductInventoryService {
         HashMap<String, Object> quantityUpdateMap = new HashMap<>();
         quantityUpdateMap.put("qty", Math.negateExact(quantity));
         valueMap.clear();
-        valueMap.put("carted",new Product.CartedItem(quantity, cartId, now));
+        valueMap.put("carted", Arrays.asList(new Product.CartedItem(quantity, cartId, now)));
         Map<String, Object> combined = new HashMap<>();
         combined.put("addOrRemove", valueMap);
         combined.put("inc", quantityUpdateMap);

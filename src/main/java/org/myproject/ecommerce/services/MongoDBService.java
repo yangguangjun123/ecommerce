@@ -6,6 +6,7 @@ import com.mongodb.MongoClientOptions;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
 import com.mongodb.util.JSON;
+import com.sun.deploy.util.StringUtils;
 import org.bson.Document;
 import org.bson.codecs.configuration.CodecRegistries;
 import org.bson.codecs.configuration.CodecRegistry;
@@ -129,27 +130,44 @@ public class MongoDBService {
     }
 
     private <T> boolean process(String databaseName, String collectionName, Class<T> clazz,
-                                           Map<String, Object> queryFilterMap, Map<String, Object> valueMap,
+                                           Map<String, Object> queryFilterMap, Map<String, Object> updateMap,
                                            Function<Map<String, Object>, List<Bson>> convert) {
         MongoDatabase mongoDatabase = mongoClient.getDatabase(databaseName);
         MongoCollection<Document> collection = mongoDatabase.getCollection(collectionName);
         List<Document> documents = readByEqualFiltering("ecommerce",
                 collectionName, Document.class, queryFilterMap);
+
+        if(documents.size() == 0) {
+            System.out.println("documents contain no record: " +
+                    StringUtils.join(queryFilterMap.entrySet(), "|"));
+            return false;
+        }
+
+        if(documents.size() > 1) {
+            System.out.println("documents contain more than one record: " +
+                    StringUtils.join(queryFilterMap.entrySet(), "|"));
+            return false;
+        }
+
         Document document  = documents.get(0);
-        queryFilterMap.clear();
         queryFilterMap.put("_id", document.get("_id"));
         List<Bson> filters = queryFilterMap.keySet()
                 .stream()
                 .map(key -> mapBsonFilter(key, queryFilterMap))
                 .collect(toList());
-        List<Bson>  updates = convert.apply(valueMap);
+        List<Bson>  updates = convert.apply(updateMap);
         collection.updateOne(and(filters), combine(updates));
         return true;
     }
 
     private Bson mapBsonFilter(String key, final Map<String, Object>  queryFilterMap) {
         Objects.requireNonNull(key);
-        if(key.equals("$gte")) {
+        if(key.equals("$eq")) {
+            Map<String, Object> fieldValueMap = (Map<String, Object>) queryFilterMap.get("$eq");
+            List<String> keys = fieldValueMap.keySet().stream().collect(toList());
+            return eq(keys.get(0), fieldValueMap.get(keys.get(0)));
+        }
+        else if(key.equals("$gte")) {
             Map<String, Object> fieldValueMap = (Map<String, Object>) queryFilterMap.get("$gte");
             List<String> keys = fieldValueMap.keySet().stream().collect(toList());
             return gte(keys.get(0), fieldValueMap.get(keys.get(0)));
