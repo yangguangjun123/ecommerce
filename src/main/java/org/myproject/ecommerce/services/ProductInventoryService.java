@@ -24,6 +24,16 @@ public class ProductInventoryService implements IProductInventoryService {
     public void initialise() {
         deleteAllCarts("ecommerce");
         populateCarts();
+        Map<String, Object> queryFilterMap = new HashMap<>();
+        Map<String, Object> fieldValueMap = new HashMap<>();
+        fieldValueMap.put("sku", "00e8da9b");
+        queryFilterMap.put("$eq", fieldValueMap);
+        Map<String, Object> valueMap = new HashMap<>();
+        valueMap.put("qty", 16);
+        Map<String, Object> updateMap = new HashMap<>();
+        updateMap.put("addOrRemove", valueMap);
+        boolean result = mongoDBService.updateOne("ecommerce", "product", Product.class,
+                queryFilterMap, updateMap);
     }
 
     public void deleteAllCarts(String database) {
@@ -44,7 +54,7 @@ public class ProductInventoryService implements IProductInventoryService {
             throws EcommerceException {
         Date now = new Date();
 
-        // Make sure the cart is still active and addOne the line item
+        // Make sure the cart is still active and add the line item
         Map<String, Object> filterMap = new HashMap<>();
         filterMap.put("_id", cartId);
         filterMap.put("status", ShoppingCartStatus.ACTIVE.toString());
@@ -59,14 +69,20 @@ public class ProductInventoryService implements IProductInventoryService {
             throw new CartInactiveException("Cart Inactive: " + cartId);
         }
 
-        HashMap<String, Object> quantityMap = new HashMap<>();
-        quantityMap.put("qty", quantity);
+        // Update inventory
+        HashMap<String, Object> quantityQueryMap = new HashMap<>();
+        quantityQueryMap.put("qty", quantity);
+        filterMap.clear();
+        filterMap.put("sku", sku);
+        filterMap.put("$gte", quantityQueryMap);
+        HashMap<String, Object> quantityUpdateMap = new HashMap<>();
+        quantityUpdateMap.put("qty", Math.negateExact(quantity));
         valueMap.clear();
-        valueMap.put("carted",new Product.CartedItem(quantity, cartId, now));
+        valueMap.put("carted", Arrays.asList(new Product.CartedItem(quantity, cartId, now)));
         Map<String, Object> combined = new HashMap<>();
         combined.put("addOrRemove", valueMap);
-        combined.put("decrease", quantityMap);
-        result = mongoDBService.updateOne("ecommerce", "cart", ShoppingCart.class,
+        combined.put("inc", quantityUpdateMap);
+        result = mongoDBService.updateOne("ecommerce", "product", Product.class,
                                             filterMap, combined);
         if(!result) {
             // roll back our cart update
@@ -86,6 +102,12 @@ public class ProductInventoryService implements IProductInventoryService {
             throw new InadequateInventoryException("Inadquate Inventory: " + "cart id: " +
                     cartId + ", quantity: " + quantity);
         }
+    }
+
+    public ShoppingCart readOne(int cartId) {
+        Map<String, Object> filterMap = new HashMap<>();
+        filterMap.put("_id", cartId);
+        return mongoDBService.readOne("ecommerce", "cart", ShoppingCart.class, filterMap);
     }
 
     private void populateCarts() {

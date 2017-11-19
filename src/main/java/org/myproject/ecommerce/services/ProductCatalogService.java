@@ -89,7 +89,12 @@ public class ProductCatalogService implements IProductCatalogService {
         List<Film> filmList = mongoDBService.readByEqualFiltering("ecommerce",
                 "product", Film.class, eqFilter);
         filmList.forEach(consumer);
+    }
 
+    public <T> T readBySku(String sku, Class<T> clazz) {
+        Map<String, Object> filter = new HashMap<>();
+        filter.put("sku", sku);
+        return mongoDBService.readOne("ecommerce", "product", clazz, filter);
     }
 
     private AudioAlbum createAudioAlbumProduct() {
