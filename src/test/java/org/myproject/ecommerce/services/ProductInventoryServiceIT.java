@@ -5,6 +5,7 @@ import static org.junit.Assert.*;
 import org.junit.*;
 import org.junit.runner.RunWith;
 import org.myproject.ecommerce.domain.AudioAlbum;
+import org.myproject.ecommerce.domain.Product;
 import org.myproject.ecommerce.domain.ShoppingCart;
 import org.myproject.ecommerce.domain.ShoppingCartItemDetails;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -15,6 +16,8 @@ import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.util.HashMap;
+import java.util.Map;
 
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(classes = { ProductInventoryServiceIT.CustomConfiguration.class})
@@ -36,8 +39,19 @@ public class ProductInventoryServiceIT {
                 "initialise",null); // methodName,parameters
         postConstruct.setAccessible(true);
         postConstruct.invoke(productInventoryService);
-
-
+        Map<String, Object> queryFilterMap = new HashMap<>();
+        Map<String, Object> fieldValueMap = new HashMap<>();
+        fieldValueMap.put("sku", "00e8da9b");
+        queryFilterMap.put("$eq", fieldValueMap);
+        Map<String, Object> valueMap = new HashMap<>();
+        valueMap.put("qty", 16);
+        Map<String, Object> updateMap = new HashMap<>();
+        updateMap.put("addOrRemove", valueMap);
+        boolean result = mongoDBService.updateOne("ecommerce", "product", Product.class,
+                queryFilterMap, updateMap);
+        if(!result) {
+            throw new RuntimeException("Test setup failed");
+        }
     }
 
     @After
@@ -47,7 +61,6 @@ public class ProductInventoryServiceIT {
                 "initialise",null); // methodName,parameters
         postConstruct.setAccessible(true);
         postConstruct.invoke(productInventoryService);
-
     }
 
     @Test
