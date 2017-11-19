@@ -33,34 +33,20 @@ public class ProductInventoryServiceIT {
     private ProductCatalogService productCatalogService;
 
     @Before
-    public void setUp() throws NoSuchMethodException, InvocationTargetException, IllegalAccessException {
-        //call post-constructor
-        Method postConstruct =  ProductInventoryService.class.getDeclaredMethod(
-                "initialise",null); // methodName,parameters
-        postConstruct.setAccessible(true);
-        postConstruct.invoke(productInventoryService);
-        Map<String, Object> queryFilterMap = new HashMap<>();
-        Map<String, Object> fieldValueMap = new HashMap<>();
-        fieldValueMap.put("sku", "00e8da9b");
-        queryFilterMap.put("$eq", fieldValueMap);
-        Map<String, Object> valueMap = new HashMap<>();
-        valueMap.put("qty", 16);
-        Map<String, Object> updateMap = new HashMap<>();
-        updateMap.put("addOrRemove", valueMap);
-        boolean result = mongoDBService.updateOne("ecommerce", "product", Product.class,
-                queryFilterMap, updateMap);
-        if(!result) {
-            throw new RuntimeException("Test setup failed");
-        }
+    public void setUp() {
     }
 
     @After
-    public void tearDown() throws NoSuchMethodException, InvocationTargetException, IllegalAccessException {
-        //call post-constructor
-        Method postConstruct =  ProductInventoryService.class.getDeclaredMethod(
+    public void tearDown() throws Exception {
+        Method resetMethod =  ProductInventoryService.class.getDeclaredMethod(
                 "initialise",null); // methodName,parameters
-        postConstruct.setAccessible(true);
-        postConstruct.invoke(productInventoryService);
+        resetMethod.setAccessible(true);
+        resetMethod.invoke(productInventoryService);
+
+        ProductInventoryService.class.getDeclaredMethod(
+                "populateCarts",null); // methodName,parameters
+        resetMethod.setAccessible(true);
+        resetMethod.invoke(productInventoryService);
     }
 
     @Test

@@ -38,6 +38,19 @@ public class ProductInventoryService implements IProductInventoryService {
 
     public void deleteAllCarts(String database) {
         mongoDBService.delete(database, "cart");
+
+        Map<String, Object> filterMap = new HashMap<>();
+        filterMap.put("sku", "00e8da9b");
+        Map<String, Object> valueMap = new HashMap<>();
+        valueMap.put("qty", 16);
+        valueMap.put("carted", Optional.empty());
+        Map<String, Object> updateMap = new HashMap<>();
+        updateMap.put("addOrRemove", valueMap);
+        boolean result = mongoDBService.updateOne("ecommerce", "product", Product.class,
+                filterMap, updateMap);
+        if(!result) {
+            throw new RuntimeException("cannot remove all carts");
+        }
     }
 
     public ShoppingCart createNewShppoingCart(int cartId, List<ShoppingCartItem> items, ZoneOffset zoneOffset) {
@@ -85,14 +98,35 @@ public class ProductInventoryService implements IProductInventoryService {
         result = mongoDBService.updateOne("ecommerce", "product", Product.class,
                                             filterMap, combined);
         if(!result) {
-            // roll back our cart update
+            // roll back our cart update and return item to product
+            // remove last item of cart
             filterMap.clear();
             filterMap.put("_id", cartId);
             valueMap.clear();
-            valueMap.put("items.sku", sku);
+            valueMap.put("items", new ArrayList<>());
             combined.clear();
-            combined.put("pull", valueMap);
+            combined.put("addOrRemove", valueMap);
             result = mongoDBService.updateOne("ecommerce", "cart", ShoppingCart.class,
+                    filterMap, combined);
+            if(!result) {
+                throw new EcommerceException("roll back failed: " + ", cart_id: " +
+                        cartId + ", details.sku: " + sku);
+            }
+
+            // return item to product catalog and remove the last carted item
+            quantityQueryMap.clear();
+            quantityQueryMap.put("qty", quantity);
+            filterMap.clear();
+            filterMap.put("sku", sku);
+            filterMap.put("$gte", quantityQueryMap);
+            quantityUpdateMap.clear();
+            quantityUpdateMap.put("qty", quantity);
+            valueMap.clear();
+            valueMap.put("carted", new ArrayList<>());
+            combined.clear();
+            combined.put("addOrRemove", valueMap);
+            combined.put("inc", quantityUpdateMap);
+            result = mongoDBService.updateOne("ecommerce", "product", Product.class,
                     filterMap, combined);
             if(!result) {
                 throw new EcommerceException("roll back failed: " + ", cart_id: " +
@@ -121,11 +155,6 @@ public class ProductInventoryService implements IProductInventoryService {
         Map<String, Object> filterMap= new HashMap<>();
         filterMap.put("sku", "00e8da9b");
         Map<String, Object> valueUpdateMap = new HashMap<>();
-        valueUpdateMap.put("carted", new ArrayList<>());
-        Map<String, Object> removed = new HashMap<>();
-        removed.put("addOrRemove", valueUpdateMap);
-        mongoDBService.removeOne("ecommerce", "product", AudioAlbum.class,
-                filterMap, removed);
         Product.CartedItem cartedItem = new Product.CartedItem(1,42, lastModified);
         valueUpdateMap.clear();
         valueUpdateMap.put("carted", Arrays.asList(cartedItem));
