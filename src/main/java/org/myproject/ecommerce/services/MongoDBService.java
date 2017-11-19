@@ -136,6 +136,7 @@ public class MongoDBService {
         List<Document> documents = readByEqualFiltering("ecommerce",
                 collectionName, Document.class, queryFilterMap);
         Document document  = documents.get(0);
+        queryFilterMap.clear();
         queryFilterMap.put("_id", document.get("_id"));
         List<Bson> filters = queryFilterMap.keySet()
                 .stream()

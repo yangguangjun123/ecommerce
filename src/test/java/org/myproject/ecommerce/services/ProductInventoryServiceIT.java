@@ -36,6 +36,8 @@ public class ProductInventoryServiceIT {
                 "initialise",null); // methodName,parameters
         postConstruct.setAccessible(true);
         postConstruct.invoke(productInventoryService);
+
+
     }
 
     @After
