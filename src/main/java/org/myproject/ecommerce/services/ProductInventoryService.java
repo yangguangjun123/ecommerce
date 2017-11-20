@@ -113,26 +113,6 @@ public class ProductInventoryService implements IProductInventoryService {
                         cartId + ", details.sku: " + sku);
             }
 
-            // return item to product catalog and remove the last carted item
-            quantityQueryMap.clear();
-            quantityQueryMap.put("qty", quantity);
-            filterMap.clear();
-            filterMap.put("sku", sku);
-            filterMap.put("$gte", quantityQueryMap);
-            quantityUpdateMap.clear();
-            quantityUpdateMap.put("qty", quantity);
-            valueMap.clear();
-            valueMap.put("carted", new ArrayList<>());
-            combined.clear();
-            combined.put("addOrRemove", valueMap);
-            combined.put("inc", quantityUpdateMap);
-            result = mongoDBService.updateOne("ecommerce", "product", Product.class,
-                    filterMap, combined);
-            if(!result) {
-                throw new EcommerceException("roll back failed: " + ", cart_id: " +
-                        cartId + ", details.sku: " + sku);
-            }
-
             throw new InadequateInventoryException("Inadquate Inventory: " + "cart id: " +
                     cartId + ", quantity: " + quantity);
         }
