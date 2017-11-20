@@ -3,10 +3,10 @@ package org.myproject.ecommerce.services;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.mongodb.MongoClient;
 import com.mongodb.MongoClientOptions;
+import com.mongodb.WriteConcern;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
 import com.mongodb.util.JSON;
-import com.sun.deploy.util.StringUtils;
 import org.bson.Document;
 import org.bson.codecs.configuration.CodecRegistries;
 import org.bson.codecs.configuration.CodecRegistry;
@@ -82,19 +82,25 @@ public class MongoDBService {
     public <T> boolean addOne(String databaseName, String collectionName, Class<T> clazz,
                               Map<String, Object> queryFilterMap, Map<String, Object> valueMap) {
         return process(databaseName, collectionName, clazz, queryFilterMap,
-                valueMap, this::convert);
+                valueMap, new HashMap<>(), this::convert);
     }
 
     public <T> boolean removeOne(String databaseName, String collectionName, Class<T> clazz,
                                  Map<String, Object> queryFilterMap, Map<String, Object> valueMap) {
         return process(databaseName, collectionName, clazz, queryFilterMap,
-                valueMap, this::convert);
+                valueMap, new HashMap<>(), this::convert);
     }
 
+//    public <T> boolean updateOne(String databaseName, String collectionName, Class<T> clazz,
+//                                 Map<String, Object> queryFilterMap, Map<String, Object> valueMap,) {
+//        return process(databaseName, collectionName, clazz, queryFilterMap,
+//                valueMap, new HashMap<>(), this::convert);
+//    }
     public <T> boolean updateOne(String databaseName, String collectionName, Class<T> clazz,
-                                 Map<String, Object> queryFilterMap, Map<String, Object> valueMap) {
+                                 Map<String, Object> queryFilterMap, Map<String, Object> valueMap,
+                                 Map<String, Object> updateOptions) {
         return process(databaseName, collectionName, clazz, queryFilterMap,
-                valueMap, this::convert);
+                valueMap, updateOptions, this::convert);
     }
 
     public void delete(String databaseName, String collectionName) {
@@ -131,6 +137,7 @@ public class MongoDBService {
 
     private <T> boolean process(String databaseName, String collectionName, Class<T> clazz,
                                            Map<String, Object> queryFilterMap, Map<String, Object> updateMap,
+                                           Map<String, Object> updateOptions,
                                            Function<Map<String, Object>, List<Bson>> convert) {
         MongoDatabase mongoDatabase = mongoClient.getDatabase(databaseName);
         MongoCollection<Document> collection = mongoDatabase.getCollection(collectionName);
@@ -139,13 +146,13 @@ public class MongoDBService {
 
         if(documents.size() == 0) {
             System.out.println("documents contain no record: " +
-                    StringUtils.join(queryFilterMap.entrySet(), "|"));
+                    Objects.toString(queryFilterMap));
             return false;
         }
 
         if(documents.size() > 1) {
             System.out.println("documents contain more than one record: " +
-                    StringUtils.join(queryFilterMap.entrySet(), "|"));
+                    Objects.toString(queryFilterMap));
             return false;
         }
 
@@ -156,7 +163,12 @@ public class MongoDBService {
                 .map(key -> mapBsonFilter(key, queryFilterMap))
                 .collect(toList());
         List<Bson>  updates = convert.apply(updateMap);
-        collection.updateOne(and(filters), combine(updates));
+        if(updateOptions.containsKey("writeConcern")) {
+            collection.withWriteConcern(WriteConcern.valueOf((String) updateOptions.get("writeConcern"))).updateOne(
+                    and(filters), combine(updates));
+        } else {
+            collection.updateOne(and(filters), combine(updates));
+        }
         return true;
     }
 
