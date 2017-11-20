@@ -6,6 +6,8 @@ import com.mongodb.MongoClientOptions;
 import com.mongodb.WriteConcern;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
+import com.mongodb.client.model.Filters;
+import com.mongodb.client.model.Updates;
 import com.mongodb.util.JSON;
 import org.bson.Document;
 import org.bson.codecs.configuration.CodecRegistries;
@@ -91,11 +93,19 @@ public class MongoDBService {
                 valueMap, new HashMap<>(), this::convert);
     }
 
-//    public <T> boolean updateOne(String databaseName, String collectionName, Class<T> clazz,
-//                                 Map<String, Object> queryFilterMap, Map<String, Object> valueMap,) {
-//        return process(databaseName, collectionName, clazz, queryFilterMap,
-//                valueMap, new HashMap<>(), this::convert);
-//    }
+    public <T> boolean updateMany(String databaseName, String collectionName, Class<T> clazz,
+                                  Map<String, Object> queryFilterMap, Map<String, Object> valueMap) {
+        MongoDatabase mongoDatabase = mongoClient.getDatabase(databaseName);
+        MongoCollection<Document> collection = mongoDatabase.getCollection(collectionName);
+        List<Bson> filters = queryFilterMap.keySet()
+                .stream()
+                .map(key -> mapBsonFilter(key, queryFilterMap))
+                .collect(toList());
+        List<Bson>  updates = convert(valueMap);
+        collection.updateMany(and(filters), combine(updates));
+        return true;
+    }
+
     public <T> boolean updateOne(String databaseName, String collectionName, Class<T> clazz,
                                  Map<String, Object> queryFilterMap, Map<String, Object> valueMap,
                                  Map<String, Object> updateOptions) {
@@ -164,11 +174,10 @@ public class MongoDBService {
                 .collect(toList());
         List<Bson>  updates = convert.apply(updateMap);
         if(updateOptions.containsKey("writeConcern")) {
-            collection.withWriteConcern(WriteConcern.valueOf((String) updateOptions.get("writeConcern"))).updateOne(
-                    and(filters), combine(updates));
-        } else {
-            collection.updateOne(and(filters), combine(updates));
+            collection = collection.withWriteConcern(WriteConcern.valueOf(
+                    (String) updateOptions.get("writeConcern")));
         }
+        collection.updateOne(and(filters), combine(updates));
         return true;
     }
 
@@ -195,13 +204,15 @@ public class MongoDBService {
         List<Bson> incOperators = convertIncOperators(Optional.ofNullable((Map<String, Object>)
                 valueMap.get("inc")));
 
-        List<Bson> pullOperators = convertPullOperators(Optional.ofNullable((Map<String, Object>)
+        Optional<Bson> pullOperators = convertPullOperators(Optional.ofNullable((Map<String, Object>)
                 valueMap.get("pull")));
 
         List<Bson> combined = new ArrayList<>();
         combined.addAll(addOrRemoveOperators);
         combined.addAll(incOperators);
-        combined.addAll(pullOperators);
+        if(pullOperators.isPresent()) {
+            combined.add(pullOperators.get());
+        }
         return combined;
     }
 
@@ -241,15 +252,23 @@ public class MongoDBService {
                 .collect(toList());
     }
 
-    private List<Bson> convertPullOperators(Optional<Map<String, Object>> valueMapOptional) {
+    private Optional<Bson> convertPullOperators(Optional<Map<String, Object>> valueMapOptional) {
         if (!valueMapOptional.isPresent()) {
-            return new ArrayList<>();
+            return Optional.empty();
         }
+
         Map<String, Object> valueMap = valueMapOptional.get();
-        return valueMap.keySet()
-                .stream()
-                .map(key -> pull(key, valueMap.get(key)))
-                .collect(toList());
+        Object[] keys = valueMap.keySet().toArray();
+        String key = (String) keys[0];
+        Object value = valueMap.get(key);
+        String[] fields = key.split("\\.");
+        Bson filter = Filters.eq(fields[fields.length - 1], value);
+        for(int i = fields.length - 2; i >= 0; i--) {
+            filter = Filters.eq(fields[i], filter);
+        }
+
+        //Bson filter = Filters.eq("carted", Filters.eq("cart_id", 42));
+        return Optional.of(Updates.pullByFilter(filter));
     }
 
 }

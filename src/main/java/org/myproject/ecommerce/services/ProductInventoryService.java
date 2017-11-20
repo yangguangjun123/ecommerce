@@ -6,6 +6,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import javax.annotation.PostConstruct;
+import javax.swing.text.Document;
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
@@ -14,6 +15,9 @@ import java.util.*;
 @Service
 public class ProductInventoryService implements IProductInventoryService {
     private final MongoDBService mongoDBService;
+
+    @Autowired
+    private PaymentService paymentService;
 
     @Autowired
     public ProductInventoryService(MongoDBService mongoDBService) {
@@ -175,8 +179,70 @@ public class ProductInventoryService implements IProductInventoryService {
         }
     }
 
+    public void processCheckout(int cartId) throws CartInactiveException {
+        Date now = new Date();
 
-    public ShoppingCart readCartByCartId(int cartId) {
+        // Make sure the cart is still active and add the line item
+        Map<String, Object> filterMap = new HashMap<>();
+        filterMap.put("_id", cartId);
+        filterMap.put("status", ShoppingCartStatus.ACTIVE.toString());
+        Map<String, Object> valueMap = new HashMap<>();
+        valueMap.put("last_modified", now);
+        valueMap.put("status", ShoppingCartStatus.PENDING.toString());
+        Map<String, Object> updated = new HashMap<>();
+        updated.put("addOrRemove", valueMap);
+        boolean result = mongoDBService.updateOne("ecommerce", "cart", ShoppingCart.class,
+                filterMap, updated, new HashMap<>());
+        if(!result) {
+            throw new CartInactiveException("Cart Inactive: " + cartId);
+        }
+
+        // Validate payment details; collect payment
+        try {
+            ShoppingCart cart = getCartByCartId(cartId);
+            paymentService.collectPayment(cart);
+
+            filterMap.clear();
+            filterMap.put("_id", cartId);
+            valueMap.clear();
+            valueMap.put("status", ShoppingCartStatus.COMPLETE.toString());
+            updated.clear();
+            updated.put("addOrRemove", valueMap);
+            result = mongoDBService.updateOne("ecommerce", "cart", ShoppingCart.class,
+                    filterMap, updated, new HashMap<>());
+            if(!result) {
+                throw new EcommerceException("Cart status update failed, cart id: " + cartId);
+            }
+
+            filterMap.clear();
+            filterMap.put("carted.cart_id", cartId);
+            valueMap.clear();
+            valueMap.put("carted.cart_id", cartId);
+            Map<String, Object> combined = new HashMap<>();
+            combined.put("pull", valueMap);
+            result = mongoDBService.updateMany("ecommerce", "product", Document.class,
+                    filterMap, combined);
+
+            if(!result) {
+                throw new EcommerceException("Cart status update failed, cart id: " + cartId);
+            }
+
+        } catch(EcommerceException e) {
+            filterMap.clear();
+            filterMap.put("_id", cartId);
+            valueMap.clear();
+            valueMap.put("status", ShoppingCartStatus.ACTIVE.toString());
+            updated.clear();
+            updated.put("addOrRemove", valueMap);
+            result = mongoDBService.updateOne("ecommerce", "cart", ShoppingCart.class,
+                    filterMap, updated, new HashMap<>());
+            if(!result) {
+                throw new RuntimeException("Rollback cart status update failed, cart id: " + cartId);
+            }
+        }
+    }
+
+    public ShoppingCart getCartByCartId(int cartId) {
         Map<String, Object> filterMap = new HashMap<>();
         filterMap.put("_id", cartId);
         return mongoDBService.readOne("ecommerce", "cart", ShoppingCart.class, filterMap);
