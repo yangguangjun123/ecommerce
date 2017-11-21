@@ -6,7 +6,7 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 public enum ShoppingCartStatus {
-    ACTIVE("active"), PENDING("pending"), COMPLETE("complete");
+    ACTIVE("active"), PENDING("pending"), COMPLETE("complete"), EXPIRING("expiring"), EXPIRED("expired");
 
     private String type;
 

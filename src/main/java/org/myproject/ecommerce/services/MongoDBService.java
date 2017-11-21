@@ -46,8 +46,8 @@ public class MongoDBService {
         collection.insertOne(document);
     }
 
-    public <T> List<T> readByEqualFiltering(String databaseName, String collectionName, Class<T> clazz,
-                               Map<String, Object> filter) {
+    public <T> List<T> readAllByFiltering(String databaseName, String collectionName, Class<T> clazz,
+                                          Map<String, Object> filter) {
         MongoDatabase mongoDatabase = mongoClient.getDatabase(databaseName);
         MongoCollection<T> collection = mongoDatabase.getCollection(collectionName, clazz);
         List<Bson> filters = filter.keySet()
@@ -71,7 +71,7 @@ public class MongoDBService {
 
     public <T> T readOne(String databaseName, String collectionName, Class<T> clazz,
                                             Map<String, Object> filter) {
-        List<T> results = readByEqualFiltering(databaseName, collectionName, clazz, filter);
+        List<T> results = readAllByFiltering(databaseName, collectionName, clazz, filter);
         return results.get(0);
     }
 
@@ -151,7 +151,7 @@ public class MongoDBService {
                                            Function<Map<String, Object>, List<Bson>> convert) {
         MongoDatabase mongoDatabase = mongoClient.getDatabase(databaseName);
         MongoCollection<Document> collection = mongoDatabase.getCollection(collectionName);
-        List<Document> documents = readByEqualFiltering("ecommerce",
+        List<Document> documents = readAllByFiltering("ecommerce",
                 collectionName, Document.class, queryFilterMap);
 
         if(documents.size() == 0) {
@@ -187,12 +187,16 @@ public class MongoDBService {
             Map<String, Object> fieldValueMap = (Map<String, Object>) queryFilterMap.get("$eq");
             List<String> keys = fieldValueMap.keySet().stream().collect(toList());
             return eq(keys.get(0), fieldValueMap.get(keys.get(0)));
-        }
-        else if(key.equals("$gte")) {
+        } else if(key.equals("$gte")) {
             Map<String, Object> fieldValueMap = (Map<String, Object>) queryFilterMap.get("$gte");
             List<String> keys = fieldValueMap.keySet().stream().collect(toList());
             return gte(keys.get(0), fieldValueMap.get(keys.get(0)));
-        } else {
+        } else if(key.equals("$lt")) {
+            Map<String, Object> fieldValueMap = (Map<String, Object>) queryFilterMap.get("$lt");
+            List<String> keys = fieldValueMap.keySet().stream().collect(toList());
+            return lt(keys.get(0), fieldValueMap.get(keys.get(0)));
+        }
+        else {
             return eq(key, queryFilterMap.get(key));
         }
     }

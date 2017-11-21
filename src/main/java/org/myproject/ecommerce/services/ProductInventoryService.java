@@ -241,11 +241,60 @@ public class ProductInventoryService implements IProductInventoryService {
         }
     }
 
+    public void processExpiringCarts(long timeout) {
+        Date threshold = Date.from(Instant.now().minusSeconds(timeout));
+
+        Map<String, Object> filterMap = new HashMap<>();
+        filterMap.put("status", ShoppingCartStatus.ACTIVE.toString());
+        Map<String, Object> lastModifiedMapFilter = new HashMap<>();
+        lastModifiedMapFilter.put("last_modified", threshold);
+        filterMap.put("$lt", lastModifiedMapFilter);
+        Map<String, Object> updated = new HashMap<>();
+        Map<String, Object> statusUpdate = new HashMap<>();
+        statusUpdate.put("status", ShoppingCartStatus.EXPIRING.toString());
+        updated.put("addOrRemove", statusUpdate);
+        mongoDBService.updateMany("ecommerce", "cart",
+                filterMap, updated);
+
+        filterMap.clear();
+        filterMap.put("status", ShoppingCartStatus.EXPIRING.toString());
+        List<ShoppingCart> carts = mongoDBService.readAllByFiltering("ecommerce", "cart",
+                ShoppingCart.class, filterMap);
+        carts.stream()
+             .forEach(cart -> {
+                 cart.getItems().stream()
+                                .forEach(item -> returnCartItem(cart.getCartId(), item));
+             });
+    }
 
     public ShoppingCart getCartByCartId(int cartId) {
         Map<String, Object> filterMap = new HashMap<>();
         filterMap.put("_id", cartId);
         return mongoDBService.readOne("ecommerce", "cart", ShoppingCart.class, filterMap);
+    }
+
+    private void returnCartItem(int cartId, ShoppingCartItem item) {
+        Map<String, Object> filterMap = new HashMap<>();
+        filterMap.put("sku", item.getSku());
+        filterMap.put("carted.cart_id", cartId);
+        filterMap.put("carted.qty", item.getQuantity());
+        Map<String, Object> valueMap = new HashMap<>();
+        valueMap.put("carted.cart_id", cartId);
+        Map<String, Object> quantityUpdateMap = new HashMap<>();
+        quantityUpdateMap.put("qty", item.getQuantity());
+        Map<String, Object> combined = new HashMap<>();
+        combined.put("inc", quantityUpdateMap);
+        combined.put("pull", valueMap);
+        mongoDBService.updateOne("ecommerce", "product", Product.class,
+                filterMap, combined, new HashMap<>());
+        filterMap.clear();
+        filterMap.put("_id", cartId);
+        combined.clear();
+        Map<String, Object> statusUpdate = new HashMap<>();
+        statusUpdate.put("status", ShoppingCartStatus.EXPIRED.toString());
+        combined.put("addOrRemove", statusUpdate);
+        mongoDBService.updateOne("ecommerce", "cart", ShoppingCart.class,
+                filterMap, combined, new HashMap<>());
     }
 
     private void populateCarts() {

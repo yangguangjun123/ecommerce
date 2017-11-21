@@ -1,8 +1,8 @@
 package org.myproject.ecommerce.services;
 
-import static org.junit.Assert.*;
-
-import org.junit.*;
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.myproject.ecommerce.domain.*;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -12,9 +12,14 @@ import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
 import java.lang.reflect.Method;
+import java.time.Duration;
+import java.time.Instant;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(classes = { ProductInventoryServiceIT.CustomConfiguration.class})
@@ -103,9 +108,29 @@ public class ProductInventoryServiceIT {
         assertEquals(ShoppingCartStatus.COMPLETE.toString(), cart.getStatus());
         Map<String, Object> filterMap = new HashMap<>();
         filterMap.put("carted.cart_id", cartId);
-        List<Product> cartedProducts = mongoDBService.readByEqualFiltering("ecommerce",
+        List<Product> cartedProducts = mongoDBService.readAllByFiltering("ecommerce",
                 "product", Product.class, filterMap);
         assertTrue(cartedProducts.size() == 0);
+    }
+
+    @Test
+    public void shouldProcessExpiringCarts() {
+        // given
+        Instant instantCarted = Instant.parse("2012-03-09T20:55:36Z");
+        Instant instantNow = Instant.now();
+        long timeout = Duration.between(instantCarted, instantNow).getSeconds() - 1;
+        int expectedQty = 17;
+
+        // when
+        productInventoryService.processExpiringCarts(timeout);
+
+        // verify
+        int cartId = 42;
+        String sku = "00e8da9b";
+        ShoppingCart cart = productInventoryService.getCartByCartId(cartId);
+        assertEquals(ShoppingCartStatus.EXPIRED.toString(), cart.getStatus());
+        AudioAlbum product = productCatalogService.readBySku(sku, AudioAlbum.class);
+        assertEquals(expectedQty, product.getQuantity());
     }
 
     @Configuration
