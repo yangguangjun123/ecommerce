@@ -6,7 +6,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import javax.annotation.PostConstruct;
-import javax.swing.text.Document;
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
@@ -220,7 +219,7 @@ public class ProductInventoryService implements IProductInventoryService {
             valueMap.put("carted.cart_id", cartId);
             Map<String, Object> combined = new HashMap<>();
             combined.put("pull", valueMap);
-            result = mongoDBService.updateMany("ecommerce", "product", Document.class,
+            result = mongoDBService.updateMany("ecommerce", "product",
                     filterMap, combined);
 
             if(!result) {
@@ -241,6 +240,7 @@ public class ProductInventoryService implements IProductInventoryService {
             }
         }
     }
+
 
     public ShoppingCart getCartByCartId(int cartId) {
         Map<String, Object> filterMap = new HashMap<>();

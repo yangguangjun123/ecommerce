@@ -93,8 +93,8 @@ public class MongoDBService {
                 valueMap, new HashMap<>(), this::convert);
     }
 
-    public <T> boolean updateMany(String databaseName, String collectionName, Class<T> clazz,
-                                  Map<String, Object> queryFilterMap, Map<String, Object> valueMap) {
+    public <T> boolean updateMany(String databaseName, String collectionName, Map<String, Object> queryFilterMap,
+                                  Map<String, Object> valueMap) {
         MongoDatabase mongoDatabase = mongoClient.getDatabase(databaseName);
         MongoCollection<Document> collection = mongoDatabase.getCollection(collectionName);
         List<Bson> filters = queryFilterMap.keySet()
