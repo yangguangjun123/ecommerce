@@ -4,19 +4,16 @@ import static org.junit.Assert.*;
 
 import org.junit.*;
 import org.junit.runner.RunWith;
-import org.myproject.ecommerce.domain.AudioAlbum;
-import org.myproject.ecommerce.domain.Product;
-import org.myproject.ecommerce.domain.ShoppingCart;
-import org.myproject.ecommerce.domain.ShoppingCartItemDetails;
+import org.myproject.ecommerce.domain.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
-import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 @RunWith(SpringJUnit4ClassRunner.class)
@@ -62,13 +59,53 @@ public class ProductInventoryServiceIT {
         productInventoryService.addItemToCart(cartId, sku, quantity, details);
 
         // verify
-        ShoppingCart cart = productInventoryService.readOne(cartId);
+        ShoppingCart cart = productInventoryService.getCartByCartId(cartId);
         assertEquals(cartId, cart.getCartId());
         assertEquals(sku, cart.getItems().get(cart.getItems().size() - 1).getSku());
         assertEquals(quantity, cart.getItems().get(cart.getItems().size() - 1).getQuantity());
         assertEquals(details, cart.getItems().get(cart.getItems().size() - 1).getItemDetails());
         AudioAlbum afterAdded = productCatalogService.readBySku(sku, AudioAlbum.class);
         assertEquals(beforeAdded.getQuantity() - 1, afterAdded.getQuantity());
+    }
+
+    @Test
+    public void shouldModifyCartQuantity() throws EcommerceException {
+        // when
+        int cartId = 42;
+        String sku = "00e8da9b";
+        int oldQuantity = 1;
+        int newQuantity = 2;
+        AudioAlbum beforeUpdated = productCatalogService.readBySku(sku, AudioAlbum.class);
+
+        // when
+        productInventoryService.updateCartQuantity(cartId, sku,oldQuantity, newQuantity);
+
+        // verify
+        ShoppingCart cart = productInventoryService.getCartByCartId(cartId);
+        assertEquals(cartId, cart.getCartId());
+        assertEquals(sku, cart.getItems().get(0).getSku());
+        assertEquals(newQuantity, cart.getItems().get(0).getQuantity());
+        AudioAlbum afterUpdated = productCatalogService.readBySku(sku, AudioAlbum.class);
+        assertEquals(beforeUpdated.getQuantity() + Math.negateExact(newQuantity - oldQuantity),
+                afterUpdated.getQuantity());
+    }
+
+    @Test
+    public void shouldProcessCheckout() throws CartInactiveException {
+        // given
+        int cartId = 42;
+
+        // when
+        productInventoryService.processCheckout(cartId);
+
+        // verify
+        ShoppingCart cart = productInventoryService.getCartByCartId(cartId);
+        assertEquals(ShoppingCartStatus.COMPLETE.toString(), cart.getStatus());
+        Map<String, Object> filterMap = new HashMap<>();
+        filterMap.put("carted.cart_id", cartId);
+        List<Product> cartedProducts = mongoDBService.readByEqualFiltering("ecommerce",
+                "product", Product.class, filterMap);
+        assertTrue(cartedProducts.size() == 0);
     }
 
     @Configuration
@@ -89,6 +126,11 @@ public class ProductInventoryServiceIT {
         @Bean
         ProductCatalogService productCatalogService() {
             return new ProductCatalogService(mongoDBService);
+        }
+
+        @Bean
+        PaymentService paymentService() {
+            return new PaymentService();
         }
 
     }

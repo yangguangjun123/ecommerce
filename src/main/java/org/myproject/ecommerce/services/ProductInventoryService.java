@@ -16,6 +16,9 @@ public class ProductInventoryService implements IProductInventoryService {
     private final MongoDBService mongoDBService;
 
     @Autowired
+    private PaymentService paymentService;
+
+    @Autowired
     public ProductInventoryService(MongoDBService mongoDBService) {
         this.mongoDBService = mongoDBService;
     }
@@ -33,7 +36,7 @@ public class ProductInventoryService implements IProductInventoryService {
         Map<String, Object> updateMap = new HashMap<>();
         updateMap.put("addOrRemove", valueMap);
         boolean result = mongoDBService.updateOne("ecommerce", "product", Product.class,
-                queryFilterMap, updateMap);
+                queryFilterMap, updateMap, new HashMap<>());
     }
 
     public void deleteAllCarts(String database) {
@@ -47,7 +50,7 @@ public class ProductInventoryService implements IProductInventoryService {
         Map<String, Object> updateMap = new HashMap<>();
         updateMap.put("addOrRemove", valueMap);
         boolean result = mongoDBService.updateOne("ecommerce", "product", Product.class,
-                filterMap, updateMap);
+                filterMap, updateMap, new HashMap<>());
         if(!result) {
             throw new RuntimeException("cannot remove all carts");
         }
@@ -62,6 +65,7 @@ public class ProductInventoryService implements IProductInventoryService {
         mongoDBService.write("test", "cart", ShoppingCart.class, shoppingCart);
         return shoppingCart;
     }
+
 
     public void addItemToCart(int cartId, String sku, int quantity, ShoppingCartItemDetails details)
             throws EcommerceException {
@@ -96,10 +100,9 @@ public class ProductInventoryService implements IProductInventoryService {
         combined.put("addOrRemove", valueMap);
         combined.put("inc", quantityUpdateMap);
         result = mongoDBService.updateOne("ecommerce", "product", Product.class,
-                                            filterMap, combined);
+                                            filterMap, combined, new HashMap<>());
         if(!result) {
             // roll back our cart update and return item to product
-            // remove last item of cart
             filterMap.clear();
             filterMap.put("_id", cartId);
             valueMap.clear();
@@ -107,7 +110,7 @@ public class ProductInventoryService implements IProductInventoryService {
             combined.clear();
             combined.put("addOrRemove", valueMap);
             result = mongoDBService.updateOne("ecommerce", "cart", ShoppingCart.class,
-                    filterMap, combined);
+                    filterMap, combined, new HashMap<>());
             if(!result) {
                 throw new EcommerceException("roll back failed: " + ", cart_id: " +
                         cartId + ", details.sku: " + sku);
@@ -118,7 +121,128 @@ public class ProductInventoryService implements IProductInventoryService {
         }
     }
 
-    public ShoppingCart readOne(int cartId) {
+    public void updateCartQuantity(int cartId, String sku, int oldQty, int newQty) throws EcommerceException {
+        Date now = new Date();
+        int deltaQty = newQty - oldQty;
+
+        // Make sure the cart is still active and add the line item
+        Map<String, Object> filterMap = new HashMap<>();
+        filterMap.put("_id", cartId);
+        filterMap.put("status", ShoppingCartStatus.ACTIVE.toString());
+        filterMap.put("items.sku", sku);
+        Map<String, Object> valueMap = new HashMap<>();
+        valueMap.put("last_modified", now);
+        valueMap.put("items.$.qty", newQty);
+        Map<String, Object> updated = new HashMap<>();
+        updated.put("addOrRemove", valueMap);
+        boolean result = mongoDBService.updateOne("ecommerce", "cart", ShoppingCart.class,
+                filterMap, updated, new HashMap<>());
+        if(!result) {
+            throw new CartInactiveException("Cart Inactive: " + cartId);
+        }
+
+        // Update the inventory
+        HashMap<String, Object> quantityQueryMap = new HashMap<>();
+        quantityQueryMap.put("qty", deltaQty);
+        filterMap.clear();
+        filterMap.put("sku", sku);
+        filterMap.put("carted.cart_id", cartId);
+        filterMap.put("$gte", quantityQueryMap);
+        HashMap<String, Object> quantityUpdateMap = new HashMap<>();
+        quantityUpdateMap.put("qty", Math.negateExact(deltaQty));
+        valueMap.clear();
+        valueMap.put("carted.$.qty", newQty);
+        valueMap.put("carted.$.timestamp", now);
+        Map<String, Object> combined = new HashMap<>();
+        combined.put("addOrRemove", valueMap);
+        combined.put("inc", quantityUpdateMap);
+        Map<String, Object> updateOptions = new HashMap<>();
+        updateOptions.put("writeConcern", "W1");
+        result = mongoDBService.updateOne("ecommerce", "product", Product.class,
+                filterMap, combined, updateOptions);
+        if(!result) {
+            // roll back our cart update
+            filterMap.clear();
+            filterMap.put("_id", cartId);
+            filterMap.put("items.sku", sku);
+            valueMap.clear();
+            valueMap.put("items.$.qty", oldQty);
+            result = mongoDBService.updateOne("ecommerce", "cart", ShoppingCart.class,
+                    filterMap, updated, new HashMap<>());
+            if(!result) {
+                throw new EcommerceException("Unable to roll back changes for cart: " + cartId);
+            }
+
+            throw new InadequateInventoryException("Inadquate Inventory: " + "cart id: " +
+                    cartId + ", old quantity: " + oldQty + ", new quantity: " + newQty);
+        }
+    }
+
+    public void processCheckout(int cartId) throws CartInactiveException {
+        Date now = new Date();
+
+        // Make sure the cart is still active and add the line item
+        Map<String, Object> filterMap = new HashMap<>();
+        filterMap.put("_id", cartId);
+        filterMap.put("status", ShoppingCartStatus.ACTIVE.toString());
+        Map<String, Object> valueMap = new HashMap<>();
+        valueMap.put("last_modified", now);
+        valueMap.put("status", ShoppingCartStatus.PENDING.toString());
+        Map<String, Object> updated = new HashMap<>();
+        updated.put("addOrRemove", valueMap);
+        boolean result = mongoDBService.updateOne("ecommerce", "cart", ShoppingCart.class,
+                filterMap, updated, new HashMap<>());
+        if(!result) {
+            throw new CartInactiveException("Cart Inactive: " + cartId);
+        }
+
+        // Validate payment details; collect payment
+        try {
+            ShoppingCart cart = getCartByCartId(cartId);
+            paymentService.collectPayment(cart);
+
+            filterMap.clear();
+            filterMap.put("_id", cartId);
+            valueMap.clear();
+            valueMap.put("status", ShoppingCartStatus.COMPLETE.toString());
+            updated.clear();
+            updated.put("addOrRemove", valueMap);
+            result = mongoDBService.updateOne("ecommerce", "cart", ShoppingCart.class,
+                    filterMap, updated, new HashMap<>());
+            if(!result) {
+                throw new EcommerceException("Cart status update failed, cart id: " + cartId);
+            }
+
+            filterMap.clear();
+            filterMap.put("carted.cart_id", cartId);
+            valueMap.clear();
+            valueMap.put("carted.cart_id", cartId);
+            Map<String, Object> combined = new HashMap<>();
+            combined.put("pull", valueMap);
+            result = mongoDBService.updateMany("ecommerce", "product",
+                    filterMap, combined);
+
+            if(!result) {
+                throw new EcommerceException("Cart status update failed, cart id: " + cartId);
+            }
+
+        } catch(EcommerceException e) {
+            filterMap.clear();
+            filterMap.put("_id", cartId);
+            valueMap.clear();
+            valueMap.put("status", ShoppingCartStatus.ACTIVE.toString());
+            updated.clear();
+            updated.put("addOrRemove", valueMap);
+            result = mongoDBService.updateOne("ecommerce", "cart", ShoppingCart.class,
+                    filterMap, updated, new HashMap<>());
+            if(!result) {
+                throw new RuntimeException("Rollback cart status update failed, cart id: " + cartId);
+            }
+        }
+    }
+
+
+    public ShoppingCart getCartByCartId(int cartId) {
         Map<String, Object> filterMap = new HashMap<>();
         filterMap.put("_id", cartId);
         return mongoDBService.readOne("ecommerce", "cart", ShoppingCart.class, filterMap);
