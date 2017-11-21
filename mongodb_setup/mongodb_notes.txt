@@ -29,8 +29,9 @@ sh.status()
 db.collection.getShardDistribution()
 db.collection.stats()
 
--- create other indexes for performance
+-- create other indexes for improving performance
 db.product.createIndex({type:1, "details.genre_others":1, "details.issue_date":-1})
 db.product.createIndex({"pricing.pct_savings":1})
 db.product.createIndex({type:1, "details.actor":1, "details.issue_date":-1})
 db.product.createIndex({type:1, "details.issue_date":-1, title:1})
+db.cart.createIndex({status:1, last_modified:1})
