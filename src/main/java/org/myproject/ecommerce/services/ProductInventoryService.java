@@ -11,6 +11,8 @@ import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import java.util.*;
 
+import static java.util.stream.Collectors.toList;
+
 @Service
 public class ProductInventoryService implements IProductInventoryService {
     private final MongoDBService mongoDBService;
@@ -271,6 +273,94 @@ public class ProductInventoryService implements IProductInventoryService {
         Map<String, Object> filterMap = new HashMap<>();
         filterMap.put("_id", cartId);
         return mongoDBService.readOne("ecommerce", "cart", ShoppingCart.class, filterMap);
+    }
+
+    // The function is safe for use because it checks to ensure that the cart has expired before returning
+    // items from the cart to inventory. However, it could be long-running and slow other updates and queries.
+    // Use judiciously.
+    public void cleanupInventory(long timeout) {
+        Date threshold = Date.from(Instant.now().minusSeconds(timeout));
+
+        Map<String, Object> filterMap = new HashMap<>();
+        Map<String, Object> lastModifiedMapFilter = new HashMap<>();
+        lastModifiedMapFilter.put("carted.timestamp", threshold);
+        filterMap.put("$lt", lastModifiedMapFilter);
+        List<Product> products = mongoDBService.readAllByFiltering("ecommerce", "product",
+                Product.class, filterMap);
+        products.stream()
+                .forEach(product -> {
+                    cleanupShoppingCarts(product, timeout);
+                });
+    }
+
+    private void cleanupShoppingCarts(Product product, long timeout) {
+        Date threshold = Date.from(Instant.now().minusSeconds(timeout));
+        List<Integer> cartIdsWaitingForCleanup = new ArrayList<>();
+        product.getCarted()
+                .stream()
+                .forEach(cartedItem -> {
+                    if(cartedItem.getTimestamp().before(threshold)) {
+                        cartIdsWaitingForCleanup.add(cartedItem.getCartId());
+                    }});
+
+        // Of the items with time stamps older than the threshold, if the cart is still active, it resets
+        // the time stamp to maintain the carts
+        Map<String, Object> filterMap = new HashMap<>();
+        Map<String, Object> idFilterMap = new HashMap<>();
+        idFilterMap.put("_id", cartIdsWaitingForCleanup);
+        filterMap.put("$in", idFilterMap);
+        filterMap.put("status", ShoppingCartStatus.ACTIVE.toString());
+        List<ShoppingCart> activeCarts = mongoDBService.readAllByFiltering("ecommerce",
+                "cart", ShoppingCart.class, filterMap);
+        activeCarts.stream()
+                .forEach(cart -> {
+                    filterMap.clear();
+                    filterMap.put("_id", product.getId());
+                    filterMap.put("carted.cart_id", cart.getCartId());
+                    Map<String, Object> valueMap = new HashMap<>();
+                    valueMap.put("carted.$.timestamp", Date.from(Instant.now()));
+                    Map<String, Object> combined = new HashMap<>();
+                    combined.put("addOrRemove", valueMap);
+                    mongoDBService.updateOne("ecommerce", "product", Product.class,
+                            filterMap, combined, new HashMap<>());
+                });
+
+        // Of the stale items that remain in inactive carts, the operation returns these items to
+        // the inventory.
+        List<Integer> activeCartIds =
+                activeCarts.stream()
+                        .map(cart -> cart.getCartId())
+                        .collect(toList());
+        cartIdsWaitingForCleanup.removeAll(activeCartIds);
+        cartIdsWaitingForCleanup.stream()
+                                .forEach(id -> {
+                                    filterMap.clear();
+                                    filterMap.put("_id", id);
+                                    Map<String, Object> valueMap = new HashMap<>();
+                                    valueMap.put("items.sku", product.getSku());
+                                    Map<String, Object> combined = new HashMap<>();
+                                    combined.put("pull", valueMap);
+                                    mongoDBService.updateMany("ecommerce", "cart",
+                                            filterMap, combined);
+                                });
+        product.getCarted()
+                .stream()
+                .filter(carted -> !activeCartIds.contains(carted.getCartId()))
+                .forEach(item -> {
+                    filterMap.clear();
+                    filterMap.put("_id", product.getId());
+                    filterMap.put("carted.cart_id", item.getCartId());
+                    filterMap.put("carted.qty", item.getQuantity());
+                    Map<String, Object> combined = new HashMap<>();
+                    Map<String, Object> quantityUpdateMap = new HashMap<>();
+                    quantityUpdateMap.put("qty", item.getQuantity());
+                    combined.put("inc", quantityUpdateMap);
+                    Map<String, Object> remove = new HashMap<>();
+                    remove.put("carted.cart_id", item.getCartId());
+                    combined.put("pull", remove);
+                    mongoDBService.updateOne("ecommerce", "product",
+                            Product.class, filterMap, combined, new HashMap<>());
+                });
     }
 
     private void returnCartItem(int cartId, ShoppingCartItem item) {

@@ -125,11 +125,36 @@ public class ProductInventoryServiceIT {
         productInventoryService.processExpiringCarts(timeout);
 
         // verify
-        int cartId = 42;
-        String sku = "00e8da9b";
-        ShoppingCart cart = productInventoryService.getCartByCartId(cartId);
+        ShoppingCart cart = productInventoryService.getCartByCartId(42);
         assertEquals(ShoppingCartStatus.EXPIRED.toString(), cart.getStatus());
-        AudioAlbum product = productCatalogService.readBySku(sku, AudioAlbum.class);
+        AudioAlbum product = productCatalogService.readBySku("00e8da9b", AudioAlbum.class);
+        assertEquals(expectedQty, product.getQuantity());
+    }
+
+    @Test
+    public void shouldProcessCleanupCarts() {
+        // given
+        Instant instantCarted = Instant.parse("2012-03-09T20:55:37Z");
+        Instant instantNow = Instant.now();
+        long timeout = Duration.between(instantCarted, instantNow).getSeconds() - 1;
+        int expectedQty = 17;
+        Map<String, Object> filterMap = new HashMap<>();
+        filterMap.put("_id", 42);
+        Map<String, Object> combined = new HashMap<>();
+        Map<String, Object> statusUpdate = new HashMap<>();
+        statusUpdate.put("status", ShoppingCartStatus.PENDING.toString());
+        combined.put("addOrRemove", statusUpdate);
+        mongoDBService.updateOne("ecommerce", "cart", ShoppingCart.class,
+                filterMap, combined, new HashMap<>());
+
+        // when
+        productInventoryService.cleanupInventory(timeout);
+
+        // verify
+        ShoppingCart cart = productInventoryService.getCartByCartId(42);
+        assertTrue(cart.getItems().size() == 1);
+        assertEquals("0ab42f88", cart.getItems().get(0).getSku());
+        AudioAlbum product = productCatalogService.readBySku("00e8da9b", AudioAlbum.class);
         assertEquals(expectedQty, product.getQuantity());
     }
 

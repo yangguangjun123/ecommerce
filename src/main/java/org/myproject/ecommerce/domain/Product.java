@@ -6,7 +6,7 @@ import org.bson.types.ObjectId;
 import java.util.Date;
 import java.util.List;
 
-public abstract class Product {
+public class Product {
     private ObjectId id;
     protected String sku;
     protected String type;
