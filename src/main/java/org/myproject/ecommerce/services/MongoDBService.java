@@ -195,6 +195,10 @@ public class MongoDBService {
             Map<String, Object> fieldValueMap = (Map<String, Object>) queryFilterMap.get("$lt");
             List<String> keys = fieldValueMap.keySet().stream().collect(toList());
             return lt(keys.get(0), fieldValueMap.get(keys.get(0)));
+        } else if(key.equals("$in")) {
+            Map<String, Object> fieldValueMap = (Map<String, Object>) queryFilterMap.get("$in");
+            List<String> keys = fieldValueMap.keySet().stream().collect(toList());
+            return in(keys.get(0), (List) fieldValueMap.get(keys.get(0)));
         }
         else {
             return eq(key, queryFilterMap.get(key));
