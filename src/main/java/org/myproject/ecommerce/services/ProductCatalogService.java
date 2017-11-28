@@ -47,7 +47,7 @@ public class ProductCatalogService implements IProductCatalogService {
                             .atStartOfDay().toInstant(ZoneOffset.UTC)))
                     .buildFilmOtherGenres(Arrays.asList("Science Fiction", "Action & Adventure"))
                     .buildActor("Keanu Reeves");
-            mongoDBService.write("ecommerce", "product", Product.class, builder.build());
+            mongoDBService.createOne("ecommerce", "product", Product.class, builder.build());
         }
     }
 
@@ -63,7 +63,7 @@ public class ProductCatalogService implements IProductCatalogService {
 
     public void createAudioAlbumProducts() {
         Product audioAlbum = createAudioAlbumProduct();
-        mongoDBService.write("ecommerce", "product", Product.class, audioAlbum);
+        mongoDBService.createOne("ecommerce", "product", Product.class, audioAlbum);
     }
 
     public void createFilmProducts(int quantity) {
@@ -72,7 +72,7 @@ public class ProductCatalogService implements IProductCatalogService {
 
     public void createFilmProducts() {
         Product film = createFilmProduct();
-        mongoDBService.write("ecommerce", "product", Product.class, film);
+        mongoDBService.createOne("ecommerce", "product", Product.class, film);
     }
 
     public void readAllAudioAlbumProducts(Consumer<AudioAlbum> consumer) {
@@ -94,7 +94,7 @@ public class ProductCatalogService implements IProductCatalogService {
     public <T> T readBySku(String sku, Class<T> clazz) {
         Map<String, Object> filter = new HashMap<>();
         filter.put("sku", sku);
-        return mongoDBService.readOne("ecommerce", "product", clazz, filter);
+        return mongoDBService.readOne("ecommerce", "product", clazz, filter).get();
     }
 
     private AudioAlbum createAudioAlbumProduct() {

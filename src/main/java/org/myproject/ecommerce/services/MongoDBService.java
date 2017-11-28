@@ -40,7 +40,7 @@ public class MongoDBService {
                 .codecRegistry(pojoCodecRegistry).build());
     }
 
-    public <T> void write(String databaseName, String collectionName, Class<T> clazz, T document) {
+    public <T> void createOne(String databaseName, String collectionName, Class<T> clazz, T document) {
         MongoDatabase mongoDatabase = mongoClient.getDatabase(databaseName);
         MongoCollection<T> collection = mongoDatabase.getCollection(collectionName, clazz);
         collection.insertOne(document);
@@ -69,10 +69,10 @@ public class MongoDBService {
         return result;
     }
 
-    public <T> T readOne(String databaseName, String collectionName, Class<T> clazz,
+    public <T> Optional<T> readOne(String databaseName, String collectionName, Class<T> clazz,
                                             Map<String, Object> filter) {
         List<T> results = readAllByFiltering(databaseName, collectionName, clazz, filter);
-        return results.get(0);
+        return results.isEmpty() ? Optional.empty() : Optional.of(results.get(0));
     }
 
     public <T> long getDocumentCount(String databaseName, String collectionName, Class<T> clazz) {
