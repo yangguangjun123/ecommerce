@@ -119,6 +119,12 @@ public class MongoDBService {
         collection.deleteMany(new Document());
     }
 
+    public <T> long count(String databaseName, String collectionName, Class<T> clazz) {
+        MongoDatabase mongoDatabase = mongoClient.getDatabase(databaseName);
+        MongoCollection<T> collection = mongoDatabase.getCollection(collectionName, clazz);
+        return collection.count();
+    }
+
     public void writeJson(String databaseName, String collectionName, String jsonString) {
         MongoDatabase mongoDatabase = mongoClient.getDatabase(databaseName);
         MongoCollection<Document> collection = mongoDatabase.getCollection(collectionName);
