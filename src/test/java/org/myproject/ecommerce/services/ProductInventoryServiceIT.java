@@ -108,7 +108,7 @@ public class ProductInventoryServiceIT {
         assertEquals(ShoppingCartStatus.COMPLETE.toString(), cart.getStatus());
         Map<String, Object> filterMap = new HashMap<>();
         filterMap.put("carted.cart_id", cartId);
-        List<Product> cartedProducts = mongoDBService.readAllByFiltering("ecommerce",
+        List<Product> cartedProducts = mongoDBService.readAll("ecommerce",
                 "product", Product.class, filterMap);
         assertTrue(cartedProducts.size() == 0);
     }

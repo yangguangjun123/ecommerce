@@ -52,7 +52,7 @@ public class ProductCatalogService implements IProductCatalogService {
     }
 
     public void deleteAllProductCatalog() {
-        mongoDBService.delete("ecommerce", "product");
+        mongoDBService.deleteAll("ecommerce", "product");
     }
 
     public void createAudioAlbumProducts(int quantity) {
@@ -78,7 +78,7 @@ public class ProductCatalogService implements IProductCatalogService {
     public void readAllAudioAlbumProducts(Consumer<AudioAlbum> consumer) {
         Map<String, Object> eqFilter = new HashMap<>();
         eqFilter.put("type", "Audio Album");
-        List<AudioAlbum> audioAlbumList = mongoDBService.readAllByFiltering("ecommerce",
+        List<AudioAlbum> audioAlbumList = mongoDBService.readAll("ecommerce",
                 "product", AudioAlbum.class, eqFilter);
         audioAlbumList.forEach(consumer);
     }
@@ -86,7 +86,7 @@ public class ProductCatalogService implements IProductCatalogService {
     public void readAllFilmProducts(Consumer<Film> consumer) {
         Map<String, Object> eqFilter = new HashMap<>();
         eqFilter.put("type", "Film");
-        List<Film> filmList = mongoDBService.readAllByFiltering("ecommerce",
+        List<Film> filmList = mongoDBService.readAll("ecommerce",
                 "product", Film.class, eqFilter);
         filmList.forEach(consumer);
     }

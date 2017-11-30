@@ -17,9 +17,9 @@ public class ProductCategory {
     public ProductCategory() {
     }
 
-    public ProductCategory(String name, ObjectId parent, String slug) {
+    public ProductCategory(String name, ObjectId id, String slug) {
         this.name = name;
-        this.parent = parent;
+        this.id = id;
         this.slug = slug;
     }
 

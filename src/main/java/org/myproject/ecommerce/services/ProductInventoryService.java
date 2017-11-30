@@ -42,7 +42,7 @@ public class ProductInventoryService implements IProductInventoryService {
 
     @Override
     public void deleteAllCarts(String database) {
-        mongoDBService.delete(database, "cart");
+        mongoDBService.deleteAll(database, "cart");
 
         Map<String, Object> filterMap = new HashMap<>();
         filterMap.put("sku", "00e8da9b");
@@ -253,7 +253,7 @@ public class ProductInventoryService implements IProductInventoryService {
 
         filterMap.clear();
         filterMap.put("status", ShoppingCartStatus.EXPIRING.toString());
-        List<ShoppingCart> carts = mongoDBService.readAllByFiltering("ecommerce", "cart",
+        List<ShoppingCart> carts = mongoDBService.readAll("ecommerce", "cart",
                 ShoppingCart.class, filterMap);
         carts.stream()
              .forEach(cart -> {
@@ -281,7 +281,7 @@ public class ProductInventoryService implements IProductInventoryService {
         Map<String, Object> lastModifiedMapFilter = new HashMap<>();
         lastModifiedMapFilter.put("carted.timestamp", threshold);
         filterMap.put("$lt", lastModifiedMapFilter);
-        List<Product> products = mongoDBService.readAllByFiltering("ecommerce", "product",
+        List<Product> products = mongoDBService.readAll("ecommerce", "product",
                 Product.class, filterMap);
         products.stream()
                 .forEach(product -> {
@@ -306,7 +306,7 @@ public class ProductInventoryService implements IProductInventoryService {
         idFilterMap.put("_id", cartIdsWaitingForCleanup);
         filterMap.put("$in", idFilterMap);
         filterMap.put("status", ShoppingCartStatus.ACTIVE.toString());
-        List<ShoppingCart> activeCarts = mongoDBService.readAllByFiltering("ecommerce",
+        List<ShoppingCart> activeCarts = mongoDBService.readAll("ecommerce",
                 "cart", ShoppingCart.class, filterMap);
         activeCarts.stream()
                 .forEach(cart -> {

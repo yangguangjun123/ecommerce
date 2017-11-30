@@ -46,8 +46,14 @@ public class MongoDBService {
         collection.insertOne(document);
     }
 
-    public <T> List<T> readAllByFiltering(String databaseName, String collectionName, Class<T> clazz,
-                                          Map<String, Object> filter) {
+    public <T> void createAll(String databaseName, String collectionName, Class<T> clazz, List<T> documents) {
+        MongoDatabase mongoDatabase = mongoClient.getDatabase(databaseName);
+        MongoCollection<T> collection = mongoDatabase.getCollection(collectionName, clazz);
+        collection.insertMany(documents);
+    }
+
+    public <T> List<T> readAll(String databaseName, String collectionName, Class<T> clazz,
+                               Map<String, Object> filter) {
         MongoDatabase mongoDatabase = mongoClient.getDatabase(databaseName);
         MongoCollection<T> collection = mongoDatabase.getCollection(collectionName, clazz);
         List<Bson> filters = filter.keySet()
@@ -71,7 +77,7 @@ public class MongoDBService {
 
     public <T> Optional<T> readOne(String databaseName, String collectionName, Class<T> clazz,
                                             Map<String, Object> filter) {
-        List<T> results = readAllByFiltering(databaseName, collectionName, clazz, filter);
+        List<T> results = readAll(databaseName, collectionName, clazz, filter);
         return results.isEmpty() ? Optional.empty() : Optional.of(results.get(0));
     }
 
@@ -113,7 +119,7 @@ public class MongoDBService {
                 valueMap, updateOptions, this::convert);
     }
 
-    public void delete(String databaseName, String collectionName) {
+    public void deleteAll(String databaseName, String collectionName) {
         MongoDatabase mongoDatabase = mongoClient.getDatabase(databaseName);
         MongoCollection collection = mongoDatabase.getCollection(collectionName);
         collection.deleteMany(new Document());
@@ -157,7 +163,7 @@ public class MongoDBService {
                                            Function<Map<String, Object>, List<Bson>> convert) {
         MongoDatabase mongoDatabase = mongoClient.getDatabase(databaseName);
         MongoCollection<Document> collection = mongoDatabase.getCollection(collectionName);
-        List<Document> documents = readAllByFiltering("ecommerce",
+        List<Document> documents = readAll("ecommerce",
                 collectionName, Document.class, queryFilterMap);
 
         if(documents.size() == 0) {
@@ -205,8 +211,7 @@ public class MongoDBService {
             Map<String, Object> fieldValueMap = (Map<String, Object>) queryFilterMap.get("$in");
             List<String> keys = fieldValueMap.keySet().stream().collect(toList());
             return in(keys.get(0), (List) fieldValueMap.get(keys.get(0)));
-        }
-        else {
+        } else {
             return eq(key, queryFilterMap.get(key));
         }
     }

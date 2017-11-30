@@ -39,6 +39,7 @@ db.cart.createIndex({status:1, last_modified:1})
 
 -- To model a product category hierarchy, this solution keeps each category in its own document that also has a list
 -- of its ancestors or “parents.” This document uses music genres as the basis of its examples.
+
 db.categories.insert({ "_id" : ObjectId("4f5ec858eb03303a11000000"),
   "name" : "Ragtime",
   "slug" : "ragtime"
