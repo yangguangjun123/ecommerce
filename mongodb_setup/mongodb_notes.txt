@@ -6,7 +6,8 @@ rs.intiate()
 (in production, recommend to run a config server cluster with at least 3 config servers)
 
 -- start route server and add shard servers
-start mongos --configdb configSet/Lenovo-PC:27019 --config E:\E-Commerce\database\mongodb_sharding\route_server\config\route_server.conf
+start mongos --configdb configSet/Lenovo-PC:27019
+    --config E:\E-Commerce\database\mongodb_sharding\route_server\config\route_server.conf
 
 mongo --port 27017
 sh.addShard("Lenovo-PC:30001")
@@ -35,3 +36,63 @@ db.product.createIndex({"pricing.pct_savings":1})
 db.product.createIndex({type:1, "details.actor":1, "details.issue_date":-1})
 db.product.createIndex({type:1, "details.issue_date":-1, title:1})
 db.cart.createIndex({status:1, last_modified:1})
+
+-- To model a product category hierarchy, this solution keeps each category in its own document that also has a list
+-- of its ancestors or “parents.” This document uses music genres as the basis of its examples.
+
+db.categories.insert({ "_id" : ObjectId("4f5ec858eb03303a11000000"),
+  "name" : "Ragtime",
+  "slug" : "ragtime"
+})
+
+db.categories.insert({ "_id" : ObjectId("4f5ec858eb03303a11000001"),
+  "name" : "Bop",
+  "parent" : ObjectId("4f5ec858eb03303a11000000"),
+  "slug" : "bop",
+  "ancestors" : [
+         { "_id" : ObjectId("4f5ec858eb03303a11000000"),
+           "slug" : "ragtime",
+           "name" : "Ragtime" } ]
+})
+
+db.categories.insert({ "_id" : ObjectId("4f5ec858eb03303a11000002"),
+  "name" : "Modal Jazz",
+  "parent" : ObjectId("4f5ec858eb03303a11000001"),
+  "slug" : "modal-jazz",
+  "ancestors" : [
+         { "_id" : ObjectId("4f5ec858eb03303a11000001"),
+        "slug" : "bop",
+        "name" : "Bop" },
+         { "_id" : ObjectId("4f5ec858eb03303a11000000"),
+           "slug" : "ragtime",
+           "name" : "Ragtime" } ]
+})
+
+db.categories.insert({ "_id" : ObjectId("4f5ec858eb03303a11000003"),
+  "name" : "Hard Bop",
+  "parent" : ObjectId("4f5ec858eb03303a11000001"),
+  "slug" : "hard-bop",
+  "ancestors" : [
+         { "_id" : ObjectId("4f5ec858eb03303a11000001"),
+        "slug" : "bop",
+        "name" : "Bop" },
+         { "_id" : ObjectId("4f5ec858eb03303a11000000"),
+           "slug" : "ragtime",
+           "name" : "Ragtime" } ]
+})
+
+db.categories.insert({ "_id" : ObjectId("4f5ec858eb03303a11000004"),
+  "name" : "Free Jazz",
+  "parent" : ObjectId("4f5ec858eb03303a11000001"),
+  "slug" : "free-jazz",
+  "ancestors" : [
+         { "_id" : ObjectId("4f5ec858eb03303a11000001"),
+        "slug" : "bop",
+        "name" : "Bop" },
+         { "_id" : ObjectId("4f5ec858eb03303a11000000"),
+           "slug" : "ragtime",
+           "name" : "Ragtime" } ]
+})
+
+-- create index on categories collection
+db.categories.createIndex({slug:1}, {unique:true})

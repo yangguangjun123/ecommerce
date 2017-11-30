@@ -1,5 +1,6 @@
 package org.myproject.ecommerce.domain;
 
+import org.bson.codecs.pojo.annotations.BsonId;
 import org.bson.codecs.pojo.annotations.BsonProperty;
 import org.bson.types.ObjectId;
 
@@ -7,7 +8,9 @@ import java.util.Date;
 import java.util.List;
 
 public class Product {
+    @BsonId
     private ObjectId id;
+
     protected String sku;
     protected String type;
     protected String genre;

@@ -47,12 +47,12 @@ public class ProductCatalogService implements IProductCatalogService {
                             .atStartOfDay().toInstant(ZoneOffset.UTC)))
                     .buildFilmOtherGenres(Arrays.asList("Science Fiction", "Action & Adventure"))
                     .buildActor("Keanu Reeves");
-            mongoDBService.write("ecommerce", "product", Product.class, builder.build());
+            mongoDBService.createOne("ecommerce", "product", Product.class, builder.build());
         }
     }
 
     public void deleteAllProductCatalog() {
-        mongoDBService.delete("ecommerce", "product");
+        mongoDBService.deleteAll("ecommerce", "product");
     }
 
     public void createAudioAlbumProducts(int quantity) {
@@ -63,7 +63,7 @@ public class ProductCatalogService implements IProductCatalogService {
 
     public void createAudioAlbumProducts() {
         Product audioAlbum = createAudioAlbumProduct();
-        mongoDBService.write("ecommerce", "product", Product.class, audioAlbum);
+        mongoDBService.createOne("ecommerce", "product", Product.class, audioAlbum);
     }
 
     public void createFilmProducts(int quantity) {
@@ -72,13 +72,13 @@ public class ProductCatalogService implements IProductCatalogService {
 
     public void createFilmProducts() {
         Product film = createFilmProduct();
-        mongoDBService.write("ecommerce", "product", Product.class, film);
+        mongoDBService.createOne("ecommerce", "product", Product.class, film);
     }
 
     public void readAllAudioAlbumProducts(Consumer<AudioAlbum> consumer) {
         Map<String, Object> eqFilter = new HashMap<>();
         eqFilter.put("type", "Audio Album");
-        List<AudioAlbum> audioAlbumList = mongoDBService.readAllByFiltering("ecommerce",
+        List<AudioAlbum> audioAlbumList = mongoDBService.readAll("ecommerce",
                 "product", AudioAlbum.class, eqFilter);
         audioAlbumList.forEach(consumer);
     }
@@ -86,7 +86,7 @@ public class ProductCatalogService implements IProductCatalogService {
     public void readAllFilmProducts(Consumer<Film> consumer) {
         Map<String, Object> eqFilter = new HashMap<>();
         eqFilter.put("type", "Film");
-        List<Film> filmList = mongoDBService.readAllByFiltering("ecommerce",
+        List<Film> filmList = mongoDBService.readAll("ecommerce",
                 "product", Film.class, eqFilter);
         filmList.forEach(consumer);
     }
@@ -94,7 +94,7 @@ public class ProductCatalogService implements IProductCatalogService {
     public <T> T readBySku(String sku, Class<T> clazz) {
         Map<String, Object> filter = new HashMap<>();
         filter.put("sku", sku);
-        return mongoDBService.readOne("ecommerce", "product", clazz, filter);
+        return mongoDBService.readOne("ecommerce", "product", clazz, filter).get();
     }
 
     private AudioAlbum createAudioAlbumProduct() {

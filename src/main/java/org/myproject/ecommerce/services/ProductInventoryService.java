@@ -7,8 +7,6 @@ import org.springframework.stereotype.Service;
 
 import javax.annotation.PostConstruct;
 import java.time.Instant;
-import java.time.LocalDateTime;
-import java.time.ZoneOffset;
 import java.util.*;
 
 import static java.util.stream.Collectors.toList;
@@ -25,6 +23,7 @@ public class ProductInventoryService implements IProductInventoryService {
         this.mongoDBService = mongoDBService;
     }
 
+    @Override
     @PostConstruct
     public void initialise() {
         deleteAllCarts("ecommerce");
@@ -41,8 +40,9 @@ public class ProductInventoryService implements IProductInventoryService {
                 queryFilterMap, updateMap, new HashMap<>());
     }
 
+    @Override
     public void deleteAllCarts(String database) {
-        mongoDBService.delete(database, "cart");
+        mongoDBService.deleteAll(database, "cart");
 
         Map<String, Object> filterMap = new HashMap<>();
         filterMap.put("sku", "00e8da9b");
@@ -58,17 +58,7 @@ public class ProductInventoryService implements IProductInventoryService {
         }
     }
 
-    public ShoppingCart createNewShppoingCart(int cartId, List<ShoppingCartItem> items, ZoneOffset zoneOffset) {
-        Objects.requireNonNull(items, "shopping items cannot be null");
-        ZoneOffset shppingCartZoneOffset = zoneOffset == null ? ZoneOffset.UTC : zoneOffset;
-        Date lastModified = Date.from(LocalDateTime.now().atOffset(shppingCartZoneOffset).toInstant());
-        ShoppingCart shoppingCart = new ShoppingCart(cartId, lastModified,
-                ShoppingCartStatus.ACTIVE.toString(), items);
-        mongoDBService.write("test", "cart", ShoppingCart.class, shoppingCart);
-        return shoppingCart;
-    }
-
-
+    @Override
     public void addItemToCart(int cartId, String sku, int quantity, ShoppingCartItemDetails details)
             throws EcommerceException {
         Date now = new Date();
@@ -123,6 +113,7 @@ public class ProductInventoryService implements IProductInventoryService {
         }
     }
 
+    @Override
     public void updateCartQuantity(int cartId, String sku, int oldQty, int newQty) throws EcommerceException {
         Date now = new Date();
         int deltaQty = newQty - oldQty;
@@ -180,6 +171,7 @@ public class ProductInventoryService implements IProductInventoryService {
         }
     }
 
+    @Override
     public void processCheckout(int cartId) throws CartInactiveException {
         Date now = new Date();
 
@@ -243,6 +235,7 @@ public class ProductInventoryService implements IProductInventoryService {
         }
     }
 
+    @Override
     public void processExpiringCarts(long timeout) {
         Date threshold = Date.from(Instant.now().minusSeconds(timeout));
 
@@ -260,7 +253,7 @@ public class ProductInventoryService implements IProductInventoryService {
 
         filterMap.clear();
         filterMap.put("status", ShoppingCartStatus.EXPIRING.toString());
-        List<ShoppingCart> carts = mongoDBService.readAllByFiltering("ecommerce", "cart",
+        List<ShoppingCart> carts = mongoDBService.readAll("ecommerce", "cart",
                 ShoppingCart.class, filterMap);
         carts.stream()
              .forEach(cart -> {
@@ -269,15 +262,18 @@ public class ProductInventoryService implements IProductInventoryService {
              });
     }
 
+    @Override
     public ShoppingCart getCartByCartId(int cartId) {
         Map<String, Object> filterMap = new HashMap<>();
         filterMap.put("_id", cartId);
-        return mongoDBService.readOne("ecommerce", "cart", ShoppingCart.class, filterMap);
+        return mongoDBService.readOne("ecommerce",
+                "cart", ShoppingCart.class, filterMap).get();
     }
 
     // The function is safe for use because it checks to ensure that the cart has expired before returning
     // items from the cart to inventory. However, it could be long-running and slow other updates and queries.
     // Use judiciously.
+    @Override
     public void cleanupInventory(long timeout) {
         Date threshold = Date.from(Instant.now().minusSeconds(timeout));
 
@@ -285,7 +281,7 @@ public class ProductInventoryService implements IProductInventoryService {
         Map<String, Object> lastModifiedMapFilter = new HashMap<>();
         lastModifiedMapFilter.put("carted.timestamp", threshold);
         filterMap.put("$lt", lastModifiedMapFilter);
-        List<Product> products = mongoDBService.readAllByFiltering("ecommerce", "product",
+        List<Product> products = mongoDBService.readAll("ecommerce", "product",
                 Product.class, filterMap);
         products.stream()
                 .forEach(product -> {
@@ -310,7 +306,7 @@ public class ProductInventoryService implements IProductInventoryService {
         idFilterMap.put("_id", cartIdsWaitingForCleanup);
         filterMap.put("$in", idFilterMap);
         filterMap.put("status", ShoppingCartStatus.ACTIVE.toString());
-        List<ShoppingCart> activeCarts = mongoDBService.readAllByFiltering("ecommerce",
+        List<ShoppingCart> activeCarts = mongoDBService.readAll("ecommerce",
                 "cart", ShoppingCart.class, filterMap);
         activeCarts.stream()
                 .forEach(cart -> {
@@ -394,7 +390,7 @@ public class ProductInventoryService implements IProductInventoryService {
                         new ShoppingCartItemDetails("some details")),
                         new ShoppingCartItem("0ab42f88", 4,
                         new ShoppingCartItemDetails("some details"))));
-        mongoDBService.write("ecommerce", "cart", ShoppingCart.class, cart);
+        mongoDBService.createOne("ecommerce", "cart", ShoppingCart.class, cart);
         Map<String, Object> filterMap= new HashMap<>();
         filterMap.put("sku", "00e8da9b");
         Map<String, Object> valueUpdateMap = new HashMap<>();

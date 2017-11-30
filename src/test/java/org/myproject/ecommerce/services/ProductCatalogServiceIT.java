@@ -4,6 +4,7 @@ import static org.junit.Assert.*;
 
 import org.junit.*;
 import org.junit.runner.RunWith;
+import org.myproject.ecommerce.domain.Product;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -28,17 +29,15 @@ public class ProductCatalogServiceIT {
     public void tearDown() {
     }
 
-    @Ignore
     @Test
-    public void test() {
-        // when
-
-
+    public void shouldReturnCorrectNumberOfProducts() {
         // given
 
+        // when
+        long number = mongoDBService.count("ecommerce", "product", Product.class);
 
         // verify
-        fail("to implement");
+        assertEquals(100001, number);
     }
 
     @Configuration
