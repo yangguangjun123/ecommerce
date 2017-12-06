@@ -20,15 +20,19 @@ start mongod --config E:\E-Commerce\database\mongodb_sharding\m2\config\mongod.c
 Login into MongoDB route server to configure sharding
 mongo --port 27017
 
--- create shard key
-db.product.createIndex({type:1, genre:1, sku:1})
+-- create shard key index
+db.product.createIndex({type:1, genre:1, productSkuCode:1})
+db.variations.createIndex({productId:1})
 
 -- shard collection
 sh.enableSharding("ecommerce")
-db.runCommand({shardCollection:"ecommerce.product", key:{type:1, genre:1, sku:1}})
+db.runCommand({shardCollection:"ecommerce.product", key:{type:1, genre:1, productSkuCode:1}})
+db.runCommand({shardCollection:"ecommerce.variations", key:{productId: "hashed"}})
 sh.status()
-db.collection.getShardDistribution()
-db.collection.stats()
+db.product.getShardDistribution()
+db.product.stats()
+db.variations.getShardDistribution()
+db.variations.stats()
 
 -- create other indexes for improving performance
 db.product.createIndex({type:1, "details.genre_others":1, "details.issue_date":-1})

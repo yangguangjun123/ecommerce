@@ -5,6 +5,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.myproject.ecommerce.domain.*;
+import org.myproject.ecommerce.utilities.SKUCodeService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -27,6 +28,9 @@ public class ProductInventoryServiceIT {
 
     @Autowired
     private MongoDBService mongoDBService;
+
+    @Autowired
+    private SKUCodeService skuCodeGeneratorService;
 
     @Autowired
     private ProductInventoryService productInventoryService;
@@ -163,6 +167,9 @@ public class ProductInventoryServiceIT {
         @Autowired
         private MongoDBService mongoDBService;
 
+        @Autowired
+        private SKUCodeService skuCodeGeneratorService;
+
         @Bean
         MongoDBService mongoDBService() {
             return new MongoDBService();
@@ -181,6 +188,11 @@ public class ProductInventoryServiceIT {
         @Bean
         PaymentService paymentService() {
             return new PaymentService();
+        }
+
+        @Bean
+        SKUCodeService skuCodeGeneratorService() {
+            return new SKUCodeService();
         }
 
     }

@@ -8,6 +8,7 @@ import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
 import com.mongodb.client.model.Filters;
 import com.mongodb.client.model.Updates;
+import com.mongodb.client.result.UpdateResult;
 import com.mongodb.util.JSON;
 import org.bson.Document;
 import org.bson.codecs.configuration.CodecRegistries;
@@ -123,6 +124,28 @@ public class MongoDBService {
         MongoDatabase mongoDatabase = mongoClient.getDatabase(databaseName);
         MongoCollection collection = mongoDatabase.getCollection(collectionName);
         collection.deleteMany(new Document());
+    }
+
+    public void deleteOne(String databaseName, String collectionName, Map<String, Object> filterMap) {
+        MongoDatabase mongoDatabase = mongoClient.getDatabase(databaseName);
+        MongoCollection collection = mongoDatabase.getCollection(collectionName);
+        List<Bson> filters = filterMap.keySet()
+                .stream()
+                .map(key -> mapBsonFilter(key, filterMap))
+                .collect(toList());
+        collection.deleteOne(and(filters));
+    }
+
+    public <T> boolean replaceOne(String databaseName, String collectionName, Class<T> clazz,
+                                 Map<String, Object> filterMap, T value) {
+        MongoDatabase mongoDatabase = mongoClient.getDatabase(databaseName);
+        MongoCollection collection = mongoDatabase.getCollection(collectionName);
+        List<Bson> filters = filterMap.keySet()
+                .stream()
+                .map(key -> mapBsonFilter(key, filterMap))
+                .collect(toList());
+        UpdateResult result = collection.replaceOne(and(filters), value);
+        return result.getModifiedCount() == 1L;
     }
 
     public <T> long count(String databaseName, String collectionName, Class<T> clazz) {

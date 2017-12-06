@@ -5,6 +5,7 @@ import static org.junit.Assert.*;
 import org.junit.*;
 import org.junit.runner.RunWith;
 import org.myproject.ecommerce.domain.Product;
+import org.myproject.ecommerce.utilities.SKUCodeService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -17,6 +18,9 @@ public class ProductCatalogServiceIT {
 
     @Autowired
     private MongoDBService mongoDBService;
+
+    @Autowired
+    private SKUCodeService skuCodeGeneratorService;
 
     @Autowired
     private ProductCatalogService productCatalogService;
@@ -37,13 +41,16 @@ public class ProductCatalogServiceIT {
         long number = mongoDBService.count("ecommerce", "product", Product.class);
 
         // verify
-        assertEquals(100001, number);
+        assertEquals(100003, number);
     }
 
     @Configuration
     public static class CustomConfiguration {
         @Autowired
         private MongoDBService mongoDBService;
+
+        @Autowired
+        private SKUCodeService skuCodeGeneratorService;
 
         @Bean
         MongoDBService mongoDBService() {
@@ -53,6 +60,11 @@ public class ProductCatalogServiceIT {
         @Bean
         ProductCatalogService productCatalogService() {
             return new ProductCatalogService(mongoDBService);
+        }
+
+        @Bean
+        SKUCodeService skuCodeGeneratorService() {
+            return new SKUCodeService();
         }
     }
 

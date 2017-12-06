@@ -11,6 +11,7 @@ public class Product {
     @BsonId
     private ObjectId id;
 
+    protected String productId;
     protected String sku;
     protected String type;
     protected String genre;
@@ -134,6 +135,14 @@ public class Product {
         this.carted = carted;
     }
 
+    public String getProductId() {
+        return productId;
+    }
+
+    public void setProductId(String productId) {
+        this.productId = productId;
+    }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
@@ -142,6 +151,8 @@ public class Product {
         Product product = (Product) o;
 
         if (quantity != product.quantity) return false;
+        if (id != null ? !id.equals(product.id) : product.id != null) return false;
+        if (productId != null ? !productId.equals(product.productId) : product.productId != null) return false;
         if (sku != null ? !sku.equals(product.sku) : product.sku != null) return false;
         if (type != null ? !type.equals(product.type) : product.type != null) return false;
         if (genre != null ? !genre.equals(product.genre) : product.genre != null) return false;
@@ -155,7 +166,9 @@ public class Product {
 
     @Override
     public int hashCode() {
-        int result = sku != null ? sku.hashCode() : 0;
+        int result = id != null ? id.hashCode() : 0;
+        result = 31 * result + (productId != null ? productId.hashCode() : 0);
+        result = 31 * result + (sku != null ? sku.hashCode() : 0);
         result = 31 * result + (type != null ? type.hashCode() : 0);
         result = 31 * result + (genre != null ? genre.hashCode() : 0);
         result = 31 * result + (title != null ? title.hashCode() : 0);
@@ -171,7 +184,9 @@ public class Product {
     @Override
     public String toString() {
         return "Product{" +
-                "sku='" + sku + '\'' +
+                "id=" + id +
+                ", productId='" + productId + '\'' +
+                ", sku='" + sku + '\'' +
                 ", type='" + type + '\'' +
                 ", genre='" + genre + '\'' +
                 ", title='" + title + '\'' +
