@@ -29,9 +29,10 @@ public class Product {
     public Product() {
     }
 
-    public Product(String sku, String type, String genre, String title,
+    public Product(String productId, String sku, String type, String genre, String title,
                    String description, String asin, Shipping shipping,
                    Pricing pricing, int quantity, List<CartedItem> carted) {
+        this.productId = productId;
         this.sku = sku;
         if(ProductType.fromValue(type) == null) {
             throw new IllegalArgumentException("incorrect product type: " + type);
@@ -272,6 +273,7 @@ public class Product {
     }
 
     public static class ProductBuilder {
+        protected String productId;
         protected String sku;
         protected String type;
         protected String genre;
@@ -283,7 +285,8 @@ public class Product {
         protected int quantity;
         protected List<CartedItem> carted;
 
-        public ProductBuilder(String sku, String type) {
+        public ProductBuilder(String productId, String sku, String type) {
+            this.productId = productId;
             this.sku = sku;
             if(ProductType.fromValue(type) == null) {
                 throw new IllegalArgumentException("incorrect product type: " + type);

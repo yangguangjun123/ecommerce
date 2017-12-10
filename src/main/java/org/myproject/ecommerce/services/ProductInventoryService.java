@@ -30,7 +30,7 @@ public class ProductInventoryService implements IProductInventoryService {
         populateCarts();
         Map<String, Object> queryFilterMap = new HashMap<>();
         Map<String, Object> fieldValueMap = new HashMap<>();
-        fieldValueMap.put("productSkuCode", "00e8da9b");
+        fieldValueMap.put("sku", "00e8da9b");
         queryFilterMap.put("$eq", fieldValueMap);
         Map<String, Object> valueMap = new HashMap<>();
         valueMap.put("qty", 16);
@@ -45,17 +45,14 @@ public class ProductInventoryService implements IProductInventoryService {
         mongoDBService.deleteAll(database, "cart");
 
         Map<String, Object> filterMap = new HashMap<>();
-        filterMap.put("productSkuCode", "00e8da9b");
+        filterMap.put("sku", "00e8da9b");
         Map<String, Object> valueMap = new HashMap<>();
         valueMap.put("qty", 16);
         valueMap.put("carted", Optional.empty());
         Map<String, Object> updateMap = new HashMap<>();
         updateMap.put("addOrRemove", valueMap);
-        boolean result = mongoDBService.updateOne("ecommerce", "product", Product.class,
+        mongoDBService.updateOne("ecommerce", "product", Product.class,
                 filterMap, updateMap, new HashMap<>());
-        if(!result) {
-            throw new RuntimeException("cannot remove all carts");
-        }
     }
 
     @Override
@@ -82,7 +79,7 @@ public class ProductInventoryService implements IProductInventoryService {
         HashMap<String, Object> quantityQueryMap = new HashMap<>();
         quantityQueryMap.put("qty", quantity);
         filterMap.clear();
-        filterMap.put("productSkuCode", sku);
+        filterMap.put("sku", sku);
         filterMap.put("$gte", quantityQueryMap);
         HashMap<String, Object> quantityUpdateMap = new HashMap<>();
         quantityUpdateMap.put("qty", Math.negateExact(quantity));
@@ -105,7 +102,7 @@ public class ProductInventoryService implements IProductInventoryService {
                     filterMap, combined, new HashMap<>());
             if(!result) {
                 throw new EcommerceException("roll back failed: " + ", cart_id: " +
-                        cartId + ", details.productSkuCode: " + sku);
+                        cartId + ", details.sku: " + sku);
             }
 
             throw new InadequateInventoryException("Inadquate Inventory: " + "cart id: " +
@@ -122,7 +119,7 @@ public class ProductInventoryService implements IProductInventoryService {
         Map<String, Object> filterMap = new HashMap<>();
         filterMap.put("_id", cartId);
         filterMap.put("status", ShoppingCartStatus.ACTIVE.toString());
-        filterMap.put("items.productSkuCode", sku);
+        filterMap.put("items.sku", sku);
         Map<String, Object> valueMap = new HashMap<>();
         valueMap.put("last_modified", now);
         valueMap.put("items.$.qty", newQty);
@@ -138,7 +135,7 @@ public class ProductInventoryService implements IProductInventoryService {
         HashMap<String, Object> quantityQueryMap = new HashMap<>();
         quantityQueryMap.put("qty", deltaQty);
         filterMap.clear();
-        filterMap.put("productSkuCode", sku);
+        filterMap.put("sku", sku);
         filterMap.put("carted.cart_id", cartId);
         filterMap.put("$gte", quantityQueryMap);
         HashMap<String, Object> quantityUpdateMap = new HashMap<>();
@@ -157,7 +154,7 @@ public class ProductInventoryService implements IProductInventoryService {
             // roll back our cart update
             filterMap.clear();
             filterMap.put("_id", cartId);
-            filterMap.put("items.productSkuCode", sku);
+            filterMap.put("items.sku", sku);
             valueMap.clear();
             valueMap.put("items.$.qty", oldQty);
             result = mongoDBService.updateOne("ecommerce", "cart", ShoppingCart.class,
@@ -333,7 +330,7 @@ public class ProductInventoryService implements IProductInventoryService {
                                     filterMap.clear();
                                     filterMap.put("_id", id);
                                     Map<String, Object> valueMap = new HashMap<>();
-                                    valueMap.put("items.productSkuCode", product.getSku());
+                                    valueMap.put("items.sku", product.getSku());
                                     Map<String, Object> combined = new HashMap<>();
                                     combined.put("pull", valueMap);
                                     mongoDBService.updateMany("ecommerce", "cart",
@@ -361,7 +358,7 @@ public class ProductInventoryService implements IProductInventoryService {
 
     private void returnCartItem(int cartId, ShoppingCartItem item) {
         Map<String, Object> filterMap = new HashMap<>();
-        filterMap.put("productSkuCode", item.getSku());
+        filterMap.put("sku", item.getSku());
         filterMap.put("carted.cart_id", cartId);
         filterMap.put("carted.qty", item.getQuantity());
         Map<String, Object> valueMap = new HashMap<>();
@@ -392,7 +389,7 @@ public class ProductInventoryService implements IProductInventoryService {
                         new ShoppingCartItemDetails("some details"))));
         mongoDBService.createOne("ecommerce", "cart", ShoppingCart.class, cart);
         Map<String, Object> filterMap= new HashMap<>();
-        filterMap.put("productSkuCode", "00e8da9b");
+        filterMap.put("sku", "00e8da9b");
         Map<String, Object> valueUpdateMap = new HashMap<>();
         Product.CartedItem cartedItem = new Product.CartedItem(1,42, lastModified);
         valueUpdateMap.clear();

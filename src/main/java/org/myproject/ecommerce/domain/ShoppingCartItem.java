@@ -67,7 +67,7 @@ public class ShoppingCartItem {
     @Override
     public String toString() {
         return "ShoppingCartItem{" +
-                "productSkuCode='" + sku + '\'' +
+                "sku='" + sku + '\'' +
                 ", quantity=" + quantity +
                 ", itemDetails=" + itemDetails +
                 '}';

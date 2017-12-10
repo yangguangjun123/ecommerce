@@ -4,7 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import org.myproject.ecommerce.domain.AudioAlbum;
 import org.myproject.ecommerce.domain.Film;
-import org.myproject.ecommerce.utilities.SKUCodeService;
+import org.myproject.ecommerce.utilities.SKUCodeProductIdGenerator;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -17,7 +17,7 @@ import java.util.Map;
 @Service
 public class ProductCatalogJsonDataService {
     @Autowired
-    private SKUCodeService skuCodeGeneratorService;
+    private SKUCodeProductIdGenerator skuCodeGeneratorService;
 
     private ObjectMapper mapper = null;
 

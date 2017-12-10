@@ -3,7 +3,7 @@ package org.myproject.ecommerce.services;
 import org.bson.types.ObjectId;
 import org.myproject.ecommerce.domain.*;
 import org.myproject.ecommerce.interfaces.IProductCatalogService;
-import org.myproject.ecommerce.utilities.SKUCodeService;
+import org.myproject.ecommerce.utilities.SKUCodeProductIdGenerator;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -19,7 +19,7 @@ public class ProductCatalogService implements IProductCatalogService {
     private final MongoDBService mongoDBService;
 
     @Autowired
-    private SKUCodeService skuCodeGeneratorService;
+    private SKUCodeProductIdGenerator skuCodeGeneratorService;
 
     @Autowired
     public ProductCatalogService(MongoDBService mongoDBService) {
@@ -29,10 +29,10 @@ public class ProductCatalogService implements IProductCatalogService {
     @PostConstruct
     public void initialise() {
         if(mongoDBService.getDocumentCount("ecommerce", "product",
-                Product.class) != 100003) {
+                Product.class) != 100004) {
             deleteAllProductCatalog();
             deleteAllProductVariations();
-            skuCodeGeneratorService.resetSKU();
+            skuCodeGeneratorService.reset();
             for(int i=0; i<50000; i++) {
                 Product audioAlbum = createAudioAlbumProduct();
                 createAudioAlbumProductVariation(audioAlbum);
@@ -47,17 +47,23 @@ public class ProductCatalogService implements IProductCatalogService {
                     Product.class, matrix);
             createFilmProductVariation(matrix);
 
-            Film anotherMatrix = createMatrixFilmProduct();
-            anotherMatrix.setSku("00e8da9d");
-            mongoDBService.createOne("ecommerce", "product",
-                    Product.class, anotherMatrix);
-            createFilmProductVariation(anotherMatrix);
-
             AudioAlbum loveSupreme = createLoveSupremeAudioProduct();
             loveSupreme.setSku("00e8da9b");
             mongoDBService.createOne("ecommerce", "product",
                     Product.class, loveSupreme);
             createAudioAlbumProductVariation(loveSupreme);
+
+            Film anotherMatrix = createMatrixFilmProduct();
+            anotherMatrix.setSku("00e8da9c");
+            mongoDBService.createOne("ecommerce", "product",
+                    Product.class, anotherMatrix);
+            createFilmProductVariation(anotherMatrix);
+
+            AudioAlbum anotherLoveSupreme = createLoveSupremeAudioProduct();
+            anotherLoveSupreme.setSku("00e8da9d");
+            mongoDBService.createOne("ecommerce", "product",
+                    Product.class, anotherLoveSupreme);
+            createAudioAlbumProductVariation(anotherLoveSupreme);
         }
     }
 
@@ -83,14 +89,16 @@ public class ProductCatalogService implements IProductCatalogService {
 
     public <T> T readBySku(String sku, Class<T> clazz) {
         Map<String, Object> filter = new HashMap<>();
-        filter.put("productSkuCode", sku);
+        filter.put("sku", sku);
         return mongoDBService.readOne("ecommerce", "product", clazz, filter).get();
     }
 
     private AudioAlbum buildAudioAlbumProduct() {
+        String productId = skuCodeGeneratorService.createProductId();
         String sku = skuCodeGeneratorService.createProductSKUCode();
         String genre = AudioAlbumGenreType.JAZZ.toString();
-        AudioAlbum.AudioAlbumBuilder builder = new AudioAlbum.AudioAlbumBuilder(sku, ProductType.AUDIOALBUM.toString());
+        AudioAlbum.AudioAlbumBuilder builder = new AudioAlbum.AudioAlbumBuilder(productId, sku,
+                ProductType.AUDIOALBUM.toString());
         builder.buildGenre(genre).buildTitle("A Love Supreme").buildDescription("by John Coltrane")
                 .buildAsin("B0000A118M").buildShipping(new Shipping(6,
                     new Shipping.Dimensions(10, 10, 1)))
@@ -110,9 +118,10 @@ public class ProductCatalogService implements IProductCatalogService {
     }
 
     private Film buildFilmProduct() {
+        String productId = skuCodeGeneratorService.createProductId();
         String sku = skuCodeGeneratorService.createProductSKUCode();
         String genre = FilmGenreType.THRILLER.toString();
-        Film.FilmBuilder builder = new Film.FilmBuilder(sku, ProductType.FILM.toString());
+        Film.FilmBuilder builder = new Film.FilmBuilder(productId, sku, ProductType.FILM.toString());
         builder.buildGenre(genre).buildTitle("The Matrix [1999][DVD]").buildDescription("by Joel Silver")
                 .buildAsin("B000P0J0AQ").buildShipping(new Shipping(6,
                 new Shipping.Dimensions(10, 10, 1)))
@@ -132,8 +141,9 @@ public class ProductCatalogService implements IProductCatalogService {
     }
 
     private Film createMatrixFilmProduct() {
+        String productId = skuCodeGeneratorService.createProductId();
         String genre = FilmGenreType.THRILLER.toString();
-        Film.FilmBuilder builder = new Film.FilmBuilder("", ProductType.FILM.toString());
+        Film.FilmBuilder builder = new Film.FilmBuilder(productId,"", ProductType.FILM.toString());
         builder.buildGenre(genre).buildTitle("The Matrix").buildDescription("by Joel Silver")
                 .buildAsin("B000P0J0AQ").buildShipping(new Shipping(6,
                 new Shipping.Dimensions(10, 10, 1)))
@@ -153,8 +163,10 @@ public class ProductCatalogService implements IProductCatalogService {
     }
 
     private AudioAlbum createLoveSupremeAudioProduct() {
+        String productId = skuCodeGeneratorService.createProductId();
         String genre = AudioAlbumGenreType.JAZZ.toString();
-        AudioAlbum.AudioAlbumBuilder builder = new AudioAlbum.AudioAlbumBuilder("", ProductType.AUDIOALBUM.toString());
+        AudioAlbum.AudioAlbumBuilder builder = new AudioAlbum.AudioAlbumBuilder(productId, "",
+                ProductType.AUDIOALBUM.toString());
         builder.buildGenre(genre).buildTitle("A Love Supreme").buildDescription("by John Coltrane")
                 .buildAsin("B0000A118M").buildShipping(new Shipping(6,
                 new Shipping.Dimensions(10, 10, 1)))

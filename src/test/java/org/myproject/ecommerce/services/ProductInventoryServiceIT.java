@@ -5,7 +5,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.myproject.ecommerce.domain.*;
-import org.myproject.ecommerce.utilities.SKUCodeService;
+import org.myproject.ecommerce.utilities.SKUCodeProductIdGenerator;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -30,7 +30,7 @@ public class ProductInventoryServiceIT {
     private MongoDBService mongoDBService;
 
     @Autowired
-    private SKUCodeService skuCodeGeneratorService;
+    private SKUCodeProductIdGenerator skuCodeGeneratorService;
 
     @Autowired
     private ProductInventoryService productInventoryService;
@@ -168,7 +168,7 @@ public class ProductInventoryServiceIT {
         private MongoDBService mongoDBService;
 
         @Autowired
-        private SKUCodeService skuCodeGeneratorService;
+        private SKUCodeProductIdGenerator skuCodeGeneratorService;
 
         @Bean
         MongoDBService mongoDBService() {
@@ -191,8 +191,8 @@ public class ProductInventoryServiceIT {
         }
 
         @Bean
-        SKUCodeService skuCodeGeneratorService() {
-            return new SKUCodeService();
+        SKUCodeProductIdGenerator skuCodeGeneratorService() {
+            return new SKUCodeProductIdGenerator();
         }
 
     }
