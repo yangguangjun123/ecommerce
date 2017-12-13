@@ -4,8 +4,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import org.myproject.ecommerce.domain.AudioAlbum;
 import org.myproject.ecommerce.domain.Film;
-import org.myproject.ecommerce.domain.ProductType;
-import org.myproject.ecommerce.utilities.SKUCodeGenerator;
+import org.myproject.ecommerce.utilities.SKUCodeProductIdGenerator;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
@@ -16,6 +16,9 @@ import java.util.Map;
 
 @Service
 public class ProductCatalogJsonDataService {
+    @Autowired
+    private SKUCodeProductIdGenerator skuCodeGeneratorService;
+
     private ObjectMapper mapper = null;
 
     public ProductCatalogJsonDataService() {
@@ -28,7 +31,7 @@ public class ProductCatalogJsonDataService {
         try {
             AudioAlbum product = mapper.readValue(this.getClass().getResourceAsStream(
                     "/audio_album.json"), AudioAlbum.class);
-            product.setSku(SKUCodeGenerator.createSKUCode(ProductType.AUDIOALBUM));
+            product.setSku(skuCodeGeneratorService.createProductSKUCode());
             product.getDetails().setIssueDate(Date.from(LocalDate.now().atStartOfDay().toInstant(ZoneOffset.UTC)));
             audioAlbum = mapper.writeValueAsString(product);
             System.out.println(audioAlbum);

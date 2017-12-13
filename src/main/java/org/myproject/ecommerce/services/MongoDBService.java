@@ -8,6 +8,7 @@ import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
 import com.mongodb.client.model.Filters;
 import com.mongodb.client.model.Updates;
+import com.mongodb.client.result.UpdateResult;
 import com.mongodb.util.JSON;
 import org.bson.Document;
 import org.bson.codecs.configuration.CodecRegistries;
@@ -22,6 +23,7 @@ import java.io.IOException;
 import java.util.*;
 import java.util.function.Consumer;
 import java.util.function.Function;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 import static com.mongodb.client.model.Filters.*;
@@ -75,6 +77,12 @@ public class MongoDBService {
         return result;
     }
 
+    public <T> Optional<T> readById(String databaseName, String collectionName, Class<T> clazz, Object id) {
+        Map<String, Object> filter = new HashMap<>();
+        filter.put("_id", id);
+        return this.readOne(databaseName, collectionName, clazz, filter);
+    }
+
     public <T> Optional<T> readOne(String databaseName, String collectionName, Class<T> clazz,
                                             Map<String, Object> filter) {
         List<T> results = readAll(databaseName, collectionName, clazz, filter);
@@ -123,6 +131,28 @@ public class MongoDBService {
         MongoDatabase mongoDatabase = mongoClient.getDatabase(databaseName);
         MongoCollection collection = mongoDatabase.getCollection(collectionName);
         collection.deleteMany(new Document());
+    }
+
+    public void deleteOne(String databaseName, String collectionName, Map<String, Object> filterMap) {
+        MongoDatabase mongoDatabase = mongoClient.getDatabase(databaseName);
+        MongoCollection collection = mongoDatabase.getCollection(collectionName);
+        List<Bson> filters = filterMap.keySet()
+                .stream()
+                .map(key -> mapBsonFilter(key, filterMap))
+                .collect(toList());
+        collection.deleteOne(and(filters));
+    }
+
+    public <T> boolean replaceOne(String databaseName, String collectionName, Class<T> clazz,
+                                 Map<String, Object> filterMap, T value) {
+        MongoDatabase mongoDatabase = mongoClient.getDatabase(databaseName);
+        MongoCollection collection = mongoDatabase.getCollection(collectionName);
+        List<Bson> filters = filterMap.keySet()
+                .stream()
+                .map(key -> mapBsonFilter(key, filterMap))
+                .collect(toList());
+        UpdateResult result = collection.replaceOne(and(filters), value);
+        return result.getModifiedCount() == 1L;
     }
 
     public <T> long count(String databaseName, String collectionName, Class<T> clazz) {
@@ -211,6 +241,10 @@ public class MongoDBService {
             Map<String, Object> fieldValueMap = (Map<String, Object>) queryFilterMap.get("$in");
             List<String> keys = fieldValueMap.keySet().stream().collect(toList());
             return in(keys.get(0), (List) fieldValueMap.get(keys.get(0)));
+        } else if(key.equals("$regex")) {
+            Map<String, Object> fieldValueMap = (Map<String, Object>) queryFilterMap.get("$regex");
+            List<String> keys = fieldValueMap.keySet().stream().collect(toList());
+            return regex(keys.get(0), (Pattern) fieldValueMap.get(keys.get(0)));
         } else {
             return eq(key, queryFilterMap.get(key));
         }

@@ -6,12 +6,15 @@ import org.bson.types.ObjectId;
 
 import java.util.Date;
 import java.util.List;
+import java.util.Objects;
 
 public class Product {
     @BsonId
     private ObjectId id;
 
+    protected String productId;
     protected String sku;
+    protected String department;
     protected String type;
     protected String genre;
     protected String title;
@@ -28,10 +31,22 @@ public class Product {
     public Product() {
     }
 
-    public Product(String sku, String type, String genre, String title,
+    public Product(String productId, String sku, String department,
+                   String type, String genre, String title,
                    String description, String asin, Shipping shipping,
                    Pricing pricing, int quantity, List<CartedItem> carted) {
+        this.productId = productId;
         this.sku = sku;
+
+        if(Objects.isNull(department) || "".equals(department)) {
+            this.department = DepartmentType.UNKNOWN.toString();
+        } else {
+            if(DepartmentType.fromValue(department) == null) {
+                throw new IllegalArgumentException("incorrect department type: " + type);
+            }
+            this.department = department;
+        }
+
         if(ProductType.fromValue(type) == null) {
             throw new IllegalArgumentException("incorrect product type: " + type);
         }
@@ -134,6 +149,22 @@ public class Product {
         this.carted = carted;
     }
 
+    public String getProductId() {
+        return productId;
+    }
+
+    public void setProductId(String productId) {
+        this.productId = productId;
+    }
+
+    public String getDepartment() {
+        return department;
+    }
+
+    public void setDepartment(String department) {
+        this.department = department;
+    }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
@@ -142,7 +173,10 @@ public class Product {
         Product product = (Product) o;
 
         if (quantity != product.quantity) return false;
+        if (id != null ? !id.equals(product.id) : product.id != null) return false;
+        if (productId != null ? !productId.equals(product.productId) : product.productId != null) return false;
         if (sku != null ? !sku.equals(product.sku) : product.sku != null) return false;
+        if (department != null ? !department.equals(product.department) : product.department != null) return false;
         if (type != null ? !type.equals(product.type) : product.type != null) return false;
         if (genre != null ? !genre.equals(product.genre) : product.genre != null) return false;
         if (title != null ? !title.equals(product.title) : product.title != null) return false;
@@ -155,7 +189,10 @@ public class Product {
 
     @Override
     public int hashCode() {
-        int result = sku != null ? sku.hashCode() : 0;
+        int result = id != null ? id.hashCode() : 0;
+        result = 31 * result + (productId != null ? productId.hashCode() : 0);
+        result = 31 * result + (sku != null ? sku.hashCode() : 0);
+        result = 31 * result + (department != null ? department.hashCode() : 0);
         result = 31 * result + (type != null ? type.hashCode() : 0);
         result = 31 * result + (genre != null ? genre.hashCode() : 0);
         result = 31 * result + (title != null ? title.hashCode() : 0);
@@ -171,7 +208,10 @@ public class Product {
     @Override
     public String toString() {
         return "Product{" +
-                "sku='" + sku + '\'' +
+                "id=" + id +
+                ", productId='" + productId + '\'' +
+                ", sku='" + sku + '\'' +
+                ", department='" + department + '\'' +
                 ", type='" + type + '\'' +
                 ", genre='" + genre + '\'' +
                 ", title='" + title + '\'' +
@@ -257,7 +297,9 @@ public class Product {
     }
 
     public static class ProductBuilder {
+        protected String productId;
         protected String sku;
+        protected String department;
         protected String type;
         protected String genre;
         protected String title;
@@ -268,12 +310,18 @@ public class Product {
         protected int quantity;
         protected List<CartedItem> carted;
 
-        public ProductBuilder(String sku, String type) {
+        public ProductBuilder(String productId, String sku, String type) {
+            this.productId = productId;
             this.sku = sku;
             if(ProductType.fromValue(type) == null) {
                 throw new IllegalArgumentException("incorrect product type: " + type);
             }
             this.type = type;
+        }
+
+        public ProductBuilder buildDepartment(String department) {
+            this.department = department;
+            return this;
         }
 
         public ProductBuilder buildGenre(String genre) {

@@ -51,11 +51,8 @@ public class ProductInventoryService implements IProductInventoryService {
         valueMap.put("carted", Optional.empty());
         Map<String, Object> updateMap = new HashMap<>();
         updateMap.put("addOrRemove", valueMap);
-        boolean result = mongoDBService.updateOne("ecommerce", "product", Product.class,
+        mongoDBService.updateOne("ecommerce", "product", Product.class,
                 filterMap, updateMap, new HashMap<>());
-        if(!result) {
-            throw new RuntimeException("cannot remove all carts");
-        }
     }
 
     @Override
