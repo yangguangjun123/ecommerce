@@ -11,10 +11,11 @@ public class AudioAlbum extends Product {
     public AudioAlbum() {
     }
 
-    public AudioAlbum(String productId, String sku, String type, String genre, String title, String description,
-                      String asin, Shipping shipping, Pricing pricing, int quantity, List<CartedItem> carted,
-                      AudioAlbumDetails details ) {
-        super(productId, sku, type, genre, title, description, asin, shipping, pricing, quantity, carted);
+    public AudioAlbum(String productId, String sku, String department, String type, String genre,
+                      String title, String description, String asin, Shipping shipping, Pricing pricing,
+                      int quantity, List<CartedItem> carted, AudioAlbumDetails details ) {
+        super(productId, sku, department, type, genre, title, description, asin, shipping,
+                pricing, quantity, carted);
         this.details = details;
     }
 
@@ -189,7 +190,7 @@ public class AudioAlbum extends Product {
         }
 
         public AudioAlbum build() {
-            return new AudioAlbum(productId, sku, type, genre, super.title, description, asin,
+            return new AudioAlbum(productId, sku, department, type, genre, super.title, description, asin,
                     shipping, pricing, quantity, carted , new AudioAlbumDetails(title,
                     artist, otherGenres, tracks, issueDate));
         }

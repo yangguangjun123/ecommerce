@@ -23,6 +23,7 @@ import java.io.IOException;
 import java.util.*;
 import java.util.function.Consumer;
 import java.util.function.Function;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 import static com.mongodb.client.model.Filters.*;
@@ -74,6 +75,12 @@ public class MongoDBService {
         Consumer<? super T> consumer = t -> result.add(t);
         collection.find().forEach(consumer);
         return result;
+    }
+
+    public <T> Optional<T> readById(String databaseName, String collectionName, Class<T> clazz, Object id) {
+        Map<String, Object> filter = new HashMap<>();
+        filter.put("_id", id);
+        return this.readOne(databaseName, collectionName, clazz, filter);
     }
 
     public <T> Optional<T> readOne(String databaseName, String collectionName, Class<T> clazz,
@@ -234,6 +241,10 @@ public class MongoDBService {
             Map<String, Object> fieldValueMap = (Map<String, Object>) queryFilterMap.get("$in");
             List<String> keys = fieldValueMap.keySet().stream().collect(toList());
             return in(keys.get(0), (List) fieldValueMap.get(keys.get(0)));
+        } else if(key.equals("$regex")) {
+            Map<String, Object> fieldValueMap = (Map<String, Object>) queryFilterMap.get("$regex");
+            List<String> keys = fieldValueMap.keySet().stream().collect(toList());
+            return regex(keys.get(0), (Pattern) fieldValueMap.get(keys.get(0)));
         } else {
             return eq(key, queryFilterMap.get(key));
         }

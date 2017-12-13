@@ -38,32 +38,32 @@ public class ProductCatalogService implements IProductCatalogService {
                 createAudioAlbumProductVariation(audioAlbum);
                 Product film = createFilmProduct();
                 createFilmProductVariation(film);
-
             }
+
             // build prep-populated products
             Film matrix = createMatrixFilmProduct();
             matrix.setSku("0ab42f88");
             mongoDBService.createOne("ecommerce", "product",
                     Product.class, matrix);
-            createFilmProductVariation(matrix);
+            List<ProductVariation> productVariations = createFilmProductVariation(matrix);
 
             AudioAlbum loveSupreme = createLoveSupremeAudioProduct();
             loveSupreme.setSku("00e8da9b");
             mongoDBService.createOne("ecommerce", "product",
                     Product.class, loveSupreme);
-            createAudioAlbumProductVariation(loveSupreme);
+            productVariations = createAudioAlbumProductVariation(loveSupreme);
 
             Film anotherMatrix = createMatrixFilmProduct();
             anotherMatrix.setSku("00e8da9c");
             mongoDBService.createOne("ecommerce", "product",
                     Product.class, anotherMatrix);
-            createFilmProductVariation(anotherMatrix);
+            productVariations = createFilmProductVariation(anotherMatrix);
 
             AudioAlbum anotherLoveSupreme = createLoveSupremeAudioProduct();
             anotherLoveSupreme.setSku("00e8da9d");
             mongoDBService.createOne("ecommerce", "product",
                     Product.class, anotherLoveSupreme);
-            createAudioAlbumProductVariation(anotherLoveSupreme);
+            productVariations = createAudioAlbumProductVariation(anotherLoveSupreme);
         }
     }
 
@@ -73,6 +73,12 @@ public class ProductCatalogService implements IProductCatalogService {
 
     public void deleteAllProductVariations() {
         mongoDBService.deleteAll("ecommerce", "variations");
+    }
+
+    public void deleteProductById(ObjectId id) {
+        Map<String, Object> filterMap = new HashMap<>();
+        filterMap.put("_id", id);
+        mongoDBService.deleteOne("ecommerce", "product", filterMap);
     }
 
     public Product createAudioAlbumProduct() {
@@ -87,10 +93,36 @@ public class ProductCatalogService implements IProductCatalogService {
         return film;
     }
 
-    public <T> T readBySku(String sku, Class<T> clazz) {
+    public <T> Optional<T> getProductBySku(String sku, Class<T> clazz) {
         Map<String, Object> filter = new HashMap<>();
         filter.put("sku", sku);
-        return mongoDBService.readOne("ecommerce", "product", clazz, filter).get();
+        return mongoDBService.readOne("ecommerce", "product", clazz, filter);
+    }
+
+    public <T> Optional<T> getProductVariationBySku(String sku, Class<T> clazz) {
+        Map<String, Object> filter = new HashMap<>();
+        filter.put("_id", sku);
+        return mongoDBService.readOne("ecommerce", "variations", clazz, filter);
+    }
+
+    public <T> Optional<T> getProductByProductId(String productId, Class<T> clazz) {
+        Map<String, Object> filter = new HashMap<>();
+        filter.put("productId", productId);
+        return mongoDBService.readOne("ecommerce", "product", clazz, filter);
+    }
+
+    public <T> List<T> getProducts(List<String> productIds, Class<T> clazz) {
+        Map<String, Object> valueMap = new HashMap<>();
+        valueMap.put("productId", productIds);
+        Map<String, Object> filterMap = new HashMap<>();
+        filterMap.put("$in", valueMap);
+        return mongoDBService.readAll("ecommerce", "product", clazz, filterMap);
+    }
+
+    public <T> List<T> getAllProductVariationsByProductId(String productId, Class<T> clazz) {
+        Map<String, Object> filter = new HashMap<>();
+        filter.put("productId", productId);
+        return mongoDBService.readAll("ecommerce", "variations", clazz, filter);
     }
 
     private AudioAlbum buildAudioAlbumProduct() {
@@ -103,7 +135,7 @@ public class ProductCatalogService implements IProductCatalogService {
                 .buildAsin("B0000A118M").buildShipping(new Shipping(6,
                     new Shipping.Dimensions(10, 10, 1)))
                 .buildPricing(new Pricing(1200, 1100, 100, 8))
-                .buildQuantity(16);
+                .buildQuantity(16).buildDepartment(DepartmentType.DIGITAL_MUSIC.toString());
         builder.buildAudioAlbumTitle("A Love Supreme [Original Recording Reissued]")
                .buildAudioAlbumArtist("John Coltrane").buildAudioAlbumOtherGenres(Arrays.asList( "General" ))
                .buildAudioAlbumTracks(Arrays.asList( "A Love Supreme Part I: Acknowledgement",
@@ -126,7 +158,7 @@ public class ProductCatalogService implements IProductCatalogService {
                 .buildAsin("B000P0J0AQ").buildShipping(new Shipping(6,
                 new Shipping.Dimensions(10, 10, 1)))
                 .buildPricing(new Pricing(1200, 1100, 100, 0))
-                .buildQuantity(16);
+                .buildQuantity(16).buildDepartment(DepartmentType.DVD_BLUERAY.toString());
         builder.buildFilmTitle("The Matrix")
                 .buildFilmDirector(Arrays.asList("Andy Wachowski", "Larry Wachowski"))
                 .buildFilmWriter(Arrays.asList("Andy Wachowski", "Larry Wachowski") )
@@ -148,7 +180,7 @@ public class ProductCatalogService implements IProductCatalogService {
                 .buildAsin("B000P0J0AQ").buildShipping(new Shipping(6,
                 new Shipping.Dimensions(10, 10, 1)))
                 .buildPricing(new Pricing(1200, 1100, 100, 0))
-                .buildQuantity(16);
+                .buildQuantity(16).buildDepartment(DepartmentType.DVD_BLUERAY.toString());
         builder.buildFilmTitle("The Matrix")
                 .buildFilmDirector(Arrays.asList("Andy Wachowski", "Larry Wachowski"))
                 .buildFilmWriter(Arrays.asList("Andy Wachowski", "Larry Wachowski") )
@@ -171,7 +203,7 @@ public class ProductCatalogService implements IProductCatalogService {
                 .buildAsin("B0000A118M").buildShipping(new Shipping(6,
                 new Shipping.Dimensions(10, 10, 1)))
                 .buildPricing(new Pricing(1200, 1100, 100, 8))
-                .buildQuantity(16);
+                .buildQuantity(16).buildDepartment(DepartmentType.DIGITAL_MUSIC.toString());
         builder.buildAudioAlbumTitle("A Love Supreme [Original Recording Reissued]")
                 .buildAudioAlbumArtist("John Coltrane").buildAudioAlbumOtherGenres(Arrays.asList( "General" ))
                 .buildAudioAlbumTracks(Arrays.asList( "A Love Supreme Part I: Acknowledgement",
@@ -185,7 +217,7 @@ public class ProductCatalogService implements IProductCatalogService {
         return loveSupreme;
     }
 
-    private void createAudioAlbumProductVariation(Product audioAlbum) {
+    private List<ProductVariation> createAudioAlbumProductVariation(Product audioAlbum) {
         List<ProductVariation> variations = new ArrayList<>();
         ProductVariation productVariation = new ProductVariation();
         productVariation.setSku(skuCodeGeneratorService.createProductVariationSKUCode());
@@ -213,9 +245,11 @@ public class ProductCatalogService implements IProductCatalogService {
 
         mongoDBService.createAll("ecommerce", "variations",
                 ProductVariation.class, variations);
+
+        return variations;
     }
 
-    private void createFilmProductVariation(Product film) {
+    private List<ProductVariation> createFilmProductVariation(Product film) {
         List<ProductVariation> variations = new ArrayList<>();
         ProductVariation productVariation = new ProductVariation();
         productVariation.setSku(skuCodeGeneratorService.createProductVariationSKUCode());
@@ -259,5 +293,7 @@ public class ProductCatalogService implements IProductCatalogService {
 
         mongoDBService.createAll("ecommerce", "variations",
                 ProductVariation.class, variations);
+
+        return variations;
     }
 }

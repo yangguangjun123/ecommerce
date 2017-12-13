@@ -6,8 +6,7 @@ rs.intiate()
 (in production, recommend to run a config server cluster with at least 3 config servers)
 
 -- start route server and add shard servers
-start mongos --configdb configSet/Lenovo-PC:27019
-    --config E:\E-Commerce\database\mongodb_sharding\route_server\config\route_server.conf
+start mongos --configdb configSet/Lenovo-PC:27019 --config E:\E-Commerce\database\mongodb_sharding\route_server\config\route_server.conf
 
 mongo --port 27017
 sh.addShard("Lenovo-PC:30001")
@@ -28,11 +27,14 @@ db.variations.createIndex({productId:1})
 sh.enableSharding("ecommerce")
 db.runCommand({shardCollection:"ecommerce.product", key:{type:1, genre:1, sku:1}})
 db.runCommand({shardCollection:"ecommerce.variations", key:{productId: "hashed"}})
+db.runCommand({shardCollection:"ecommerce.prices", key:{_id: "hashed"}})
 sh.status()
 db.product.getShardDistribution()
 db.product.stats()
 db.variations.getShardDistribution()
 db.variations.stats()
+db.prices.getShardDistribution()
+db.prices.stats()
 
 -- create other indexes for improving performance
 db.product.createIndex({type:1, "details.genre_others":1, "details.issue_date":-1})

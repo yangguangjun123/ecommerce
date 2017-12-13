@@ -11,10 +11,10 @@ public class Film extends Product{
     public Film() {
     }
 
-    public Film(String productId, String sku, String type, String genre, String title, String description,
-                String asin, Shipping shipping, Pricing pricing, int quantity, List<CartedItem> carted,
-                      FilmDetails details ) {
-        super(productId, sku, type, genre, title, description, asin, shipping, pricing, quantity, carted);
+    public Film(String productId, String sku, String department, String type, String genre,
+                String title, String description, String asin, Shipping shipping, Pricing pricing,
+                int quantity, List<CartedItem> carted, FilmDetails details ) {
+        super(productId, sku, department, type, genre, title, description, asin, shipping, pricing, quantity, carted);
         this.details = details;
     }
 
@@ -228,7 +228,7 @@ public class Film extends Product{
         }
 
         public Film build() {
-            return new Film(productId, sku, type, genre, super.title, description, asin,
+            return new Film(productId, sku, department, type, genre, super.title, description, asin,
                     shipping, pricing, quantity, carted, new Film.FilmDetails(title,
                     director, writer, aspectRatio, issueDate, otherGenres, actor));
         }

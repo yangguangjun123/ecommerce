@@ -62,7 +62,7 @@ public class ProductInventoryServiceIT {
         String sku = "00e8da9b";
         int quantity = 1;
         ShoppingCartItemDetails details = new ShoppingCartItemDetails("add a new item to cart");
-        AudioAlbum beforeAdded = productCatalogService.readBySku(sku, AudioAlbum.class);
+        AudioAlbum beforeAdded = productCatalogService.getProductBySku(sku, AudioAlbum.class).get();
 
         // given
         productInventoryService.addItemToCart(cartId, sku, quantity, details);
@@ -73,7 +73,7 @@ public class ProductInventoryServiceIT {
         assertEquals(sku, cart.getItems().get(cart.getItems().size() - 1).getSku());
         assertEquals(quantity, cart.getItems().get(cart.getItems().size() - 1).getQuantity());
         assertEquals(details, cart.getItems().get(cart.getItems().size() - 1).getItemDetails());
-        AudioAlbum afterAdded = productCatalogService.readBySku(sku, AudioAlbum.class);
+        AudioAlbum afterAdded = productCatalogService.getProductBySku(sku, AudioAlbum.class).get();
         assertEquals(beforeAdded.getQuantity() - 1, afterAdded.getQuantity());
     }
 
@@ -84,7 +84,7 @@ public class ProductInventoryServiceIT {
         String sku = "00e8da9b";
         int oldQuantity = 1;
         int newQuantity = 2;
-        AudioAlbum beforeUpdated = productCatalogService.readBySku(sku, AudioAlbum.class);
+        AudioAlbum beforeUpdated = productCatalogService.getProductBySku(sku, AudioAlbum.class).get();
 
         // when
         productInventoryService.updateCartQuantity(cartId, sku,oldQuantity, newQuantity);
@@ -94,7 +94,7 @@ public class ProductInventoryServiceIT {
         assertEquals(cartId, cart.getCartId());
         assertEquals(sku, cart.getItems().get(0).getSku());
         assertEquals(newQuantity, cart.getItems().get(0).getQuantity());
-        AudioAlbum afterUpdated = productCatalogService.readBySku(sku, AudioAlbum.class);
+        AudioAlbum afterUpdated = productCatalogService.getProductBySku(sku, AudioAlbum.class).get();
         assertEquals(beforeUpdated.getQuantity() + Math.negateExact(newQuantity - oldQuantity),
                 afterUpdated.getQuantity());
     }
@@ -131,7 +131,7 @@ public class ProductInventoryServiceIT {
         // verify
         ShoppingCart cart = productInventoryService.getCartByCartId(42);
         assertEquals(ShoppingCartStatus.EXPIRED.toString(), cart.getStatus());
-        AudioAlbum product = productCatalogService.readBySku("00e8da9b", AudioAlbum.class);
+        AudioAlbum product = productCatalogService.getProductBySku("00e8da9b", AudioAlbum.class).get();
         assertEquals(expectedQty, product.getQuantity());
     }
 
@@ -158,7 +158,7 @@ public class ProductInventoryServiceIT {
         ShoppingCart cart = productInventoryService.getCartByCartId(42);
         assertTrue(cart.getItems().size() == 1);
         assertEquals("0ab42f88", cart.getItems().get(0).getSku());
-        AudioAlbum product = productCatalogService.readBySku("00e8da9b", AudioAlbum.class);
+        AudioAlbum product = productCatalogService.getProductBySku("00e8da9b", AudioAlbum.class).get();
         assertEquals(expectedQty, product.getQuantity());
     }
 
