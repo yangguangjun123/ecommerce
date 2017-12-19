@@ -26,7 +26,7 @@ public class ProductCategoryServiceIT {
     private MongoDBService mongoDBService;
 
     @Autowired
-    private IProductCategoryService productCategoryService;
+    private ProductCategoryService productCategoryService;
 
     @Before
     public void setUp() {

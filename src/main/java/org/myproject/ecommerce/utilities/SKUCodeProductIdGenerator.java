@@ -29,7 +29,7 @@ public class SKUCodeProductIdGenerator {
         if(result.isPresent()) {
             skuCodeProductId = result.get();
             productSku = Long.parseLong(skuCodeProductId.getProductSkuCode(), 16);
-            productvariationSku = Long.parseLong(skuCodeProductId.getProductSkuCode(),16);
+            productvariationSku = Long.parseLong(skuCodeProductId.getProductVariationSkuCode());
             productId = Long.parseLong(skuCodeProductId.getProductId());
         } else {
             reset();
@@ -42,12 +42,12 @@ public class SKUCodeProductIdGenerator {
         skuCodeProductId.setId(new ObjectId());
         skuCodeProductId.setProductSkuCode("00e8da9e");
         skuCodeProductId.setProductVariationSkuCode("93284847362823");
-        skuCodeProductId.setProductId("30671");
+        skuCodeProductId.setProductId("1");
         mongoDBService.createOne("ecommerce", "skucode_productid",
                 SKUCodeProductId.class, skuCodeProductId);
-        productSku = 0x00e8da9e;
-        productvariationSku = 93284847362823L;
-        productId = 30671L;
+        productSku = Long.parseLong(skuCodeProductId.getProductSkuCode(), 16);
+        productvariationSku = Long.parseLong(skuCodeProductId.getProductVariationSkuCode());
+        productId = Long.parseLong(skuCodeProductId.getProductId());
     }
 
     public String createProductSKUCode() {

@@ -41,7 +41,19 @@ db.product.createIndex({type:1, "details.genre_others":1, "details.issue_date":-
 db.product.createIndex({"pricing.pct_savings":1})
 db.product.createIndex({type:1, "details.actor":1, "details.issue_date":-1})
 db.product.createIndex({type:1, "details.issue_date":-1, title:1})
+db.product.createIndex({productId:1})
 db.cart.createIndex({status:1, last_modified:1})
+db.store.createIndex({"storeId": 1}, {"unique": true})
+db.store.createIndex({"name": 1})
+db.store.createIndex({"address.zip": 1})
+db.store.createIndex({"location": "2dsphere"})
+db.store_inventory.createIndex({storeId: 1})
+db.store_inventory.createIndex({productId:1, storeId:1})
+db.store_inventory.createIndex({productId:1, location: "2dsphere"})
+
+{“name”:1}: Get a store by name.
+{“address.zip”:1}: Get all stores within a zip code, i.e. store locator.
+{“location”: 2dsphere}: Get all stores around a specified geolocation.
 
 -- To model a product category hierarchy, this solution keeps each category in its own document that also has a list
 -- of its ancestors or “parents.” This document uses music genres as the basis of its examples.

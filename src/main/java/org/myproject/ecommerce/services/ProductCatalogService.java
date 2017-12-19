@@ -22,6 +22,12 @@ public class ProductCatalogService implements IProductCatalogService {
     private SKUCodeProductIdGenerator skuCodeGeneratorService;
 
     @Autowired
+    private StoreInventoryService storeInventoryService;
+
+    @Autowired
+    private PriceService priceService;
+
+    @Autowired
     public ProductCatalogService(MongoDBService mongoDBService) {
         this.mongoDBService = mongoDBService;
     }
@@ -32,39 +38,64 @@ public class ProductCatalogService implements IProductCatalogService {
                 Product.class) != 100004) {
             deleteAllProductCatalog();
             deleteAllProductVariations();
+            deleteAllStoreInventory();
             skuCodeGeneratorService.reset();
+            priceService.deleteAllPrices();
             for(int i=0; i<50000; i++) {
                 Product audioAlbum = createAudioAlbumProduct();
                 createAudioAlbumProductVariation(audioAlbum);
                 Product film = createFilmProduct();
                 createFilmProductVariation(film);
             }
-
-            // build prep-populated products
-            Film matrix = createMatrixFilmProduct();
-            matrix.setSku("0ab42f88");
-            mongoDBService.createOne("ecommerce", "product",
-                    Product.class, matrix);
-            List<ProductVariation> productVariations = createFilmProductVariation(matrix);
-
-            AudioAlbum loveSupreme = createLoveSupremeAudioProduct();
-            loveSupreme.setSku("00e8da9b");
-            mongoDBService.createOne("ecommerce", "product",
-                    Product.class, loveSupreme);
-            productVariations = createAudioAlbumProductVariation(loveSupreme);
-
-            Film anotherMatrix = createMatrixFilmProduct();
-            anotherMatrix.setSku("00e8da9c");
-            mongoDBService.createOne("ecommerce", "product",
-                    Product.class, anotherMatrix);
-            productVariations = createFilmProductVariation(anotherMatrix);
-
-            AudioAlbum anotherLoveSupreme = createLoveSupremeAudioProduct();
-            anotherLoveSupreme.setSku("00e8da9d");
-            mongoDBService.createOne("ecommerce", "product",
-                    Product.class, anotherLoveSupreme);
-            productVariations = createAudioAlbumProductVariation(anotherLoveSupreme);
+            populateProducts();
+            priceService.initialise();
+            storeInventoryService.initialise();
         }
+    }
+
+    private void populateProducts() {
+        // build prep-populated products
+        Film matrix = createMatrixFilmProduct(skuCodeGeneratorService.createProductId(), "0ab42f88");
+        mongoDBService.createOne("ecommerce", "product",
+                Product.class, matrix);
+        createFilmProductVariation(matrix);
+
+        AudioAlbum loveSupreme = createLoveSupremeAudioProduct(skuCodeGeneratorService.createProductId(),
+                "00e8da9b");
+        mongoDBService.createOne("ecommerce", "product",
+                Product.class, loveSupreme);
+        createAudioAlbumProductVariation(loveSupreme);
+
+        Film anotherMatrix = createMatrixFilmProduct(skuCodeGeneratorService.createProductId(), "00e8da9c");
+        mongoDBService.createOne("ecommerce", "product",
+                Product.class, anotherMatrix);
+        createFilmProductVariation(anotherMatrix);
+
+        AudioAlbum anotherLoveSupreme = createLoveSupremeAudioProduct(skuCodeGeneratorService.createProductId(),
+                "00e8da9d");
+        mongoDBService.createOne("ecommerce", "product",
+                Product.class, anotherLoveSupreme);
+        createAudioAlbumProductVariation(anotherLoveSupreme);
+
+        Map<String, Object> filterMap = new HashMap<>();
+        filterMap.put("productId", "20034");
+        Product product = mongoDBService.readOne("ecommerce", "product",
+                Product.class, filterMap).get();
+        product.setSku("sku11736");
+        filterMap.put("_id", product.getId());
+        mongoDBService.deleteOne("ecommerce", "product", filterMap);
+        mongoDBService.createOne("ecommerce", "product", Product.class, product);
+
+        filterMap.clear();
+        filterMap.put("productId", "20034");
+        mongoDBService.deleteMany("ecommerce", "variations", filterMap);
+        List<ProductVariation> product20034Variations = Arrays.asList(
+                new ProductVariation("sku1", "20034"),
+                new ProductVariation("sku2", "20034"),
+                new ProductVariation("sku3", "20034"),
+                new ProductVariation("sku11736", "20034"));
+        mongoDBService.createAll("ecommerce", "variations",
+                ProductVariation.class, product20034Variations);
     }
 
     public void deleteAllProductCatalog() {
@@ -73,6 +104,10 @@ public class ProductCatalogService implements IProductCatalogService {
 
     public void deleteAllProductVariations() {
         mongoDBService.deleteAll("ecommerce", "variations");
+    }
+
+    public void deleteAllStoreInventory() {
+        storeInventoryService.deleteAll();
     }
 
     public void deleteProductById(ObjectId id) {
@@ -172,8 +207,7 @@ public class ProductCatalogService implements IProductCatalogService {
         return film;
     }
 
-    private Film createMatrixFilmProduct() {
-        String productId = skuCodeGeneratorService.createProductId();
+    private Film createMatrixFilmProduct(String productId, String sku) {
         String genre = FilmGenreType.THRILLER.toString();
         Film.FilmBuilder builder = new Film.FilmBuilder(productId,"", ProductType.FILM.toString());
         builder.buildGenre(genre).buildTitle("The Matrix").buildDescription("by Joel Silver")
@@ -191,11 +225,11 @@ public class ProductCatalogService implements IProductCatalogService {
                 .buildActor("Keanu Reeves");
         Film matrix = builder.build();
         matrix.setId(new ObjectId());
+        matrix.setSku(sku);
         return matrix;
     }
 
-    private AudioAlbum createLoveSupremeAudioProduct() {
-        String productId = skuCodeGeneratorService.createProductId();
+    private AudioAlbum createLoveSupremeAudioProduct(String productId, String sku) {
         String genre = AudioAlbumGenreType.JAZZ.toString();
         AudioAlbum.AudioAlbumBuilder builder = new AudioAlbum.AudioAlbumBuilder(productId, "",
                 ProductType.AUDIOALBUM.toString());
@@ -214,6 +248,7 @@ public class ProductCatalogService implements IProductCatalogService {
                         .atStartOfDay().toInstant(ZoneOffset.UTC)));
         AudioAlbum loveSupreme = builder.build();
         loveSupreme.setId(new ObjectId());
+        loveSupreme.setSku(sku);
         return loveSupreme;
     }
 

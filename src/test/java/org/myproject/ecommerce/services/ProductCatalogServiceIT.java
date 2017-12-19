@@ -31,6 +31,15 @@ public class ProductCatalogServiceIT {
     private SKUCodeProductIdGenerator skuCodeGeneratorService;
 
     @Autowired
+    private StoreService storeService;
+
+    @Autowired
+    private PriceService priceService;
+
+    @Autowired
+    private StoreInventoryService storeInventoryService;
+
+    @Autowired
     private ProductCatalogService productCatalogService;
 
     @Before
@@ -103,6 +112,34 @@ public class ProductCatalogServiceIT {
                 .forEach(p -> assertTrue(productIds.contains(p.getProductId())));
     }
 
+    @Test
+    public void shouldReturnAllProductVariationsForSpecificSku() {
+        // gievn
+        String sku = "93284847362823";
+
+        // when
+        ProductVariation productVariation = productCatalogService.getProductVariationBySku(sku,
+                ProductVariation.class).get();
+
+        // verify
+        assertEquals(sku, productVariation.getSku());
+    }
+
+    @Test
+    public void shouldReturnAllVariationsForSpecificProduct() {
+        // gievn
+        String productId = "30671";
+
+        // when
+        List<ProductVariation> productVariations = productCatalogService.getAllProductVariationsByProductId(productId,
+                ProductVariation.class);
+
+        // verify
+        assertEquals(4, productVariations.size());
+        productVariations.stream()
+                         .forEach(p -> assertEquals(productId, p.getProductId()));
+    }
+
     @Configuration
     public static class CustomConfiguration {
         @Autowired
@@ -110,6 +147,15 @@ public class ProductCatalogServiceIT {
 
         @Autowired
         private SKUCodeProductIdGenerator skuCodeGeneratorService;
+
+        @Autowired
+        private StoreService storeService;
+
+        @Autowired
+        private PriceService priceService;
+
+        @Autowired
+        private StoreInventoryService storeInventoryService;
 
         @Bean
         MongoDBService mongoDBService() {
@@ -124,6 +170,21 @@ public class ProductCatalogServiceIT {
         @Bean
         SKUCodeProductIdGenerator skuCodeGeneratorService() {
             return new SKUCodeProductIdGenerator();
+        }
+
+        @Bean
+        PriceService priceService() {
+            return new PriceService();
+        }
+
+        @Bean
+        StoreService storeService() {
+            return new StoreService();
+        }
+
+        @Bean
+        StoreInventoryService storeInventoryService() {
+            return new StoreInventoryService();
         }
 
     }

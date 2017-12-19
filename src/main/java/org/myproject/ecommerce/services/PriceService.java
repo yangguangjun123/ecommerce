@@ -4,7 +4,6 @@ import org.myproject.ecommerce.domain.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import javax.annotation.PostConstruct;
 import java.util.*;
 import java.util.regex.Pattern;
 
@@ -19,7 +18,6 @@ public class PriceService {
     @Autowired
     private StoreService storeService;
 
-    @PostConstruct
     public void initialise() {
         if(getNumberOfPrices() != 14014) {
             deleteAllPrices();
@@ -76,7 +74,7 @@ public class PriceService {
     public void createPrice(Product product) {
         storeService.getAllStores()
                 .stream()
-                .map(s -> new Price(product.getProductId() + "_" + s.getName(),
+                .map(s -> new Price(product.getProductId() + "_" + s.getStoreId(),
                         generatePrice(s, product)))
                 .forEach(p -> mongoDBService.createOne("ecommerce",
                         "prices", Price.class, p));
@@ -85,7 +83,7 @@ public class PriceService {
     public void createPrice(ProductVariation productVariation) {
         storeService.getAllStores()
                 .stream()
-                .map(s -> new Price(productVariation.getSku() + "_" + s.getName(),
+                .map(s -> new Price(productVariation.getSku() + "_" + s.getStoreId(),
                         generatePrice(s, productVariation)))
                 .forEach(p -> mongoDBService.createOne("ecommerce",
                         "prices", Price.class, p));
@@ -94,7 +92,7 @@ public class PriceService {
     public Optional<Integer> getProductPrice(Product product, Optional<Store> store) {
         Objects.requireNonNull(product);
         if(store.isPresent()) {
-            return getPriceById(product.getProductId() + "_" + store.get().getName());
+            return getPriceById(product.getProductId() + "_" + store.get().getStoreId());
         } else {
             return getPriceById(product.getProductId());
         }
@@ -104,7 +102,7 @@ public class PriceService {
                                                       Optional<Store> store) {
         Objects.requireNonNull(productVariation);
         if(store.isPresent()) {
-            return getPriceById(productVariation.getSku() + "_" + store.get().getName());
+            return getPriceById(productVariation.getSku() + "_" + store.get().getStoreId());
         } else {
             return getPriceById(productVariation.getSku());
         }
@@ -113,7 +111,7 @@ public class PriceService {
     public List<Price> getStorePrices(Product product, Store store) {
         Objects.requireNonNull(product);
         Objects.requireNonNull(store);
-        String regex = "^" + product.getProductId() + "_" + store.getName();
+        String regex = "^" + product.getProductId() + "_" + store.getStoreId();
         return getPrices(regex);
     }
 
@@ -141,7 +139,7 @@ public class PriceService {
     public List<Price> getStorePrices(ProductVariation productVariation, Store store) {
         Objects.requireNonNull(productVariation);
         Objects.requireNonNull(store);
-        String regex = "^" + productVariation.getSku() + "_" + store.getName();
+        String regex = "^" + productVariation.getSku() + "_" + store.getStoreId();
         return getPrices(regex);
     }
 
