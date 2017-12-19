@@ -36,6 +36,12 @@ public class ProductInventoryServiceIT {
     private ProductInventoryService productInventoryService;
 
     @Autowired
+    private StoreService storeService;
+
+    @Autowired
+    private PriceService priceService;
+
+    @Autowired
     private ProductCatalogService productCatalogService;
 
     @Before
@@ -168,6 +174,15 @@ public class ProductInventoryServiceIT {
         private MongoDBService mongoDBService;
 
         @Autowired
+        private StoreService storeService;
+
+        @Autowired
+        private PriceService priceService;
+
+        @Autowired
+        private StoreInventoryService storeInventoryService;
+
+        @Autowired
         private SKUCodeProductIdGenerator skuCodeGeneratorService;
 
         @Bean
@@ -195,6 +210,20 @@ public class ProductInventoryServiceIT {
             return new SKUCodeProductIdGenerator();
         }
 
+        @Bean
+        StoreService storeService() {
+            return new StoreService();
+        }
+
+        @Bean
+        PriceService priceService() {
+            return new PriceService();
+        }
+
+        @Bean
+        StoreInventoryService storeInventoryService() {
+            return new StoreInventoryService();
+        }
     }
 
 }

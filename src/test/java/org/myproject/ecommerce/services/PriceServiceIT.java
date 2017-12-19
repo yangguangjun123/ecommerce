@@ -42,12 +42,11 @@ public class PriceServiceIT {
     public void shouldReturnPriceForGivenProductAndStore() {
         // given
         String productId = "30671";
-        String storeName = "store23";
+        String storeId = "store23";
         Product product = new Product();
         product.setProductId(productId);
         Store store = new Store();
-        store.setId("23");
-        store.setName(storeName);
+        store.setStoreId(storeId);
         int expectedPrice = 1200;
 
         // when
@@ -61,12 +60,11 @@ public class PriceServiceIT {
     public void shouldReturnPriceForGivenProductVariationAndStore() {
         // given
         String sku = "93284847362823";
-        String storeName = "store23";
+        String storeId = "store23";
         ProductVariation productVariation = new ProductVariation();
         productVariation.setSku(sku);
         Store store = new Store();
-        store.setId("23");
-        store.setName(storeName);
+        store.setStoreId(storeId);
         int expectedPrice = 1200;
 
         // when
@@ -80,12 +78,11 @@ public class PriceServiceIT {
     public void shouldReturnStorePricesForGivenProduct() {
         // given
         String productId = "30671";
-        String storeName = "store23";
+        String storeId = "store23";
         Product product = new Product();
         product.setProductId(productId);
         Store store = new Store();
-        store.setId("23");
-        store.setName(storeName);
+        store.setStoreId(storeId);
         int expectedPrice = 1200;
 
         // when
@@ -101,12 +98,11 @@ public class PriceServiceIT {
     public void shouldReturnStorePricesForGivenProductvariation() {
         // given
         String sku = "93284847362823";
-        String storeName = "store23";
+        String storeId = "store23";
         ProductVariation productVariation = new ProductVariation();
         productVariation.setSku(sku);
         Store store = new Store();
-        store.setId("23");
-        store.setName(storeName);
+        store.setStoreId(storeId);
         int expectedPrice = 1200;
 
         // when
@@ -183,6 +179,9 @@ public class PriceServiceIT {
         private StoreService storeService;
 
         @Autowired
+        private StoreInventoryService storeInventoryService;
+
+        @Autowired
         private PriceService priceService;
 
         @Bean
@@ -208,6 +207,11 @@ public class PriceServiceIT {
         @Bean
         StoreService storeService() {
             return new StoreService();
+        }
+
+        @Bean
+        StoreInventoryService storeInventoryService() {
+            return new StoreInventoryService();
         }
     }
 

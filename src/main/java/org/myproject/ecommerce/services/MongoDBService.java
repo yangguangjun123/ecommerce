@@ -8,6 +8,7 @@ import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
 import com.mongodb.client.model.Filters;
 import com.mongodb.client.model.Updates;
+import com.mongodb.client.model.geojson.Point;
 import com.mongodb.client.result.UpdateResult;
 import com.mongodb.util.JSON;
 import org.bson.Document;
@@ -66,6 +67,13 @@ public class MongoDBService {
         Consumer<? super T> consumer = t -> result.add(t);
         collection.find(combine(filters)).forEach(consumer);
         return result;
+    }
+
+    public <T> void readAll(String databaseName, String collectionName, Class<T> clazz,
+                            Map<String, Object> filter, Consumer<T> consumer) {
+        readAll(databaseName, collectionName, clazz, filter)
+                .stream()
+                .forEach(consumer);
     }
 
     public <T> List<T> readAll(String databaseName, String collectionName, Class<T> clazz) {
@@ -131,6 +139,16 @@ public class MongoDBService {
         MongoDatabase mongoDatabase = mongoClient.getDatabase(databaseName);
         MongoCollection collection = mongoDatabase.getCollection(collectionName);
         collection.deleteMany(new Document());
+    }
+
+    public void deleteMany(String databaseName, String collectionName, Map<String, Object> filterMap) {
+        MongoDatabase mongoDatabase = mongoClient.getDatabase(databaseName);
+        MongoCollection collection = mongoDatabase.getCollection(collectionName);
+        List<Bson> filters = filterMap.keySet()
+                .stream()
+                .map(key -> mapBsonFilter(key, filterMap))
+                .collect(toList());
+        collection.deleteMany(and(filters));
     }
 
     public void deleteOne(String databaseName, String collectionName, Map<String, Object> filterMap) {
@@ -245,6 +263,10 @@ public class MongoDBService {
             Map<String, Object> fieldValueMap = (Map<String, Object>) queryFilterMap.get("$regex");
             List<String> keys = fieldValueMap.keySet().stream().collect(toList());
             return regex(keys.get(0), (Pattern) fieldValueMap.get(keys.get(0)));
+        } else if(key.equals("$nearSphere")) {
+            Map<String, Object> fieldValueMap = (Map<String, Object>) queryFilterMap.get("$nearSphere");
+            return nearSphere((String) fieldValueMap.get("fieldName"), (Point) fieldValueMap.get("geometry"),
+                    (Double) fieldValueMap.get("maxDistance"), (Double) fieldValueMap.get("minDistance"));
         } else {
             return eq(key, queryFilterMap.get(key));
         }
@@ -323,5 +345,4 @@ public class MongoDBService {
         //Bson filter = Filters.eq("carted", Filters.eq("cart_id", 42));
         return Optional.of(Updates.pullByFilter(filter));
     }
-
 }
