@@ -3,6 +3,8 @@ package org.myproject.ecommerce;
 import org.myproject.ecommerce.interfaces.IProductCatalogService;
 import org.myproject.ecommerce.interfaces.IProductInventoryService;
 import org.myproject.ecommerce.services.MongoDBService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.CommandLineRunner;
@@ -23,6 +25,8 @@ public class MainApp implements CommandLineRunner {
     @Autowired
     private IProductInventoryService productInventoryService;
 
+    private static final Logger logger = LoggerFactory.getLogger(MainApp.class);
+
     @Autowired
     public MainApp(@Qualifier("mongoDBService") MongoDBService mongoDBService) {
         this.mongoDBService = mongoDBService;
@@ -36,9 +40,9 @@ public class MainApp implements CommandLineRunner {
 
     @Override
     public void run(String... strings) throws Exception {
-        System.out.println("Start MongoDB Sharding Application ...");
+        logger.info("Start MongoDB Sharding Application ...");
 
-        System.out.println("MongoDB Sharding Application Complete ...");
+        logger.info("MongoDB Sharding Application Complete ...");
     }
 
 }

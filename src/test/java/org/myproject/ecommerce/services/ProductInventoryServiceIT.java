@@ -12,7 +12,6 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
-import java.lang.reflect.Method;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.HashMap;
@@ -50,15 +49,7 @@ public class ProductInventoryServiceIT {
 
     @After
     public void tearDown() throws Exception {
-        Method resetMethod =  ProductInventoryService.class.getDeclaredMethod(
-                "initialise",null); // methodName,parameters
-        resetMethod.setAccessible(true);
-        resetMethod.invoke(productInventoryService);
-
-        ProductInventoryService.class.getDeclaredMethod(
-                "populateCarts",null); // methodName,parameters
-        resetMethod.setAccessible(true);
-        resetMethod.invoke(productInventoryService);
+        productInventoryService.initialise();
     }
 
     @Test
@@ -147,7 +138,6 @@ public class ProductInventoryServiceIT {
         Instant instantCarted = Instant.parse("2012-03-09T20:55:37Z");
         Instant instantNow = Instant.now();
         long timeout = Duration.between(instantCarted, instantNow).getSeconds() - 1;
-        int expectedQty = 17;
         Map<String, Object> filterMap = new HashMap<>();
         filterMap.put("_id", 42);
         Map<String, Object> combined = new HashMap<>();
@@ -162,10 +152,11 @@ public class ProductInventoryServiceIT {
 
         // verify
         ShoppingCart cart = productInventoryService.getCartByCartId(42);
-        assertTrue(cart.getItems().size() == 1);
-        assertEquals("0ab42f88", cart.getItems().get(0).getSku());
-        AudioAlbum product = productCatalogService.getProductBySku("00e8da9b", AudioAlbum.class).get();
-        assertEquals(expectedQty, product.getQuantity());
+        assertEquals(0, cart.getItems().size());
+        assertEquals(17, productCatalogService.getProductBySku("00e8da9b",
+                AudioAlbum.class).get().getQuantity());
+        assertEquals(20, productCatalogService.getProductBySku("0ab42f88",
+                AudioAlbum.class).get().getQuantity());
     }
 
     @Configuration

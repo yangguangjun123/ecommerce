@@ -53,6 +53,16 @@ public class ProductInventoryService implements IProductInventoryService {
         updateMap.put("addOrRemove", valueMap);
         mongoDBService.updateOne("ecommerce", "product", Product.class,
                 filterMap, updateMap, new HashMap<>());
+
+        filterMap.clear();
+        filterMap.put("sku", "0ab42f88");
+        valueMap.clear();
+        valueMap.put("qty", 16);
+        valueMap.put("carted", Optional.empty());
+        updateMap.clear();
+        updateMap.put("addOrRemove", valueMap);
+        mongoDBService.updateOne("ecommerce", "product", Product.class,
+                filterMap, updateMap, new HashMap<>());
     }
 
     @Override
@@ -388,7 +398,7 @@ public class ProductInventoryService implements IProductInventoryService {
                         new ShoppingCartItem("0ab42f88", 4,
                         new ShoppingCartItemDetails("some details"))));
         mongoDBService.createOne("ecommerce", "cart", ShoppingCart.class, cart);
-        Map<String, Object> filterMap= new HashMap<>();
+        Map<String, Object> filterMap = new HashMap<>();
         filterMap.put("sku", "00e8da9b");
         Map<String, Object> valueUpdateMap = new HashMap<>();
         Product.CartedItem cartedItem = new Product.CartedItem(1,42, lastModified);
@@ -396,7 +406,19 @@ public class ProductInventoryService implements IProductInventoryService {
         valueUpdateMap.put("carted", Arrays.asList(cartedItem));
         Map<String, Object> added = new HashMap<>();
         added.put("addOrRemove", valueUpdateMap);
-        mongoDBService.addOne("ecommerce", "product", AudioAlbum.class,
-                filterMap, added);
+        mongoDBService.updateOne("ecommerce", "product", Product.class,
+                filterMap, added, new HashMap<>());
+
+        filterMap.clear();
+        filterMap.put("sku", "0ab42f88");
+        valueUpdateMap.clear();
+        cartedItem = new Product.CartedItem(4,42, lastModified);
+        valueUpdateMap.clear();
+        valueUpdateMap.put("carted", Arrays.asList(cartedItem));
+        added.clear();
+        added.put("addOrRemove", valueUpdateMap);
+        mongoDBService.updateOne("ecommerce", "product", Product.class,
+                filterMap, added, new HashMap<>());
+
     }
 }
