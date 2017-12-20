@@ -16,6 +16,8 @@ import org.bson.codecs.configuration.CodecRegistries;
 import org.bson.codecs.configuration.CodecRegistry;
 import org.bson.codecs.pojo.PojoCodecProvider;
 import org.bson.conversions.Bson;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
 
@@ -35,6 +37,7 @@ import static java.util.stream.Collectors.toList;
 @Qualifier("mongoDBService")
 public class MongoDBService {
     private MongoClient mongoClient;
+    private static final Logger logger = LoggerFactory.getLogger(MongoDBService.class);
 
     public MongoDBService() {
         CodecRegistry pojoCodecRegistry = CodecRegistries.fromRegistries(MongoClient.getDefaultCodecRegistry(),
@@ -105,14 +108,28 @@ public class MongoDBService {
 
     public <T> boolean addOne(String databaseName, String collectionName, Class<T> clazz,
                               Map<String, Object> queryFilterMap, Map<String, Object> valueMap) {
-        return process(databaseName, collectionName, clazz, queryFilterMap,
-                valueMap, new HashMap<>(), this::convert);
+        UpdateResult updateResult = null;
+        try {
+            updateResult = process(databaseName, collectionName, clazz, queryFilterMap,
+                    valueMap, new HashMap<>(), this::convert);
+        } catch (EcommerceException e) {
+            e.printStackTrace();
+            return false;
+        }
+        return updateResult.getModifiedCount() == 1 ? true : false;
     }
 
     public <T> boolean removeOne(String databaseName, String collectionName, Class<T> clazz,
                                  Map<String, Object> queryFilterMap, Map<String, Object> valueMap) {
-        return process(databaseName, collectionName, clazz, queryFilterMap,
-                valueMap, new HashMap<>(), this::convert);
+        UpdateResult updateResult = null;
+        try {
+            updateResult = process(databaseName, collectionName, clazz, queryFilterMap,
+                    valueMap, new HashMap<>(), this::convert);
+        } catch (EcommerceException e) {
+            e.printStackTrace();
+            return false;
+        }
+        return updateResult.getModifiedCount() == 1 ? true : false;
     }
 
     public <T> boolean updateMany(String databaseName, String collectionName, Map<String, Object> queryFilterMap,
@@ -131,8 +148,15 @@ public class MongoDBService {
     public <T> boolean updateOne(String databaseName, String collectionName, Class<T> clazz,
                                  Map<String, Object> queryFilterMap, Map<String, Object> valueMap,
                                  Map<String, Object> updateOptions) {
-        return process(databaseName, collectionName, clazz, queryFilterMap,
-                valueMap, updateOptions, this::convert);
+        UpdateResult updateResult = null;
+        try {
+            updateResult = process(databaseName, collectionName, clazz, queryFilterMap,
+                    valueMap, updateOptions, this::convert);
+        } catch (EcommerceException e) {
+            e.printStackTrace();
+            return false;
+        }
+        return updateResult.getModifiedCount() == 1 ? true : false;
     }
 
     public void deleteAll(String databaseName, String collectionName) {
@@ -201,29 +225,32 @@ public class MongoDBService {
 
     @PreDestroy
     public void cleanup() {
-        System.out.println("dispose of mongoClient");
+        logger.info("dispose of mongoClient");
         mongoClient.close();
     }
 
-    private <T> boolean process(String databaseName, String collectionName, Class<T> clazz,
+    private <T> UpdateResult process(String databaseName, String collectionName, Class<T> clazz,
                                            Map<String, Object> queryFilterMap, Map<String, Object> updateMap,
                                            Map<String, Object> updateOptions,
-                                           Function<Map<String, Object>, List<Bson>> convert) {
+                                           Function<Map<String, Object>, List<Bson>> convert)
+            throws EcommerceException {
         MongoDatabase mongoDatabase = mongoClient.getDatabase(databaseName);
         MongoCollection<Document> collection = mongoDatabase.getCollection(collectionName);
         List<Document> documents = readAll("ecommerce",
                 collectionName, Document.class, queryFilterMap);
 
         if(documents.size() == 0) {
-            System.out.println("documents contain no record: " +
+            logger.error("documents contain no record: " +
                     Objects.toString(queryFilterMap));
-            return false;
+            throw new EcommerceException("documents contain no record: " +
+                    Objects.toString(queryFilterMap));
         }
 
         if(documents.size() > 1) {
-            System.out.println("documents contain more than one record: " +
+            logger.info("documents contain more than one record: " +
                     Objects.toString(queryFilterMap));
-            return false;
+            throw new EcommerceException("documents contain more than one record: " +
+                    Objects.toString(queryFilterMap));
         }
 
         Document document  = documents.get(0);
@@ -237,8 +264,7 @@ public class MongoDBService {
             collection = collection.withWriteConcern(WriteConcern.valueOf(
                     (String) updateOptions.get("writeConcern")));
         }
-        collection.updateOne(and(filters), combine(updates));
-        return true;
+        return collection.updateOne(and(filters), combine(updates));
     }
 
     private Bson mapBsonFilter(String key, final Map<String, Object>  queryFilterMap) {

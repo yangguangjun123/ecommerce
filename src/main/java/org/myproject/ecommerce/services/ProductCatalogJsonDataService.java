@@ -5,6 +5,8 @@ import com.fasterxml.jackson.databind.SerializationFeature;
 import org.myproject.ecommerce.domain.AudioAlbum;
 import org.myproject.ecommerce.domain.Film;
 import org.myproject.ecommerce.utilities.SKUCodeProductIdGenerator;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -21,6 +23,8 @@ public class ProductCatalogJsonDataService {
 
     private ObjectMapper mapper = null;
 
+    private static final Logger logger = LoggerFactory.getLogger((ProductCatalogJsonDataService.class));
+
     public ProductCatalogJsonDataService() {
         mapper = new ObjectMapper();
         mapper.configure(SerializationFeature.INDENT_OUTPUT, true);
@@ -34,7 +38,7 @@ public class ProductCatalogJsonDataService {
             product.setSku(skuCodeGeneratorService.createProductSKUCode());
             product.getDetails().setIssueDate(Date.from(LocalDate.now().atStartOfDay().toInstant(ZoneOffset.UTC)));
             audioAlbum = mapper.writeValueAsString(product);
-            System.out.println(audioAlbum);
+            logger.info(audioAlbum);
         } catch (IOException e) {
             e.printStackTrace();
         }
