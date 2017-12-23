@@ -1,7 +1,7 @@
 package org.myproject.ecommerce.services;
 
-import static java.util.stream.Collectors.toList;
-
+import com.mongodb.client.model.geojson.Point;
+import com.mongodb.client.model.geojson.Position;
 import org.myproject.ecommerce.domain.Product;
 import org.myproject.ecommerce.domain.ProductVariation;
 import org.myproject.ecommerce.domain.StoreInventory;
@@ -14,6 +14,8 @@ import org.springframework.stereotype.Service;
 import javax.annotation.PostConstruct;
 import java.util.*;
 import java.util.function.Consumer;
+
+import static java.util.stream.Collectors.toList;
 
 @Service
 public class StoreInventoryService {
@@ -75,6 +77,9 @@ public class StoreInventoryService {
     }
 
     public Optional<StoreVariation> getStoreInventoryVariation(String storeId, String productId, String sku) {
+        Objects.requireNonNull(storeId);
+        Objects.requireNonNull(productId);
+        Objects.requireNonNull(sku);
         Map<String, Object> filterMap = new HashMap<>();
         filterMap.put("productId", productId);
         filterMap.put("storeId", storeId);
@@ -93,6 +98,13 @@ public class StoreInventoryService {
     }
 
     public void updateStoreInventoryQuantity(String storeId, String productId, String sku, int quantity) {
+        Objects.requireNonNull(storeId);
+        Objects.requireNonNull(productId);
+        Objects.requireNonNull(sku);
+        if(quantity < 0) {
+            logger.error("quantity cannot be negative: " + quantity);
+            return;
+        }
         Map<String, Object> filterMap = new HashMap<>();
         filterMap.put("productId", productId);
         filterMap.put("storeId", storeId);
@@ -125,5 +137,80 @@ public class StoreInventoryService {
         } else {
             logger.error("fail to query product collection by productId: " + productId);
         }
+    }
+
+    public int getQuantityOfAllProductVariations(String productId) {
+        List<Map<String, Object>> pipeline = new ArrayList<>();
+        Map<String, Object> filterMap = new HashMap<>();
+        filterMap.put("productId", productId);
+        Map<String, Object> match = new HashMap<>();
+        match.put("$match", filterMap);
+        pipeline.add(match);
+        Map<String, Object> unwind = new HashMap<>();
+        unwind.put("$unwind", "$vars");
+        pipeline.add(unwind);
+        Map<String, Object> group = new HashMap<>();
+        List<Object> groupParameters = new ArrayList<>();
+        groupParameters.add("result");
+        Map<String, Object> groupOperators = new HashMap<>();
+        List<String> sumParameters = new ArrayList<>();
+        sumParameters.add("count");
+        sumParameters.add("$vars.quantity");
+        groupOperators.put("$sum", sumParameters);
+        groupParameters.add(groupOperators);
+        group.put("$group", groupParameters);
+        pipeline.add(group);
+        List<String> resultFields = new ArrayList<>();
+        resultFields.add("_id");
+        resultFields.add("count");
+        Map<String, Object> resultMap = mongoDBService.processAggregatePipeline("ecommerce",
+                "store_inventory", pipeline, resultFields);
+        return (int) resultMap.get("count");
+    }
+
+    public List<StoreInventory> getProductStoreInventory(String productId, String sku, double[] coordinates,
+                                                         double maxDistance, int numberOfResultsReturned) {
+        List<StoreInventory> result = getProductStoreInventory(productId, sku, coordinates, maxDistance,
+                numberOfResultsReturned, 0);
+        result.stream()
+              .forEach(r -> r.setLocation(Arrays.asList(coordinates[0], coordinates[1])));
+        return result;
+    }
+
+    public List<StoreInventory> getProductStoreInventory(String productId, String sku, double[] coordinates,
+                                                            double maxDistance, int numberOfResultsReturned,
+                                                                     int quantity) {
+        Point refPoint = new Point(new Position(coordinates[0], coordinates[1]));
+        Map<String, Object> geoQueryMap = new HashMap<>();
+        geoQueryMap.put("distanceFieldName", "location");
+        geoQueryMap.put("geometry", refPoint);
+        geoQueryMap.put("maxDistance", maxDistance);
+        Map<String, Object> filterMap = new HashMap<>();
+        filterMap.put("productId", productId);
+        filterMap.put("vars.sku", sku);
+
+        List<Map<String, Object>> aggregatePipelineList = new ArrayList<>();
+        Map<String, Object> unwindMap = new HashMap<>();
+        unwindMap.put("$unwind", "$vars");
+        aggregatePipelineList.add(unwindMap);
+        Map<String, Object> matchMap = new HashMap<>();
+        Map<String, Object> quantityFilterMap = new HashMap<>();
+        quantityFilterMap.put("vars.quantity", 0);
+        Map<String, Object> skuMap = new HashMap<>();
+        skuMap.put("vars.sku", sku);
+        Map<String, Object> combinedMap = new HashMap<>();
+        combinedMap.put("$eq", skuMap);
+        combinedMap.put("$gt", quantityFilterMap);
+        matchMap.put("$match", combinedMap);
+        aggregatePipelineList.add(matchMap);
+        Map<String, Object> limitMap = new HashMap<>();
+        limitMap.put("$limit", numberOfResultsReturned);
+        aggregatePipelineList.add(limitMap);
+
+        List<StoreInventory> result = mongoDBService.performGeoQuery("ecommerce", "store_inventory",
+                StoreInventory.class, geoQueryMap, filterMap, aggregatePipelineList);
+        result.stream()
+                .forEach(r -> r.setLocation(Arrays.asList(coordinates[0], coordinates[1])));
+        return result;
     }
 }
