@@ -1,5 +1,7 @@
 package org.myproject.ecommerce.services;
 
+import static org.junit.Assert.*;
+
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -13,9 +15,8 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
+import java.util.stream.Collectors;
 
 import static org.junit.Assert.assertEquals;
 
@@ -103,6 +104,65 @@ public class StoreInventoryServiceIT {
                 productId, Product.class).get().getQuantity();
         assertEquals(quantity + oldQuantityStoreInventory, newQuantityStoreInventory);
         assertEquals(quantity + oldQuantityProductCatalog, newQuantityProductCatalog);
+    }
+
+    @Test
+    public void shouldReturnTotalNumberOfProductvariations() {
+        // when
+        String productId = "20034";
+
+        // given
+        int count = storeInventoryService.getQuantityOfAllProductVariations(productId);
+
+        // verify
+        assertEquals(31, count);
+    }
+
+    @Test
+    public void shouldReturnProductStoreInventoryWhenGeoLocationDetailsReceived() {
+        // given
+        String productId = "20034";
+        String sku = "sku11736";
+        double[] coordinates = new double[] { -82.8006,40.0908 };
+        double maxDistance = 831441.6134602465;
+        int numberOfResultsReturned = 10;
+
+        // when
+        List<StoreInventory> results = storeInventoryService.getProductStoreInventory(productId, sku,
+                coordinates, maxDistance, numberOfResultsReturned);
+
+        // verify
+        assertTrue(results.size() <= 10);
+        assertEquals(productId, results.get(0).getProductId());
+        assertTrue(results.get(0).getStoreVariations()
+                .stream()
+                .map(StoreInventory.StoreVariation::getSku)
+                .collect(Collectors.toList())
+                .contains(sku));
+        assertEquals(Arrays.asList(coordinates[0], coordinates[1]), results.get(0).getLocation());
+    }
+
+    @Test
+    public void shouldReturnProductStoreInevntoryWhenGeoLocationDetailsAndQuantityReceived() {
+        // given
+        String productId = "20034";
+        String sku = "sku11736";
+        double[] coordinates = new double[] { -82.8006,40.0908 };
+        double maxDistance = 831441.6134602465;
+        int numberOfResultsReturned = 10;
+        int quantity = 0;
+
+        // when
+        List<StoreInventory> results = storeInventoryService.getProductStoreInventory(productId, sku,
+                coordinates, maxDistance, numberOfResultsReturned, quantity);
+
+        // verify
+        assertTrue(results.size() <= 10);
+        assertEquals(productId, results.get(0).getProductId());
+        assertEquals(1, results.get(0).getStoreVariations().size());
+        assertTrue(sku.equals(results.get(0).getStoreVariations().get(0).getSku()));
+        assertEquals(Arrays.asList(coordinates[0], coordinates[1]), results.get(0).getLocation());
+        assertTrue(results.get(0).getStoreVariations().get(0).getQuantity() > quantity);
     }
 
     @Configuration

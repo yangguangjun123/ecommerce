@@ -15,7 +15,7 @@ public class StoreInventory {
     private String productId;
 
     @BsonProperty("vars")
-    List<StoreVariation> storeVariations = new ArrayList<>();
+    List<StoreVariation> storeVariations;
 
     public StoreInventory() {
     }
