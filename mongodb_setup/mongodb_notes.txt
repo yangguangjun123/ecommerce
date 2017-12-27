@@ -22,12 +22,14 @@ mongo --port 27017
 -- create shard key index
 db.product.createIndex({type:1, genre:1, sku:1})
 db.variations.createIndex({productId:1})
+db.store_inventory.createIndex({storeId:1, productId:1})
 
 -- shard collection
 sh.enableSharding("ecommerce")
 db.runCommand({shardCollection:"ecommerce.product", key:{type:1, genre:1, sku:1}})
 db.runCommand({shardCollection:"ecommerce.variations", key:{productId: "hashed"}})
 db.runCommand({shardCollection:"ecommerce.prices", key:{_id: "hashed"}})
+db.runCommand({shardCollection:"ecommerce.store_inventory", key:{storeId:1, productId:1}})
 sh.status()
 db.product.getShardDistribution()
 db.product.stats()
@@ -48,7 +50,6 @@ db.store.createIndex({"name": 1})
 db.store.createIndex({"address.zip": 1})
 db.store.createIndex({"location": "2dsphere"})
 db.store_inventory.createIndex({storeId: 1})
-db.store_inventory.createIndex({productId:1, storeId:1})
 db.store_inventory.createIndex({productId:1, location: "2dsphere"})
 
 {“name”:1}: Get a store by name.
