@@ -1,11 +1,12 @@
 package org.myproject.ecommerce.services;
 
+import static org.myproject.ecommerce.domain.StoreInventory.StoreVariation;
+
 import com.mongodb.client.model.geojson.Point;
 import com.mongodb.client.model.geojson.Position;
 import org.myproject.ecommerce.domain.Product;
 import org.myproject.ecommerce.domain.ProductVariation;
 import org.myproject.ecommerce.domain.StoreInventory;
-import org.myproject.ecommerce.domain.StoreInventory.StoreVariation;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -40,7 +41,7 @@ public class StoreInventoryService {
             List<ProductVariation> product20034Variations =
                     productCatalogService.getAllProductVariationsByProductId("20034",
                             ProductVariation.class);
-            List<StoreInventory.StoreVariation> storeVariations =
+            List<StoreVariation> storeVariations =
                     product20034Variations.stream()
                                           .map(p -> {
                                                   if("sku1".equals(p.getSku())) {

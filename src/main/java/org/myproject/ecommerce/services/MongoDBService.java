@@ -12,12 +12,11 @@ import com.mongodb.client.model.geojson.Point;
 import com.mongodb.client.result.UpdateResult;
 import com.mongodb.util.JSON;
 import org.bson.Document;
-import org.bson.codecs.Codec;
 import org.bson.codecs.configuration.CodecRegistries;
 import org.bson.codecs.configuration.CodecRegistry;
 import org.bson.codecs.pojo.PojoCodecProvider;
 import org.bson.conversions.Bson;
-import org.myproject.ecommerce.domain.StoreInventoryCodec;
+import org.myproject.ecommerce.codec.CustomCodecProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -46,12 +45,9 @@ public class MongoDBService {
     public MongoDBService() {
         CodecRegistry pojoCodecRegistry = CodecRegistries.fromRegistries(MongoClient.getDefaultCodecRegistry(),
                 CodecRegistries.fromProviders(PojoCodecProvider.builder().automatic(true).build()));
-        Codec<Document> defaultDocumentCodec = MongoClient.getDefaultCodecRegistry().get(
-                Document.class);
-        StoreInventoryCodec storeInventoryCodec = new StoreInventoryCodec(defaultDocumentCodec);
         CodecRegistry codecRegistry = CodecRegistries.fromRegistries(
                 MongoClient.getDefaultCodecRegistry(),
-                CodecRegistries.fromCodecs(storeInventoryCodec),
+                CodecRegistries.fromProviders(new CustomCodecProvider()),
                 pojoCodecRegistry);
         MongoClientOptions options = MongoClientOptions.builder().codecRegistry(codecRegistry)
                 .build();
@@ -441,64 +437,6 @@ public class MongoDBService {
         //Bson filter = Filters.eq("carted", Filters.eq("cart_id", 42));
         return Optional.of(Updates.pullByFilter(filter));
     }
-
-//    public <T> List<Document> performGeoQuery(String databaseName, String collectionName, Class<T> clazz,
-//                                                    Map<String, Object> geoQueryMap, Map<String, Object> filterMap,
-//                                                    List<Map<String, Object>> aggregatePipelineMapList) {
-//        MongoDatabase mongoDatabase = mongoClient.getDatabase(databaseName);
-//        MongoCollection<Document> collection = mongoDatabase.getCollection(collectionName);
-//        BasicDBObject query = new BasicDBObject();
-//        filterMap.keySet().stream()
-//                          .forEach(key -> query.append(key, new BasicDBObject("$eq", filterMap.get(key))));
-//        DBObject geoNearFields = new BasicDBObject();
-//        geoNearFields.put("near", geoQueryMap.get("geometry"));
-//        geoNearFields.put("distanceField", geoQueryMap.get("distanceFieldName"));
-//        geoNearFields.put("maxDistance", geoQueryMap.get("maxDistance"));
-//        geoNearFields.put("spherical", true);
-//        geoNearFields.put("query", query);
-//        DBObject geoNear = new BasicDBObject("$geoNear", geoNearFields);
-//
-//        // build aggregate pipeline
-//        List<Bson> pipeline = new ArrayList<>();
-//        pipeline.add((Bson) geoNear);
-//        List<Bson> aggregatePipelineList =
-//                aggregatePipelineMapList
-//                        .stream()
-//                        .map(m -> {
-//                            if (m.containsKey("$limit")) {
-//                                return Optional.of((Bson) new BasicDBObject("$limit", m.get("$limit")));
-//                            } else if (m.containsKey("$unwind")) {
-//                                return Optional.of(Aggregates.unwind((String) m.get("$unwind")));
-//                            } else if (m.containsKey("$match")) {
-//                                Map<String, Object> queryFilterMap = (Map<String, Object>) m.get("$match");
-//                                List<Bson> filters = queryFilterMap.keySet()
-//                                        .stream()
-//                                        .map(key -> mapBsonFilter(key, queryFilterMap))
-//                                        .collect(toList());
-//                                return Optional.of(Aggregates.match(and(filters)));
-//                            } else {
-//                                return Optional.<Bson>empty();
-//                            }
-//                        })
-//                        .filter(Optional::isPresent)
-//                        .map(Optional::get)
-//                        .collect(toList());
-//        pipeline.addAll(aggregatePipelineList);
-//
-//        Bson excluded = Aggregates.project(
-//                Projections.fields(
-//                        Projections.exclude((String) geoQueryMap.get("distanceFieldName"))
-//                        )
-//                );
-//        pipeline.add(excluded);
-//
-//        List<Document> result = new ArrayList<>();
-//        Consumer<Document> consumer = document -> {
-//            result.add(document);
-//        };
-//        collection.aggregate(pipeline).forEach(consumer);
-//        return result;
-//    }
 
     public  <T> List<T> performGeoQuery(String databaseName, String collectionName, Class<T> clazz,
                                         Map<String, Object> geoQueryMap, Map<String, Object> filterMap,
