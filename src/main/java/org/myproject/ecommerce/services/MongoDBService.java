@@ -444,16 +444,16 @@ public class MongoDBService {
         MongoDatabase mongoDatabase = mongoClient.getDatabase(databaseName);
         MongoCollection<T> collection = mongoDatabase.getCollection(collectionName, clazz);
 
-        BasicDBObject query = new BasicDBObject();
+        Document query = new Document();
         filterMap.keySet().stream()
-                .forEach(key -> query.append(key, new BasicDBObject("$eq", filterMap.get(key))));
-        DBObject geoNearFields = new BasicDBObject();
+                .forEach(key -> query.append(key, new Document("$eq", filterMap.get(key))));
+        Document geoNearFields = new Document();
         geoNearFields.put("near", geoQueryMap.get("geometry"));
         geoNearFields.put("distanceField", geoQueryMap.get("distanceFieldName"));
         geoNearFields.put("maxDistance", geoQueryMap.get("maxDistance"));
         geoNearFields.put("spherical", true);
         geoNearFields.put("query", query);
-        DBObject geoNear = new BasicDBObject("$geoNear", geoNearFields);
+        Document geoNear = new Document("$geoNear", geoNearFields);
 
         // build aggregate pipeline
         List<Bson> pipeline = new ArrayList<>();
@@ -463,7 +463,7 @@ public class MongoDBService {
                         .stream()
                         .map(m -> {
                             if (m.containsKey("$limit")) {
-                                return Optional.of((Bson) new BasicDBObject("$limit", m.get("$limit")));
+                                return Optional.of((Bson) new Document("$limit", m.get("$limit")));
                             } else if (m.containsKey("$unwind")) {
                                 return Optional.of(Aggregates.unwind((String) m.get("$unwind")));
                             } else if (m.containsKey("$match")) {
