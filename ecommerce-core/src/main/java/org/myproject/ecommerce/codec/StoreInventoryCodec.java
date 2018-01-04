@@ -18,6 +18,7 @@ import java.util.Map;
 import static java.util.stream.Collectors.toList;
 import static org.myproject.ecommerce.domain.StoreInventory.StoreVariation;
 
+@SuppressWarnings("unchecked")
 public class StoreInventoryCodec implements Codec<StoreInventory> {
     private CodecRegistry codecRegistry;
     private static final Logger logger = LoggerFactory.getLogger(StoreInventoryCodec.class);

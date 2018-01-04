@@ -10,7 +10,6 @@ import com.mongodb.client.model.Projections;
 import com.mongodb.client.model.Updates;
 import com.mongodb.client.model.geojson.Point;
 import com.mongodb.client.result.UpdateResult;
-import com.mongodb.util.JSON;
 import org.bson.Document;
 import org.bson.codecs.configuration.CodecRegistries;
 import org.bson.codecs.configuration.CodecRegistry;
@@ -38,6 +37,7 @@ import static java.util.stream.Collectors.toList;
 
 @Service("mongoDBService")
 @Qualifier("mongoDBService")
+@SuppressWarnings("unchecked")
 public class MongoDBService {
     private MongoClient mongoClient;
     private static final Logger logger = LoggerFactory.getLogger(MongoDBService.class);
@@ -196,7 +196,7 @@ public class MongoDBService {
     public <T> boolean replaceOne(String databaseName, String collectionName, Class<T> clazz,
                                  Map<String, Object> filterMap, T value) {
         MongoDatabase mongoDatabase = mongoClient.getDatabase(databaseName);
-        MongoCollection collection = mongoDatabase.getCollection(collectionName);
+        MongoCollection<T> collection = mongoDatabase.getCollection(collectionName, clazz);
         List<Bson> filters = filterMap.keySet()
                 .stream()
                 .map(key -> mapBsonFilter(key, filterMap))
@@ -215,20 +215,6 @@ public class MongoDBService {
         MongoDatabase mongoDatabase = mongoClient.getDatabase(databaseName);
         MongoCollection<Document> collection = mongoDatabase.getCollection(collectionName);
         collection.insertOne(Document.parse(jsonString));
-    }
-
-    public <T> T readJson(String databaseName, String collectionName, Class<T> clazz) {
-        MongoDatabase mongoDatabase = mongoClient.getDatabase(databaseName);
-        MongoCollection<Document> collection = mongoDatabase.getCollection(collectionName);
-        String serialize = JSON.serialize(collection.find());
-        ObjectMapper objectMapper = new ObjectMapper();
-        T result = null;
-        try {
-            result = objectMapper.readValue(serialize, clazz);
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-        return result;
     }
 
     public Map<String, Object> processAggregatePipeline(String databaseName, String collectionName,

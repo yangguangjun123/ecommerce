@@ -192,44 +192,44 @@ public class Film extends Product{
             super(productId, sku, type);
         }
 
-        public Film.FilmBuilder buildFilmTitle(String title) {
+        public FilmBuilder buildFilmTitle(String title) {
             this.title = title;
             return this;
         }
 
-        public Film.FilmBuilder buildFilmDirector(List<String> director) {
+        public FilmBuilder buildFilmDirector(List<String> director) {
             this.director = director;
             return this;
         }
 
-        public Film.FilmBuilder buildFilmWriter(List<String> writer) {
+        public FilmBuilder buildFilmWriter(List<String> writer) {
             this.writer = writer;
             return this;
         }
 
-        public Film.FilmBuilder buildFilmOtherGenres(List<String> otherGenres) {
+        public FilmBuilder buildFilmOtherGenres(List<String> otherGenres) {
             this.otherGenres = otherGenres;
             return this;
         }
 
-        public Film.FilmBuilder buildAspectRatio(String aspectRatio) {
+        public FilmBuilder buildAspectRatio(String aspectRatio) {
             this.aspectRatio = aspectRatio;
             return this;
         }
 
-        public Film.FilmBuilder buildFilmIssueDate(Date issueDate) {
+        public FilmBuilder buildFilmIssueDate(Date issueDate) {
             this.issueDate = issueDate;
             return this;
         }
 
-        public Film.FilmBuilder buildActor(String actor) {
+        public FilmBuilder buildActor(String actor) {
             this.actor = actor;
             return this;
         }
 
         public Film build() {
             return new Film(productId, sku, department, type, genre, super.title, description, asin,
-                    shipping, pricing, quantity, carted, new Film.FilmDetails(title,
+                    shipping, pricing, quantity, carted, new FilmDetails(title,
                     director, writer, aspectRatio, issueDate, otherGenres, actor));
         }
     }
