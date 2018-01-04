@@ -6,7 +6,6 @@ import org.myproject.ecommerce.services.MongoDBService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
@@ -17,7 +16,8 @@ import org.springframework.context.annotation.Configuration;
 @Configuration
 @ComponentScan
 public class MainApp implements CommandLineRunner {
-    private final MongoDBService mongoDBService;
+    @Autowired
+    private MongoDBService mongoDBService;
 
     @Autowired
     private IProductCatalogService productCatalogService;
@@ -26,11 +26,6 @@ public class MainApp implements CommandLineRunner {
     private IProductInventoryService productInventoryService;
 
     private static final Logger logger = LoggerFactory.getLogger(MainApp.class);
-
-    @Autowired
-    public MainApp(@Qualifier("mongoDBService") MongoDBService mongoDBService) {
-        this.mongoDBService = mongoDBService;
-    }
 
     public static void main(String[] args) {
         // run Spring boot application
