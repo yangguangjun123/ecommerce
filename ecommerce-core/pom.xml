@@ -67,7 +67,7 @@
                 <configuration>
                     <archive>
                         <manifest>
-                            <mainClass>org.myproject.ecommerce.MainApp</mainClass>
+                            <mainClass>org.myproject.ecommerce.core.MainApp</mainClass>
                         </manifest>
                     </archive>
                 </configuration>

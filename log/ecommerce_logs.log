@@ -102,3 +102,21 @@
 1542861 [main] INFO  o.s.j.e.a.AnnotationMBeanExporter - Unregistering JMX-exposed beans on shutdown
 1542882 [main] INFO  o.m.e.services.MongoDBService - dispose of mongoClient
 1542887 [main] INFO  org.mongodb.driver.connection - Closed connection [connectionId{localValue:2}] to localhost:27017 because the pool has been closed.
+4255 [main] INFO  o.myproject.ecommerce.core.MainApp - Starting MainApp on Lenovo-PC with PID 7096 (started by guangjun in C:\Users\guangjun\intellij_idea_ecommerce\ecommerce)
+4279 [main] DEBUG o.myproject.ecommerce.core.MainApp - Running with Spring Boot v1.1.5.RELEASE, Spring v4.0.6.RELEASE
+4541 [main] INFO  o.s.c.a.AnnotationConfigApplicationContext - Refreshing org.springframework.context.annotation.AnnotationConfigApplicationContext@5bda8e08: startup date [Fri Jan 05 20:59:24 GMT 2018]; root of context hierarchy
+14060 [main] INFO  org.mongodb.driver.cluster - Cluster created with settings {hosts=[localhost:27017], mode=SINGLE, requiredClusterType=UNKNOWN, serverSelectionTimeout='30000 ms', maxWaitQueueSize=500}
+14775 [cluster-ClusterId{value='5a4fe735d267c41bb800ae16', description='null'}-localhost:27017] INFO  org.mongodb.driver.connection - Opened connection [connectionId{localValue:1}] to localhost:27017
+14791 [cluster-ClusterId{value='5a4fe735d267c41bb800ae16', description='null'}-localhost:27017] INFO  org.mongodb.driver.cluster - Monitor thread successfully connected to server with description ServerDescription{address=localhost:27017, type=SHARD_ROUTER, state=CONNECTED, ok=true, version=ServerVersion{versionList=[3, 4, 7]}, minWireVersion=0, maxWireVersion=5, maxDocumentSize=16777216, roundTripTimeNanos=3086811}
+14973 [main] INFO  org.mongodb.driver.connection - Opened connection [connectionId{localValue:2}] to localhost:27017
+17798 [main] INFO  org.mongodb.driver.cluster - Cluster created with settings {hosts=[localhost:27017], mode=SINGLE, requiredClusterType=UNKNOWN, serverSelectionTimeout='30000 ms', maxWaitQueueSize=500}
+17826 [cluster-ClusterId{value='5a4fe739d267c41bb800ae18', description='null'}-localhost:27017] INFO  org.mongodb.driver.connection - Opened connection [connectionId{localValue:3}] to localhost:27017
+17834 [cluster-ClusterId{value='5a4fe739d267c41bb800ae18', description='null'}-localhost:27017] INFO  org.mongodb.driver.cluster - Monitor thread successfully connected to server with description ServerDescription{address=localhost:27017, type=SHARD_ROUTER, state=CONNECTED, ok=true, version=ServerVersion{versionList=[3, 4, 7]}, minWireVersion=0, maxWireVersion=5, maxDocumentSize=16777216, roundTripTimeNanos=2268794}
+18762 [main] INFO  o.s.j.e.a.AnnotationMBeanExporter - Registering beans for JMX exposure on startup
+18811 [main] INFO  o.myproject.ecommerce.core.MainApp - Start MongoDB Sharding Application ...
+18815 [main] INFO  o.myproject.ecommerce.core.MainApp - MongoDB Sharding Application Complete ...
+18820 [main] INFO  o.myproject.ecommerce.core.MainApp - Started MainApp in 16.125 seconds (JVM running for 20.427)
+18823 [main] INFO  o.s.c.a.AnnotationConfigApplicationContext - Closing org.springframework.context.annotation.AnnotationConfigApplicationContext@5bda8e08: startup date [Fri Jan 05 20:59:24 GMT 2018]; root of context hierarchy
+18830 [main] INFO  o.s.j.e.a.AnnotationMBeanExporter - Unregistering JMX-exposed beans on shutdown
+18850 [main] INFO  o.m.e.core.services.MongoDBService - dispose of mongoClient
+18854 [main] INFO  org.mongodb.driver.connection - Closed connection [connectionId{localValue:2}] to localhost:27017 because the pool has been closed.
