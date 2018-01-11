@@ -14,7 +14,7 @@
   "time_slicing" :
   {
     "type"   : "periodic",
-    "config" : { "period" : {"days" : 1} }
+    "config" : { "period" : {"weeks" : 4} }
   },
   "interceptors":
   [
@@ -47,7 +47,7 @@
         "indexes":
         [
           {
-            "keys"    : {"timeStamp": 1, "itemId" : 1},
+            "keys"    : {"ts": 1, "itemId" : 1},
             "options" : {"unique" : true},
             "skips"   : 2
           }

@@ -37,7 +37,7 @@ import static java.util.stream.Collectors.toList;
 @Qualifier("mongoDBService")
 @SuppressWarnings("unchecked")
 public class MongoDBService {
-    private MongoClient mongoClient;
+    private final MongoClient mongoClient;
     private static final Logger logger = LoggerFactory.getLogger(MongoDBService.class);
 
     public MongoDBService() {
