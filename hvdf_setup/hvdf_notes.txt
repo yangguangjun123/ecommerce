@@ -1,68 +1,9 @@
 -- HVDF(High Volume Data Feed) Configuration
+To run HVDF component:
 java -jar ./target/hvdf-0.0.1-SNAPSHOT.jar server hvdf-config.yml
-{
-	"storage" :
-	{
-		"type"   : "raw",
-		"config" :
-		{
-			"id_factory" :
-			{
-				"type"   : "source_time_document",
-				"config" : {  }
-			}
-		}
-	},
-    "time_slicing" :
-    {
-        "type"   : "periodic",
-        "config" : { "period" : {"days" : 1} }
-    },
-	"interceptors":
-    [
-        {
-            "type" : "batching",
-            "config" :
-            {
-                "target_batch_size"  : 500,
-                "max_batch_age"      : 100,
-                "thread_count"       : 4,
-                "max_queued_batches" : 50
-            }
-        },
-		{
-			"type" : "retry",
-			"config" :
-			{
-				"max_retries" : 3,
-				"retry_period" : {"seconds" : 5}
-			}
-		}
-    ],
-    "tasks":
-    [
-		{
-			"type"   : "ensure_indexes",
-			"period" : {"seconds" : 3},
-			"config" :
-			{
-				"indexes":
-				[
-					{
-						"keys"    : {"timeStamp": 1, "itemId" : 1},
-						"options" : {"unique" : true},
-						"skips"   : 2
-					}
-				]
-			}
-		},
-		{
-            "type" : "limit_slices",
-            "period" : {"seconds" : 3},
-            "config" :
-            {
-                "by_count" : 30
-            }
-        }
-    ]
-}
+
+To open debug port of HVDF component, run
+java -Xdebug -Xrunjdwp:transport=dt_socket,address=8585,server=y,suspend=n -jar ./target/hvdf-0.0.1-SNAPSHOT.jar server hvdf-config.yml
+
+The connectivity configuration of HVDF is specified in the hvdf-config.yml file.
+The channel configuration of HVDF for E-Cmmerce is specified in the hvdf-channel-config.json file.

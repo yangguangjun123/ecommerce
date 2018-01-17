@@ -6,7 +6,6 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.*;
 import com.fasterxml.jackson.databind.module.SimpleModule;
-import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.mongodb.MongoClient;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
@@ -30,10 +29,10 @@ import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
+import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
-import java.time.format.DateTimeFormatter;
 import java.util.*;
 
 import static java.util.stream.Collectors.joining;
@@ -53,6 +52,8 @@ public class HVDFClientService {
 
     private final String serviceUrl;
     private static final String CONFIG_URL = "/feed/{feed}/{channel}/config";
+    private static final String POST_SAMPLE_URL = "/feed/{feed}/{channel}/data";
+    private static final String QUERY_SAMPLE = "http://localhost:8080/feed/ecommerce/activity/data";
     private static final Logger logger = LoggerFactory.getLogger(HVDFClientService.class);
 
     public HVDFClientService() {
@@ -72,26 +73,22 @@ public class HVDFClientService {
         customeJsonmapping(simpleModule);
         objectMapper.registerModule(simpleModule);
 
-        if(!isHVDFServiceConfigured("ecommerce", "hvdf_config")) {
+        if(!isHVDFServiceConfigured("config", "hvdf_channels_ecommerce")) {
             JSONParser parser = new JSONParser();
             try {
                 JSONObject hvdfJsonConfig = (JSONObject) parser.parse(IOUtils.toString(getClass()
-                        .getResourceAsStream("/hvdf-config.json"), StandardCharsets.UTF_8.name()));
-                mongoClient.getDatabase("ecommerce")
-                        .getCollection("activity").drop();
-                mongoClient.getDatabase("ecommerce").getCollection("hvdf_config").drop();
-                configure("ecommerce", "hvdf_config", hvdfJsonConfig.toJSONString());
-
+                        .getResourceAsStream("/hvdf-channel-config.json"), StandardCharsets.UTF_8.name()));
+                configure("ecommerce", "activity", hvdfJsonConfig.toJSONString());
             } catch (IOException | ParseException e) {
                 e.printStackTrace();
             }
+            populateActivities();
         }
-        populateActivities();
     }
 
     private void populateActivities() {
-        ActivityBuilder builder = new ActivityBuilder();
-        builder.setUserId("u123").setSource("u123").setGeoCode(1).setSessionId("2373BB")
+        ActivityDataBuilder builder = new ActivityDataBuilder();
+        builder.setUserId("u123").setGeoCode(1).setSessionId("2373BB")
                 .setDevice(new Activity.Device("1234", "mobile/iphone", "Chrome/34.0.1847.131"))
                 .setType(Activity.Type.VIEW).setItemId("301671").setSku("730223104376")
                 .setOrder(new Activity.Order("12520185"))
@@ -99,10 +96,11 @@ public class HVDFClientService {
                 .setTags(Arrays.asList("smartphone", "iphone"));
         LocalDateTime now = LocalDateTime.now();
         builder.setTime(now)
-                .setTimeStamp(now.atZone(ZoneId.systemDefault()).toInstant().toEpochMilli());
-        record(builder.createActivity());
-        builder = new ActivityBuilder();
-        builder.setUserId("user457").setSource("user457").setGeoCode(1).setSessionId("2373BB")
+               .setTimeStamp(now.atZone(ZoneId.systemDefault()).toInstant().toEpochMilli());
+        record(new Activity("u123",
+                now.atZone(ZoneId.systemDefault()).toInstant().toEpochMilli(), builder.createActivity()));
+        builder = new ActivityDataBuilder();
+        builder.setUserId("u457").setGeoCode(1).setSessionId("2373BB")
                 .setDevice(new Activity.Device("1234", "mobile/iphone", "Chrome/34.0.1847.131"))
                 .setType(Activity.Type.VIEW).setItemId("301671").setSku("730223104376")
                 .setOrder(new Activity.Order("12520185"))
@@ -111,44 +109,59 @@ public class HVDFClientService {
         now = LocalDateTime.now();
         builder.setTime(now)
                 .setTimeStamp(now.atZone(ZoneId.systemDefault()).toInstant().toEpochMilli());
-        record(builder.createActivity());
+        record(new Activity("u457",
+                now.atZone(ZoneId.systemDefault()).toInstant().toEpochMilli(), builder.createActivity()));
     }
 
-    public void record(Activity activity) {
+    public boolean record(Activity activity) {
         try {
             Map<String, String> paramsMap = new HashMap<>();
             paramsMap.put("sample", objectMapper.writeValueAsString(activity));
-            send("http://localhost:8080/feed/ecommerce/activity/data", paramsMap, HttpMethod.POST);
+            String requestUrl = serviceUrl + POST_SAMPLE_URL;
+            requestUrl = StringUtils.replace(requestUrl, "{feed}", "ecommerce");
+            requestUrl = StringUtils.replace(requestUrl, "{channel}",
+                    activity.getClass().getSimpleName().toLowerCase());
+            ResponseEntity<String> response = send(requestUrl, paramsMap, HttpMethod.POST);
+            return HttpStatus.OK == response.getStatusCode();
         } catch (Exception e) {
             logger.error("unable to record activity: " + activity.toString());
             e.printStackTrace();
+            return false;
         }
     }
 
-    public void record(List<Activity> activities) {
-        ArrayNode array = objectMapper.createArrayNode();
-        activities.stream()
-                  .forEach(a -> array.add(objectMapper.createArrayNode().addPOJO(a)));
+    public boolean record(List<Activity> activities, Class clazz) {
         try {
             Map<String, String> paramsMap = new HashMap<>();
-            paramsMap.put("sample", objectMapper.writeValueAsString(array));
-            send("http://localhost:8080/feed/ecommerce/activity/data", paramsMap, HttpMethod.POST);
+            paramsMap.put("sample", objectMapper.writeValueAsString(activities));
+            String requestUrl = serviceUrl + POST_SAMPLE_URL;
+            requestUrl = StringUtils.replace(requestUrl, "{feed}", "ecommerce");
+            requestUrl = StringUtils.replace(requestUrl, "{channel}",
+                    clazz.getSimpleName().toLowerCase());
+            ResponseEntity<String> response = send(requestUrl, paramsMap, HttpMethod.POST);
+            return HttpStatus.OK == response.getStatusCode();
         } catch (Exception e) {
             logger.error("unable to record activities: "
                     + activities.stream()
                                 .map(Activity::toString)
                                 .collect(joining(",")));
             e.printStackTrace();
+            return false;
         }
     }
 
     public List<Activity> query(Map<String, Object> criteriaMap) {
         HttpHeaders headers = new HttpHeaders();
         headers.set("Accept", MediaType.APPLICATION_JSON_VALUE);
-        UriComponentsBuilder builder = UriComponentsBuilder.fromHttpUrl(
-                "http://localhost:8080/feed/ecommerce/activity/data");
+        UriComponentsBuilder builder = UriComponentsBuilder.fromHttpUrl(QUERY_SAMPLE);
         criteriaMap.keySet().stream()
-                            .forEach(key -> builder.queryParam(key, criteriaMap.get(key)));
+                            .forEach(key -> {
+                                if(criteriaMap.get(key) instanceof String) {
+                                    builder.queryParam(key, "\"" + criteriaMap.get(key) + "\"");
+                                } else {
+                                    builder.queryParam(key, criteriaMap.get(key));
+                                }
+                            });
         HttpEntity<?> entity = new HttpEntity<>(headers);
         ResponseEntity<String> response = restTemplate.exchange(
                 builder.build().encode().toUri(),
@@ -160,30 +173,21 @@ public class HVDFClientService {
                 return objectMapper.readValue(response.getBody(),
                         new TypeReference<List<Activity>>(){});
             } catch (IOException e) {
-                logger.error("unable to query activity: " + criteriaMap);
+                logger.error("unable to convert query results" );
                 e.printStackTrace();
             }
         }
         return Collections.emptyList();
     }
 
-    private void configure(String databaseName, String collectionName, String configJsonString) {
+    private void configure(String feed, String channel, String configJsonString) {
         logger.info("HVDF configuration(json format): " + configJsonString);
         try {
             String requestUrl = serviceUrl + CONFIG_URL;
-            requestUrl = StringUtils.replace(requestUrl, "{feed}", databaseName);
-            requestUrl = StringUtils.replace(requestUrl, "{channel}", collectionName);
-            ResponseEntity<String> response = send(requestUrl, Map.of("value", configJsonString), HttpMethod.PUT);
-            if(response.getStatusCode() == HttpStatus.NO_CONTENT) {
-                MongoDatabase mongoDatabase = mongoClient.getDatabase(databaseName);
-                MongoCollection<Document> collection = mongoDatabase.getCollection(collectionName);
-                collection.insertOne(Document.parse(configJsonString));
-            }
+            requestUrl = StringUtils.replace(requestUrl, "{feed}", feed);
+            requestUrl = StringUtils.replace(requestUrl, "{channel}", channel);
+            send(requestUrl, Map.of("value", configJsonString), HttpMethod.PUT);
         } catch(Exception e) {
-            if(!Objects.isNull(mongoClient.getDatabase(databaseName)) &&
-                    Objects.isNull(mongoClient.getDatabase(databaseName).getCollection(collectionName))) {
-                mongoClient.getDatabase(databaseName).getCollection(collectionName).drop();
-            }
         }
     }
 
@@ -221,7 +225,7 @@ public class HVDFClientService {
             @Override
             public LocalDateTime deserialize(JsonParser jsonParser, DeserializationContext deserializationContext)
                     throws IOException, JsonProcessingException {
-                return LocalDateTime.parse(jsonParser.getValueAsString(), DateTimeFormatter.ISO_LOCAL_DATE_TIME);
+                return Instant.ofEpochMilli(jsonParser.getLongValue()).atZone(ZoneId.of("UTC")).toLocalDateTime();
             }
         });
 
