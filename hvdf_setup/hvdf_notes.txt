@@ -1,0 +1,9 @@
+-- HVDF(High Volume Data Feed) Configuration
+To run HVDF component:
+java -jar ./target/hvdf-0.0.1-SNAPSHOT.jar server hvdf-config.yml
+
+To open debug port of HVDF component, run
+java -Xdebug -Xrunjdwp:transport=dt_socket,address=8585,server=y,suspend=n -jar ./target/hvdf-0.0.1-SNAPSHOT.jar server hvdf-config.yml
+
+The connectivity configuration of HVDF is specified in the hvdf-config.yml file.
+The channel configuration of HVDF for E-Cmmerce is specified in the hvdf-channel-config.json file.
