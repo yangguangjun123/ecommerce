@@ -4,6 +4,7 @@ import com.mongodb.MongoClient;
 import org.junit.Assert;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.myproject.ecommerce.core.services.MongoDBService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -87,7 +88,7 @@ public class HVDFClientServiceIT {
     @Configuration
     public static class CustomConfiguration {
         @Autowired
-        private MongoClient mongoClient;
+        private MongoDBService mongoDBService;
 
         @Autowired
         private RestTemplate restTemplate;
@@ -104,8 +105,8 @@ public class HVDFClientServiceIT {
         }
 
         @Bean
-        MongoClient mongoClient(){
-            return new MongoClient();
+        MongoDBService mongoDBService(){
+            return new MongoDBService();
         }
 
         @Bean
