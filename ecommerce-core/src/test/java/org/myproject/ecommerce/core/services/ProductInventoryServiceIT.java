@@ -5,11 +5,12 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.myproject.ecommerce.core.domain.*;
-import org.myproject.ecommerce.core.utilities.SKUCodeProductIdGenerator;
+import org.myproject.ecommerce.core.domain.AudioAlbum;
+import org.myproject.ecommerce.core.domain.Product;
+import org.myproject.ecommerce.core.domain.ShoppingCart;
+import org.myproject.ecommerce.core.domain.ShoppingCartItemDetails;
+import org.myproject.ecommerce.core.domain.ShoppingCartStatus;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Configuration;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
@@ -18,31 +19,19 @@ import java.time.Instant;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 @RunWith(SpringJUnit4ClassRunner.class)
-@ContextConfiguration(classes = { ProductInventoryServiceIT.CustomConfiguration.class})
+@ContextConfiguration(classes = { TestApplicationConfiguration.class})
 public class ProductInventoryServiceIT {
-
     @Autowired
     private MongoDBService mongoDBService;
 
     @Autowired
-    private SKUCodeProductIdGenerator skuCodeGeneratorService;
-
-    @Autowired
     private ProductInventoryService productInventoryService;
-
-    @Autowired
-    private StoreService storeService;
-
-    @Autowired
-    private PriceService priceService;
-
-    @Autowired
-    private ProductCatalogService productCatalogService;
 
     @Before
     public void setUp() {
@@ -60,7 +49,7 @@ public class ProductInventoryServiceIT {
         String sku = "00e8da9b";
         int quantity = 1;
         ShoppingCartItemDetails details = new ShoppingCartItemDetails("add a new item to cart");
-        AudioAlbum beforeAdded = productCatalogService.getProductBySku(sku, AudioAlbum.class).get();
+        AudioAlbum beforeAdded = getProductBySku(sku, AudioAlbum.class).get();
 
         // given
         productInventoryService.addItemToCart(cartId, sku, quantity, details);
@@ -71,7 +60,7 @@ public class ProductInventoryServiceIT {
         assertEquals(sku, cart.getItems().get(cart.getItems().size() - 1).getSku());
         assertEquals(quantity, cart.getItems().get(cart.getItems().size() - 1).getQuantity());
         assertEquals(details, cart.getItems().get(cart.getItems().size() - 1).getItemDetails());
-        AudioAlbum afterAdded = productCatalogService.getProductBySku(sku, AudioAlbum.class).get();
+        AudioAlbum afterAdded = getProductBySku(sku, AudioAlbum.class).get();
         assertEquals(beforeAdded.getQuantity() - 1, afterAdded.getQuantity());
     }
 
@@ -82,7 +71,7 @@ public class ProductInventoryServiceIT {
         String sku = "00e8da9b";
         int oldQuantity = 1;
         int newQuantity = 2;
-        AudioAlbum beforeUpdated = productCatalogService.getProductBySku(sku, AudioAlbum.class).get();
+        AudioAlbum beforeUpdated = getProductBySku(sku, AudioAlbum.class).get();
 
         // when
         productInventoryService.updateCartQuantity(cartId, sku,oldQuantity, newQuantity);
@@ -92,7 +81,7 @@ public class ProductInventoryServiceIT {
         assertEquals(cartId, cart.getCartId());
         assertEquals(sku, cart.getItems().get(0).getSku());
         assertEquals(newQuantity, cart.getItems().get(0).getQuantity());
-        AudioAlbum afterUpdated = productCatalogService.getProductBySku(sku, AudioAlbum.class).get();
+        AudioAlbum afterUpdated = getProductBySku(sku, AudioAlbum.class).get();
         assertEquals(beforeUpdated.getQuantity() + Math.negateExact(newQuantity - oldQuantity),
                 afterUpdated.getQuantity());
     }
@@ -129,7 +118,7 @@ public class ProductInventoryServiceIT {
         // verify
         ShoppingCart cart = productInventoryService.getCartByCartId(42);
         assertEquals(ShoppingCartStatus.EXPIRED.toString(), cart.getStatus());
-        AudioAlbum product = productCatalogService.getProductBySku("00e8da9b", AudioAlbum.class).get();
+        AudioAlbum product = getProductBySku("00e8da9b", AudioAlbum.class).get();
         assertEquals(expectedQty, product.getQuantity());
     }
 
@@ -154,68 +143,16 @@ public class ProductInventoryServiceIT {
         // verify
         ShoppingCart cart = productInventoryService.getCartByCartId(42);
         assertEquals(0, cart.getItems().size());
-        assertEquals(17, productCatalogService.getProductBySku("00e8da9b",
+        assertEquals(17, getProductBySku("00e8da9b",
                 AudioAlbum.class).get().getQuantity());
-        assertEquals(20, productCatalogService.getProductBySku("0ab42f88",
+        assertEquals(20, getProductBySku("0ab42f88",
                 AudioAlbum.class).get().getQuantity());
     }
 
-    @Configuration
-    static class CustomConfiguration {
-        @Autowired
-        private MongoDBService mongoDBService;
-
-        @Autowired
-        private StoreService storeService;
-
-        @Autowired
-        private PriceService priceService;
-
-        @Autowired
-        private StoreInventoryService storeInventoryService;
-
-        @Autowired
-        private SKUCodeProductIdGenerator skuCodeGeneratorService;
-
-        @Bean
-        MongoDBService mongoDBService() {
-            return new MongoDBService();
-        }
-
-        @Bean
-        ProductInventoryService productInventoryService() {
-            return new ProductInventoryService(mongoDBService);
-        }
-
-        @Bean
-        ProductCatalogService productCatalogService() {
-            return new ProductCatalogService(mongoDBService);
-        }
-
-        @Bean
-        PaymentService paymentService() {
-            return new PaymentService();
-        }
-
-        @Bean
-        SKUCodeProductIdGenerator skuCodeGeneratorService() {
-            return new SKUCodeProductIdGenerator();
-        }
-
-        @Bean
-        StoreService storeService() {
-            return new StoreService();
-        }
-
-        @Bean
-        PriceService priceService() {
-            return new PriceService();
-        }
-
-        @Bean
-        StoreInventoryService storeInventoryService() {
-            return new StoreInventoryService();
-        }
+    private <T> Optional<T> getProductBySku(String sku, Class<T> clazz) {
+        Map<String, Object> filter = new HashMap<>();
+        filter.put("sku", sku);
+        return mongoDBService.readOne("ecommerce", "product", clazz, filter);
     }
 
 }

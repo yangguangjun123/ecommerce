@@ -1,25 +1,21 @@
 package org.myproject.ecommerce.core.services;
 
-import static org.junit.Assert.*;
-
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.myproject.ecommerce.core.domain.Store;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.context.annotation.Bean;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
 import java.util.List;
 
-@RunWith(SpringJUnit4ClassRunner.class)
-@ContextConfiguration(classes = { StoreServiceIT.CustomConfiguration.class})
-public class StoreServiceIT {
-    @Autowired
-    private MongoDBService mongoDBService;
+import static org.junit.Assert.assertTrue;
 
+@RunWith(SpringJUnit4ClassRunner.class)
+@ContextConfiguration(classes = { TestApplicationConfiguration.class})
+public class StoreServiceIT {
     @Autowired
     private StoreService storeService;
 
@@ -45,21 +41,4 @@ public class StoreServiceIT {
         assertTrue(stores.size() > 0);
     }
 
-    public static class CustomConfiguration {
-        @Autowired
-        private MongoDBService mongoDBService;
-
-        @Autowired
-        private StoreService storeService;
-
-        @Bean
-        MongoDBService mongoDBService() {
-            return new MongoDBService();
-        }
-
-        @Bean
-        StoreService storeService() {
-            return new StoreService();
-        }
-    }
 }

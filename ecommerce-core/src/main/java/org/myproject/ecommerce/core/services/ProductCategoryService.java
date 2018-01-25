@@ -11,8 +11,12 @@ import java.util.*;
 
 @Service
 public class ProductCategoryService implements IProductCategoryService {
+    private final MongoDBService mongoDBService;
+
     @Autowired
-    private MongoDBService mongoDBService;
+    public ProductCategoryService(MongoDBService mongoDBService) {
+        this.mongoDBService = mongoDBService;
+    }
 
     @Override
     @PostConstruct

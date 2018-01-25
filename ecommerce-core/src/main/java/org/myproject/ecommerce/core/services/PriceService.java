@@ -4,20 +4,25 @@ import org.myproject.ecommerce.core.domain.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import javax.annotation.PostConstruct;
 import java.util.*;
 import java.util.regex.Pattern;
 
 @Service
 public class PriceService {
-    @Autowired
-    private MongoDBService mongoDBService;
+    private final MongoDBService mongoDBService;
+    private final ProductCatalogService productCatalogService;
+    private final StoreService storeService;
 
     @Autowired
-    private ProductCatalogService productCatalogService;
+    public PriceService(MongoDBService mongoDBService, ProductCatalogService productCatalogService,
+                        StoreService storeService) {
+        this.mongoDBService = mongoDBService;
+        this.productCatalogService = productCatalogService;
+        this.storeService = storeService;
+    }
 
-    @Autowired
-    private StoreService storeService;
-
+    @PostConstruct
     public void initialise() {
         if(getNumberOfPrices() != 14014) {
             deleteAllPrices();

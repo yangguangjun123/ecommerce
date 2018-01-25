@@ -1,15 +1,19 @@
 package org.myproject.ecommerce.core.services;
 
-import com.mongodb.*;
+import com.mongodb.MongoClient;
+import com.mongodb.MongoClientOptions;
+import com.mongodb.WriteConcern;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
 import com.mongodb.client.model.Aggregates;
 import com.mongodb.client.model.Filters;
 import com.mongodb.client.model.Projections;
+import com.mongodb.client.model.Sorts;
 import com.mongodb.client.model.Updates;
 import com.mongodb.client.model.geojson.Point;
 import com.mongodb.client.result.UpdateResult;
 import org.bson.Document;
+import org.bson.codecs.configuration.CodecProvider;
 import org.bson.codecs.configuration.CodecRegistries;
 import org.bson.codecs.configuration.CodecRegistry;
 import org.bson.codecs.pojo.PojoCodecProvider;
@@ -17,35 +21,65 @@ import org.bson.conversions.Bson;
 import org.myproject.ecommerce.core.codec.CustomCodecProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
 
 import javax.annotation.PreDestroy;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Optional;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 import static com.mongodb.client.model.Accumulators.sum;
-import static com.mongodb.client.model.Aggregates.*;
-import static com.mongodb.client.model.Filters.*;
-import static com.mongodb.client.model.Updates.*;
+import static com.mongodb.client.model.Aggregates.group;
+import static com.mongodb.client.model.Aggregates.match;
+import static com.mongodb.client.model.Aggregates.unwind;
+import static com.mongodb.client.model.Filters.and;
+import static com.mongodb.client.model.Filters.eq;
+import static com.mongodb.client.model.Filters.gt;
+import static com.mongodb.client.model.Filters.gte;
+import static com.mongodb.client.model.Filters.in;
+import static com.mongodb.client.model.Filters.lt;
+import static com.mongodb.client.model.Filters.nearSphere;
+import static com.mongodb.client.model.Filters.regex;
+import static com.mongodb.client.model.Updates.combine;
+import static com.mongodb.client.model.Updates.inc;
+import static com.mongodb.client.model.Updates.popLast;
+import static com.mongodb.client.model.Updates.pushEach;
+import static com.mongodb.client.model.Updates.set;
+import static com.mongodb.client.model.Updates.unset;
 import static java.util.stream.Collectors.toList;
 
 @Service("mongoDBService")
 @Qualifier("mongoDBService")
 @SuppressWarnings("unchecked")
 public class MongoDBService {
-    private final MongoClient mongoClient;
+    private MongoClient mongoClient;
+    private static final int SORT_ASCENDING_ORDER = 1;
+
     private static final Logger logger = LoggerFactory.getLogger(MongoDBService.class);
 
-    public MongoDBService() {
+    @Autowired
+    public MongoDBService(@Qualifier("codecProvider")  List<CodecProvider> codecProvider) {
+        List<CodecProvider> allCodecProviders = new ArrayList<>();
+        allCodecProviders.add(new CustomCodecProvider());
+        allCodecProviders.addAll(codecProvider);
+        configMongoClient(allCodecProviders);
+    }
+
+    private void configMongoClient(List<CodecProvider> codecProviderList) {
         CodecRegistry pojoCodecRegistry = CodecRegistries.fromRegistries(MongoClient.getDefaultCodecRegistry(),
                 CodecRegistries.fromProviders(PojoCodecProvider.builder().automatic(true).build()));
         CodecRegistry codecRegistry = CodecRegistries.fromRegistries(
                 MongoClient.getDefaultCodecRegistry(),
-                CodecRegistries.fromProviders(new CustomCodecProvider()),
+                CodecRegistries.fromProviders(codecProviderList.toArray(new CodecProvider[codecProviderList.size()])),
                 pojoCodecRegistry);
         MongoClientOptions options = MongoClientOptions.builder().codecRegistry(codecRegistry)
                 .build();
@@ -66,6 +100,11 @@ public class MongoDBService {
 
     public <T> List<T> readAll(String databaseName, String collectionName, Class<T> clazz,
                                Map<String, Object> filter) {
+        return readAll(databaseName, collectionName, clazz, filter, Optional.empty());
+    }
+
+    public <T> List<T> readAll(String databaseName, String collectionName, Class<T> clazz,
+                               Map<String, Object> filter, Optional<Map<String, Integer>> sortOptional) {
         MongoDatabase mongoDatabase = mongoClient.getDatabase(databaseName);
         MongoCollection<T> collection = mongoDatabase.getCollection(collectionName, clazz);
         List<Bson> filters = filter.keySet()
@@ -74,7 +113,16 @@ public class MongoDBService {
                 .collect(Collectors.toList());
         List<T> result = new ArrayList<>();
         Consumer<? super T> consumer = t -> result.add(t);
-        collection.find(combine(filters)).forEach(consumer);
+        if(sortOptional.isPresent()) {
+            List<Bson> sort =
+                    sortOptional.get().keySet().stream()
+                                               .map(key -> sortOptional.get().get(key) == SORT_ASCENDING_ORDER ?
+                                                       Sorts.ascending(key) : Sorts.descending(key))
+                                               .collect(toList());
+            collection.find(combine(filters)).sort(Sorts.orderBy(sort)).forEach(consumer);
+        } else {
+            collection.find(combine(filters)) .forEach(consumer);
+        }
         return result;
     }
 

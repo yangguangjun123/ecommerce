@@ -14,22 +14,14 @@ import java.util.*;
 
 @Service
 public class ProductCatalogService implements IProductCatalogService {
-
-    @Autowired
     private final MongoDBService mongoDBService;
+    private final SKUCodeProductIdGenerator skuCodeGeneratorService;
 
     @Autowired
-    private SKUCodeProductIdGenerator skuCodeGeneratorService;
-
-    @Autowired
-    private StoreInventoryService storeInventoryService;
-
-    @Autowired
-    private PriceService priceService;
-
-    @Autowired
-    public ProductCatalogService(MongoDBService mongoDBService) {
+    public ProductCatalogService(MongoDBService mongoDBService,
+                                 SKUCodeProductIdGenerator skuCodeProductIdGenerator) {
         this.mongoDBService = mongoDBService;
+        this.skuCodeGeneratorService = skuCodeProductIdGenerator;
     }
 
     @PostConstruct
@@ -40,7 +32,7 @@ public class ProductCatalogService implements IProductCatalogService {
             deleteAllProductVariations();
             deleteAllStoreInventory();
             skuCodeGeneratorService.reset();
-            priceService.deleteAllPrices();
+            deleteAllPrices();
             for(int i=0; i<50000; i++) {
                 Product audioAlbum = createAudioAlbumProduct();
                 createAudioAlbumProductVariation(audioAlbum);
@@ -48,8 +40,6 @@ public class ProductCatalogService implements IProductCatalogService {
                 createFilmProductVariation(film);
             }
             populateProducts();
-            priceService.initialise();
-            storeInventoryService.initialise();
         }
     }
 
@@ -107,7 +97,11 @@ public class ProductCatalogService implements IProductCatalogService {
     }
 
     public void deleteAllStoreInventory() {
-        storeInventoryService.deleteAll();
+        mongoDBService.deleteAll("ecommerce", "store_inventory");
+    }
+
+    public void deleteAllPrices() {
+        mongoDBService.deleteAll("ecommerce", "prices");
     }
 
     public void deleteProductById(ObjectId id) {

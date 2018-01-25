@@ -1,15 +1,19 @@
 package org.myproject.ecommerce.core.services;
 
-import static org.junit.Assert.*;
-
 import org.bson.types.ObjectId;
-import org.junit.*;
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.myproject.ecommerce.core.domain.*;
-import org.myproject.ecommerce.core.utilities.SKUCodeProductIdGenerator;
+import org.myproject.ecommerce.core.domain.AudioAlbum;
+import org.myproject.ecommerce.core.domain.AudioAlbumGenreType;
+import org.myproject.ecommerce.core.domain.DepartmentType;
+import org.myproject.ecommerce.core.domain.Pricing;
+import org.myproject.ecommerce.core.domain.Product;
+import org.myproject.ecommerce.core.domain.ProductType;
+import org.myproject.ecommerce.core.domain.ProductVariation;
+import org.myproject.ecommerce.core.domain.Shipping;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Configuration;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
@@ -20,30 +24,24 @@ import java.util.Date;
 import java.util.List;
 import java.util.Optional;
 
-@RunWith(SpringJUnit4ClassRunner.class)
-@ContextConfiguration(classes = { ProductCatalogServiceIT.CustomConfiguration.class})
-public class ProductCatalogServiceIT {
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
+@RunWith(SpringJUnit4ClassRunner.class)
+@ContextConfiguration(classes = { TestApplicationConfiguration.class})
+public class ProductCatalogServiceIT {
     @Autowired
     private MongoDBService mongoDBService;
-
-    @Autowired
-    private SKUCodeProductIdGenerator skuCodeGeneratorService;
-
-    @Autowired
-    private StoreService storeService;
-
-    @Autowired
-    private PriceService priceService;
-
-    @Autowired
-    private StoreInventoryService storeInventoryService;
 
     @Autowired
     private ProductCatalogService productCatalogService;
 
     @Before
-    public void setUp() {
+    public void setUp() throws EcommerceException {
+        long number = mongoDBService.count("ecommerce", "product", Product.class);
+        if(number != 100004) {
+            throw new EcommerceException(String.format("Expect 100004 products but get %d products", number));
+        }
     }
 
     @After
@@ -52,17 +50,6 @@ public class ProductCatalogServiceIT {
         if(product.isPresent()) {
             productCatalogService.deleteProductById(product.get().getId());
         }
-    }
-
-    @Test
-    public void shouldReturnCorrectNumberOfProducts() {
-        // given
-
-        // when
-        long number = mongoDBService.count("ecommerce", "product", Product.class);
-
-        // verify
-        assertEquals(100004, number);
     }
 
     @Test
@@ -138,55 +125,6 @@ public class ProductCatalogServiceIT {
         assertEquals(4, productVariations.size());
         productVariations.stream()
                          .forEach(p -> assertEquals(productId, p.getProductId()));
-    }
-
-    @Configuration
-    public static class CustomConfiguration {
-        @Autowired
-        private MongoDBService mongoDBService;
-
-        @Autowired
-        private SKUCodeProductIdGenerator skuCodeGeneratorService;
-
-        @Autowired
-        private StoreService storeService;
-
-        @Autowired
-        private PriceService priceService;
-
-        @Autowired
-        private StoreInventoryService storeInventoryService;
-
-        @Bean
-        MongoDBService mongoDBService() {
-            return new MongoDBService();
-        }
-
-        @Bean
-        ProductCatalogService productCatalogService() {
-            return new ProductCatalogService(mongoDBService);
-        }
-
-        @Bean
-        SKUCodeProductIdGenerator skuCodeGeneratorService() {
-            return new SKUCodeProductIdGenerator();
-        }
-
-        @Bean
-        PriceService priceService() {
-            return new PriceService();
-        }
-
-        @Bean
-        StoreService storeService() {
-            return new StoreService();
-        }
-
-        @Bean
-        StoreInventoryService storeInventoryService() {
-            return new StoreInventoryService();
-        }
-
     }
 
 }

@@ -18,14 +18,15 @@ import java.util.Map;
 
 @Service
 public class ProductCatalogJsonDataService {
-    @Autowired
-    private SKUCodeProductIdGenerator skuCodeGeneratorService;
+    private final SKUCodeProductIdGenerator skuCodeGeneratorService;
 
     private ObjectMapper mapper = null;
 
     private static final Logger logger = LoggerFactory.getLogger((ProductCatalogJsonDataService.class));
 
-    public ProductCatalogJsonDataService() {
+    @Autowired
+    public ProductCatalogJsonDataService(SKUCodeProductIdGenerator skuCodeGeneratorService) {
+        this.skuCodeGeneratorService = skuCodeGeneratorService;
         mapper = new ObjectMapper();
         mapper.configure(SerializationFeature.INDENT_OUTPUT, true);
     }

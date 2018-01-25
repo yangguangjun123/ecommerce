@@ -6,22 +6,22 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.myproject.ecommerce.core.domain.ProductCategory;
-import org.myproject.ecommerce.core.interfaces.IProductCategoryService;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Configuration;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 @RunWith(SpringJUnit4ClassRunner.class)
-@ContextConfiguration(classes = { ProductCategoryServiceIT.CustomConfiguration.class } )
+@ContextConfiguration(classes = { TestApplicationConfiguration.class } )
 public class ProductCategoryServiceIT {
-
     @Autowired
     private MongoDBService mongoDBService;
 
@@ -92,22 +92,4 @@ public class ProductCategoryServiceIT {
                    });
     }
 
-    @Configuration
-    public static class CustomConfiguration {
-        @Autowired
-        private MongoDBService mongoDBService;
-
-        @Autowired
-        private IProductCategoryService productCategoryService;
-
-        @Bean
-        MongoDBService mongoDBService() {
-            return new MongoDBService();
-        }
-
-        @Bean
-        IProductCategoryService productCategoryService() {
-            return  new ProductCategoryService();
-        }
-    }
 }

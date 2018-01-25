@@ -12,19 +12,16 @@ import org.springframework.stereotype.Service;
 import javax.annotation.PostConstruct;
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashMap;
-import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.Set;
 
 @Service
 public class UserInsightsAnalysisService {
-    @Autowired
-    private MongoDBService mongoDBService;
+    private final MongoDBService mongoDBService;
 
     private String channelPrefix = "activity_";
     private long period = 0L;
@@ -49,6 +46,11 @@ public class UserInsightsAnalysisService {
     }
 
     private static final Logger logger = LoggerFactory.getLogger(UserInsightsAnalysisService.class);
+
+    @Autowired
+    public UserInsightsAnalysisService(MongoDBService mongoDBService) {
+        this.mongoDBService = mongoDBService;
+    }
 
     @PostConstruct
     public void initilaise() {
@@ -80,24 +82,31 @@ public class UserInsightsAnalysisService {
     }
 
     public List<Activity> findUserActivities(String userId, long startTime, long endTime) {
-        Set<String> collections = new HashSet<>();
-        collections.add(channelPrefix + startTime/period);
-        collections.add(channelPrefix + endTime/period);
         List<Activity> result = new ArrayList<>();
         result.addAll(findUserActivities(userId, startTime, endTime,
-                channelPrefix + startTime/period));
+                channelPrefix + endTime/period));
         if(!(channelPrefix + endTime/period).equals(channelPrefix + startTime/period)) {
             result.addAll(findUserActivities(userId, startTime, endTime,
-                    channelPrefix + endTime/period));
+                    channelPrefix + startTime/period));
         }
         return result;
     }
 
     private List<Activity> findUserActivities(String userId, long startTime, long endTime,
                                               String collectionName) {
-
-
-        return Collections.emptyList();
-
+        Objects.requireNonNull(userId);
+        Objects.requireNonNull(collectionName);
+        Map<String, Object> filterMap = new HashMap<>();
+        filterMap.put("data.userId", "u123");
+        HashMap<String, Object> startTimeQueryMap = new HashMap<>();
+        startTimeQueryMap.put("ts", startTime);
+        filterMap.put("$gt", startTimeQueryMap);
+        HashMap<String, Object> endTimeQueryMap = new HashMap<>();
+        endTimeQueryMap.put("ts", endTime);
+        filterMap.put("$lt", endTimeQueryMap);
+        Map<String, Integer> sortMap = new LinkedHashMap<>();
+        sortMap.put("data.time", -1);
+        return mongoDBService.readAll("ecommerce", collectionName,
+                Activity.class, filterMap, Optional.of(sortMap));
     }
 }

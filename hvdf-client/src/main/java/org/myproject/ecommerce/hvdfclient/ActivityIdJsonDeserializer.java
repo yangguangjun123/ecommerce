@@ -9,13 +9,13 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.IOException;
 import java.util.Objects;
 
-public class ActivityIdKeyJsonDeserializer extends JsonDeserializer<Activity.IdKey> {
+public class ActivityIdJsonDeserializer extends JsonDeserializer<ActivityId> {
     @Override
-    public Activity.IdKey deserialize(JsonParser p, DeserializationContext ctxt)
+    public ActivityId deserialize(JsonParser p, DeserializationContext ctxt)
             throws IOException, JsonProcessingException {
         ObjectMapper objectMapper = new ObjectMapper();
         String jsonValue = p.getValueAsString();
         Objects.requireNonNull(jsonValue);
-        return objectMapper.readValue(jsonValue, Activity.IdKey.class);
+        return objectMapper.readValue(jsonValue, ActivityId.class);
     }
 }

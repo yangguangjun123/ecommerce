@@ -18,8 +18,12 @@ import java.util.stream.IntStream;
 
 @Service
 public class StoreService {
+    private final MongoDBService mongoDBService;
+
     @Autowired
-    private MongoDBService mongoDBService;
+    public StoreService(MongoDBService mongoDBService) {
+        this.mongoDBService = mongoDBService;
+    }
 
     @PostConstruct
     public void initialise() {

@@ -10,10 +10,7 @@ import org.myproject.ecommerce.core.domain.Price;
 import org.myproject.ecommerce.core.domain.Product;
 import org.myproject.ecommerce.core.domain.ProductVariation;
 import org.myproject.ecommerce.core.domain.Store;
-import org.myproject.ecommerce.core.utilities.SKUCodeProductIdGenerator;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Configuration;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
@@ -22,7 +19,7 @@ import java.util.List;
 import java.util.Optional;
 
 @RunWith(SpringJUnit4ClassRunner.class)
-@ContextConfiguration(classes = { PriceServiceIT.CustomConfiguration.class})
+@ContextConfiguration(classes = { TestApplicationConfiguration.class})
 public class PriceServiceIT {
     @Autowired
     private ProductCatalogService productCatalogService;
@@ -163,58 +160,5 @@ public class PriceServiceIT {
         prices.stream()
                 .forEach(p -> assertTrue(expectedPrice == p.getPrice()));
     }
-
-    @Configuration
-    public static class CustomConfiguration {
-        @Autowired
-        private MongoDBService mongoDBService;
-
-        @Autowired
-        private ProductCatalogService productCatalogService;
-
-        @Autowired
-        private SKUCodeProductIdGenerator skuCodeGeneratorService;
-
-        @Autowired
-        private StoreService storeService;
-
-        @Autowired
-        private StoreInventoryService storeInventoryService;
-
-        @Autowired
-        private PriceService priceService;
-
-        @Bean
-        MongoDBService mongoDBService() {
-            return new MongoDBService();
-        }
-
-        @Bean
-        PriceService priceService() {
-            return new PriceService();
-        }
-
-        @Bean
-        ProductCatalogService productCatalogService() {
-            return new ProductCatalogService(mongoDBService);
-        }
-
-        @Bean
-        SKUCodeProductIdGenerator skuCodeProductIdGenerator() {
-            return new SKUCodeProductIdGenerator();
-        }
-
-        @Bean
-        StoreService storeService() {
-            return new StoreService();
-        }
-
-        @Bean
-        StoreInventoryService storeInventoryService() {
-            return new StoreInventoryService();
-        }
-    }
-
-
 
 }

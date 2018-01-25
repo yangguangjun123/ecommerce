@@ -16,13 +16,14 @@
 
     <dependencies>
         <dependency>
-            <groupId>org.mongodb</groupId>
-            <artifactId>mongodb-driver</artifactId>
+            <groupId>org.myproject</groupId>
+            <artifactId>ecommerce-core</artifactId>
+            <version>1.0-SNAPSHOT</version>
         </dependency>
 
         <dependency>
             <groupId>org.myproject</groupId>
-            <artifactId>ecommerce-core</artifactId>
+            <artifactId>hvdf-client</artifactId>
             <version>1.0-SNAPSHOT</version>
         </dependency>
 
@@ -47,7 +48,7 @@
                 <configuration>
                     <archive>
                         <manifest>
-                            <mainClass>org.myproject.ecommerce.app.MainApp</mainClass>
+                            <mainClass>org.myproject.ecommerce.MainApp</mainClass>
                         </manifest>
                     </archive>
                 </configuration>

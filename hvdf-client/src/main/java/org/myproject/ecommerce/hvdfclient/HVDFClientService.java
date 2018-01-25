@@ -21,6 +21,7 @@ import org.myproject.ecommerce.core.services.MongoDBService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
@@ -54,35 +55,31 @@ import static java.util.stream.Collectors.joining;
 
 @Service
 public class HVDFClientService {
-    @Autowired
-    private MongoDBService mongoDBService;
-
-    @Autowired
-    private RestTemplate restTemplate;
-
-    @Autowired
-    private MappingJackson2HttpMessageConverter springMvcJacksonConverter;
-
+    private final MongoDBService mongoDBService;
+    private final RestTemplate restTemplate;
+    private final MappingJackson2HttpMessageConverter mappingJackson2HttpMessageConverter;
     private ObjectMapper objectMapper;
-
     private final String serviceUrl;
+
     private static final String CONFIG_URL = "/feed/{feed}/{channel}/config";
     private static final String POST_SAMPLE_URL = "/feed/{feed}/{channel}/data";
     private static final String QUERY_SAMPLE = "http://localhost:8080/feed/ecommerce/activity/data";
     private static final Logger logger = LoggerFactory.getLogger(HVDFClientService.class);
 
-    public HVDFClientService() {
-        this("http://localhost:8080");
-    }
-
-    public HVDFClientService(String serviceUrl) {
+    @Autowired
+    public HVDFClientService(@Qualifier("hvdfServiceUrl") String serviceUrl, MongoDBService mongoDBService,
+                             RestTemplate restTemplate,
+                             MappingJackson2HttpMessageConverter mappingJackson2HttpMessageConverter) {
         Objects.requireNonNull(serviceUrl);
         this.serviceUrl = serviceUrl;
+        this.mongoDBService = mongoDBService;
+        this.restTemplate = restTemplate;
+        this.mappingJackson2HttpMessageConverter = mappingJackson2HttpMessageConverter;
     }
 
     @PostConstruct
     public void initialise() {
-        objectMapper = springMvcJacksonConverter.getObjectMapper();
+        objectMapper = mappingJackson2HttpMessageConverter.getObjectMapper();
         objectMapper.configure(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS, false);
         SimpleModule simpleModule = new SimpleModule();
         customeJsonmapping(simpleModule);

@@ -18,13 +18,16 @@ import static java.util.stream.Collectors.toList;
 
 @Service
 public class StoreInventoryService {
-    @Autowired
-    private MongoDBService mongoDBService;
-
-    @Autowired
-    private ProductCatalogService productCatalogService;
+    private final MongoDBService mongoDBService;
+    private final ProductCatalogService productCatalogService;
 
     private static final Logger logger = LoggerFactory.getLogger("chapters.introduction.HelloWorld1");
+
+    @Autowired
+    public StoreInventoryService(MongoDBService mongoDBService, ProductCatalogService productCatalogService) {
+        this.mongoDBService = mongoDBService;
+        this.productCatalogService = productCatalogService;
+    }
 
     @PostConstruct
     public void initialise() {
