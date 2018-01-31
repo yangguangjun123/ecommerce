@@ -3,19 +3,23 @@ package  org.myproject.ecommerce.hvdfclient;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import org.bson.codecs.pojo.annotations.BsonId;
+import org.bson.codecs.pojo.annotations.BsonProperty;
 
 import java.time.LocalDateTime;
 import java.util.List;
 
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class Activity {
+    @BsonId
     @JsonProperty("_id")
-    @JsonDeserialize(using = ActivityIdKeyJsonDeserializer.class)
-    private IdKey idKey;
+    @JsonDeserialize(using = ActivityIdJsonDeserializer.class)
+    private ActivityId id;
 
     private String source;
 
     @JsonProperty("ts")
+    @BsonProperty("ts")
     private long timeStamp;
 
     private Data data;
@@ -53,6 +57,14 @@ public class Activity {
         this.timeStamp = timeStamp;
     }
 
+    public ActivityId getId() {
+        return id;
+    }
+
+    public void setId(ActivityId id) {
+        this.id = id;
+    }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
@@ -61,14 +73,14 @@ public class Activity {
         Activity activity = (Activity) o;
 
         if (timeStamp != activity.timeStamp) return false;
-        if (idKey != null ? !idKey.equals(activity.idKey) : activity.idKey != null) return false;
+        if (id != null ? !id.equals(activity.id) : activity.id != null) return false;
         if (source != null ? !source.equals(activity.source) : activity.source != null) return false;
         return data != null ? data.equals(activity.data) : activity.data == null;
     }
 
     @Override
     public int hashCode() {
-        int result = idKey != null ? idKey.hashCode() : 0;
+        int result = id != null ? id.hashCode() : 0;
         result = 31 * result + (source != null ? source.hashCode() : 0);
         result = 31 * result + (int) (timeStamp ^ (timeStamp >>> 32));
         result = 31 * result + (data != null ? data.hashCode() : 0);
@@ -78,68 +90,11 @@ public class Activity {
     @Override
     public String toString() {
         return "Activity{" +
-                "idKey=" + idKey +
+                "id=" + id +
                 ", source='" + source + '\'' +
                 ", timeStamp=" + timeStamp +
                 ", data=" + data +
                 '}';
-    }
-
-    public static class IdKey {
-        private String source;
-
-        @JsonProperty("ts")
-        private long ts;
-
-        public IdKey() {
-        }
-
-        public IdKey(String source, long ts) {
-            this.source = source;
-            this.ts = ts;
-        }
-
-        public String getSource() {
-            return source;
-        }
-
-        public void setSource(String source) {
-            this.source = source;
-        }
-
-        public long getTs() {
-            return ts;
-        }
-
-        public void setTs(long ts) {
-            this.ts = ts;
-        }
-
-        @Override
-        public boolean equals(Object o) {
-            if (this == o) return true;
-            if (o == null || getClass() != o.getClass()) return false;
-
-            IdKey idKey = (IdKey) o;
-
-            if (ts != idKey.ts) return false;
-            return source != null ? source.equals(idKey.source) : idKey.source == null;
-        }
-
-        @Override
-        public int hashCode() {
-            int result = source != null ? source.hashCode() : 0;
-            result = 31 * result + (int) (ts ^ (ts >>> 32));
-            return result;
-        }
-
-        @Override
-        public String toString() {
-            return "IdKey{" +
-                    "source='" + source + '\'' +
-                    ", ts=" + ts +
-                    '}';
-        }
     }
 
     public static class Data {
@@ -156,6 +111,7 @@ public class Activity {
         private LocalDateTime time;
 
         @JsonProperty("ts")
+        @BsonProperty("ts")
         private long timeStamp;
 
         public Data() {
@@ -405,12 +361,14 @@ public class Activity {
 
     public static class Order {
         private String id;
+        private int total;
 
         public Order() {
         }
 
-        public Order(String id) {
+        public Order(String id, int total) {
             this.id = id;
+            this.total = total;
         }
 
         public String getId() {
@@ -421,6 +379,14 @@ public class Activity {
             this.id = id;
         }
 
+        public int getTotal() {
+            return total;
+        }
+
+        public void setTotal(int total) {
+            this.total = total;
+        }
+
         @Override
         public boolean equals(Object o) {
             if (this == o) return true;
@@ -428,18 +394,22 @@ public class Activity {
 
             Order order = (Order) o;
 
+            if (total != order.total) return false;
             return id != null ? id.equals(order.id) : order.id == null;
         }
 
         @Override
         public int hashCode() {
-            return id != null ? id.hashCode() : 0;
+            int result = id != null ? id.hashCode() : 0;
+            result = 31 * result + total;
+            return result;
         }
 
         @Override
         public String toString() {
             return "Order{" +
                     "id='" + id + '\'' +
+                    ", total=" + total +
                     '}';
         }
     }

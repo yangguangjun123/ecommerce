@@ -14,13 +14,12 @@ import static java.util.stream.Collectors.toList;
 @Service
 public class ProductInventoryService implements IProductInventoryService {
     private final MongoDBService mongoDBService;
+    private final PaymentService paymentService;
 
     @Autowired
-    private PaymentService paymentService;
-
-    @Autowired
-    public ProductInventoryService(MongoDBService mongoDBService) {
+    public ProductInventoryService(MongoDBService mongoDBService, PaymentService paymentService) {
         this.mongoDBService = mongoDBService;
+        this.paymentService = paymentService;
     }
 
     @Override

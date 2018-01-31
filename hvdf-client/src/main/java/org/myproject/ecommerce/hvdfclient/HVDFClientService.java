@@ -21,6 +21,7 @@ import org.myproject.ecommerce.core.services.MongoDBService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
@@ -41,7 +42,6 @@ import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
@@ -54,35 +54,31 @@ import static java.util.stream.Collectors.joining;
 
 @Service
 public class HVDFClientService {
-    @Autowired
-    private MongoDBService mongoDBService;
-
-    @Autowired
-    private RestTemplate restTemplate;
-
-    @Autowired
-    private MappingJackson2HttpMessageConverter springMvcJacksonConverter;
-
+    private final MongoDBService mongoDBService;
+    private final RestTemplate restTemplate;
+    private final MappingJackson2HttpMessageConverter mappingJackson2HttpMessageConverter;
     private ObjectMapper objectMapper;
-
     private final String serviceUrl;
+
     private static final String CONFIG_URL = "/feed/{feed}/{channel}/config";
     private static final String POST_SAMPLE_URL = "/feed/{feed}/{channel}/data";
     private static final String QUERY_SAMPLE = "http://localhost:8080/feed/ecommerce/activity/data";
     private static final Logger logger = LoggerFactory.getLogger(HVDFClientService.class);
 
-    public HVDFClientService() {
-        this("http://localhost:8080");
-    }
-
-    public HVDFClientService(String serviceUrl) {
+    @Autowired
+    public HVDFClientService(@Qualifier("hvdfServiceUrl") String serviceUrl, MongoDBService mongoDBService,
+                             RestTemplate restTemplate,
+                             MappingJackson2HttpMessageConverter mappingJackson2HttpMessageConverter) {
         Objects.requireNonNull(serviceUrl);
         this.serviceUrl = serviceUrl;
+        this.mongoDBService = mongoDBService;
+        this.restTemplate = restTemplate;
+        this.mappingJackson2HttpMessageConverter = mappingJackson2HttpMessageConverter;
     }
 
     @PostConstruct
     public void initialise() {
-        objectMapper = springMvcJacksonConverter.getObjectMapper();
+        objectMapper = mappingJackson2HttpMessageConverter.getObjectMapper();
         objectMapper.configure(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS, false);
         SimpleModule simpleModule = new SimpleModule();
         customeJsonmapping(simpleModule);
@@ -97,35 +93,7 @@ public class HVDFClientService {
             } catch (IOException | ParseException e) {
                 e.printStackTrace();
             }
-            populateActivities();
         }
-    }
-
-    private void populateActivities() {
-        ActivityDataBuilder builder = new ActivityDataBuilder();
-        builder.setUserId("u123").setGeoCode(1).setSessionId("2373BB")
-                .setDevice(new Activity.Device("1234", "mobile/iphone", "Chrome/34.0.1847.131"))
-                .setType(Activity.Type.VIEW).setItemId("301671").setSku("730223104376")
-                .setOrder(new Activity.Order("12520185"))
-                .setLocations(Arrays.asList(-86.95444, 33.40178))
-                .setTags(Arrays.asList("smartphone", "iphone"));
-        LocalDateTime now = LocalDateTime.now();
-        builder.setTime(now)
-               .setTimeStamp(now.atZone(ZoneId.systemDefault()).toInstant().toEpochMilli());
-        record(new Activity("u123",
-                now.atZone(ZoneId.systemDefault()).toInstant().toEpochMilli(), builder.createActivity()));
-        builder = new ActivityDataBuilder();
-        builder.setUserId("u457").setGeoCode(1).setSessionId("2373BB")
-                .setDevice(new Activity.Device("1234", "mobile/iphone", "Chrome/34.0.1847.131"))
-                .setType(Activity.Type.VIEW).setItemId("301671").setSku("730223104376")
-                .setOrder(new Activity.Order("12520185"))
-                .setLocations(Arrays.asList(-86.95444, 33.40178))
-                .setTags(Arrays.asList("smartphone", "iphone"));
-        now = LocalDateTime.now();
-        builder.setTime(now)
-                .setTimeStamp(now.atZone(ZoneId.systemDefault()).toInstant().toEpochMilli());
-        record(new Activity("u457",
-                now.atZone(ZoneId.systemDefault()).toInstant().toEpochMilli(), builder.createActivity()));
     }
 
     public boolean record(Activity activity) {

@@ -7,3 +7,62 @@ java -Xdebug -Xrunjdwp:transport=dt_socket,address=8585,server=y,suspend=n -jar 
 
 The connectivity configuration of HVDF is specified in the hvdf-config.yml file.
 The channel configuration of HVDF for E-Cmmerce is specified in the hvdf-channel-config.json file.
+
+-- HVDF Client User Insights Pipeline Operation
+-- pipeline: Recent number of views, purchases, etc for user
+[{
+  "$match": {
+    "data.userId": "u123",
+    "ts": {
+      "$gt": 1516147200000
+    }
+  }
+  },
+
+{ "$group": {
+    "_id": "$data.type",
+    "count": {
+      "$sum": 1
+    }
+  }
+  }
+]
+
+-- pipeline: Recent total sales for a user
+[{
+  "$match": {
+    "data.userId": "u457",
+	"data.type": "ORDER",
+    "ts": {
+      "$gt": 1516147200000
+    }
+  }
+  },
+
+{ "$group": {
+    "_id": "result",
+    "count": {
+      "$sum": "$data.order.total"
+    }
+  }
+  }
+]
+
+-- pipline: Recent number of views, purchases, etc for item
+[{
+  "$match": {
+    "data.itemId": "301671",
+    "ts": {
+      "$gt": 1516147200000
+    }
+  }
+  },
+
+{ "$group": {
+    "_id": "$data.type",
+    "count": {
+      "$sum": 1
+    }
+  }
+  }
+]

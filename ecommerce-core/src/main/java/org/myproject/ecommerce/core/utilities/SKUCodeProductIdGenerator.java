@@ -14,13 +14,16 @@ import java.util.Optional;
 // SKU - Stock Keeping Unit
 @Service
 public class SKUCodeProductIdGenerator {
-    @Autowired
     private MongoDBService mongoDBService;
-
     private long productSku = 0L;
     private long productvariationSku = 0L;
     private long productId = 0L;
     private SKUCodeProductId skuCodeProductId;
+
+    @Autowired
+    public SKUCodeProductIdGenerator(MongoDBService mongoDBService) {
+        this.mongoDBService = mongoDBService;
+    }
 
     @PostConstruct
     public void initialise() {
