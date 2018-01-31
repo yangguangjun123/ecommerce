@@ -42,7 +42,6 @@ import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
@@ -94,35 +93,7 @@ public class HVDFClientService {
             } catch (IOException | ParseException e) {
                 e.printStackTrace();
             }
-            populateActivities();
         }
-    }
-
-    private void populateActivities() {
-        ActivityDataBuilder builder = new ActivityDataBuilder();
-        builder.setUserId("u123").setGeoCode(1).setSessionId("2373BB")
-                .setDevice(new Activity.Device("1234", "mobile/iphone", "Chrome/34.0.1847.131"))
-                .setType(Activity.Type.VIEW).setItemId("301671").setSku("730223104376")
-                .setOrder(new Activity.Order("12520185"))
-                .setLocations(Arrays.asList(-86.95444, 33.40178))
-                .setTags(Arrays.asList("smartphone", "iphone"));
-        LocalDateTime now = LocalDateTime.now();
-        builder.setTime(now)
-               .setTimeStamp(now.atZone(ZoneId.systemDefault()).toInstant().toEpochMilli());
-        record(new Activity("u123",
-                now.atZone(ZoneId.systemDefault()).toInstant().toEpochMilli(), builder.createActivity()));
-        builder = new ActivityDataBuilder();
-        builder.setUserId("u457").setGeoCode(1).setSessionId("2373BB")
-                .setDevice(new Activity.Device("1234", "mobile/iphone", "Chrome/34.0.1847.131"))
-                .setType(Activity.Type.VIEW).setItemId("301671").setSku("730223104376")
-                .setOrder(new Activity.Order("12520185"))
-                .setLocations(Arrays.asList(-86.95444, 33.40178))
-                .setTags(Arrays.asList("smartphone", "iphone"));
-        now = LocalDateTime.now();
-        builder.setTime(now)
-                .setTimeStamp(now.atZone(ZoneId.systemDefault()).toInstant().toEpochMilli());
-        record(new Activity("u457",
-                now.atZone(ZoneId.systemDefault()).toInstant().toEpochMilli(), builder.createActivity()));
     }
 
     public boolean record(Activity activity) {

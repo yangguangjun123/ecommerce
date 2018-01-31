@@ -48,7 +48,7 @@ public class TestApplicationConfiguration {
 
     @Bean
     UserInsightsAnalysisService userInsightsAnalysisService() {
-        return new UserInsightsAnalysisService(mongoDBService());
+        return new UserInsightsAnalysisService(mongoDBService(), hvdfClientService());
     }
 
 }

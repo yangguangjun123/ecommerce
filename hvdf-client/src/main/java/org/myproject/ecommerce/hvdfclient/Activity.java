@@ -361,12 +361,14 @@ public class Activity {
 
     public static class Order {
         private String id;
+        private int total;
 
         public Order() {
         }
 
-        public Order(String id) {
+        public Order(String id, int total) {
             this.id = id;
+            this.total = total;
         }
 
         public String getId() {
@@ -377,6 +379,14 @@ public class Activity {
             this.id = id;
         }
 
+        public int getTotal() {
+            return total;
+        }
+
+        public void setTotal(int total) {
+            this.total = total;
+        }
+
         @Override
         public boolean equals(Object o) {
             if (this == o) return true;
@@ -384,18 +394,22 @@ public class Activity {
 
             Order order = (Order) o;
 
+            if (total != order.total) return false;
             return id != null ? id.equals(order.id) : order.id == null;
         }
 
         @Override
         public int hashCode() {
-            return id != null ? id.hashCode() : 0;
+            int result = id != null ? id.hashCode() : 0;
+            result = 31 * result + total;
+            return result;
         }
 
         @Override
         public String toString() {
             return "Order{" +
                     "id='" + id + '\'' +
+                    ", total=" + total +
                     '}';
         }
     }

@@ -18,7 +18,7 @@ public class ActivityOrderCodec implements Codec<Activity.Order> {
     @Override
     public Activity.Order decode(BsonReader reader, DecoderContext decoderContext) {
         Document document = codecRegistry.get(Document.class).decode(reader, decoderContext);
-        return new Activity.Order(document.getString("id"));
+        return new Activity.Order(document.getString("id"), document.getInteger("total"));
     }
 
     @Override

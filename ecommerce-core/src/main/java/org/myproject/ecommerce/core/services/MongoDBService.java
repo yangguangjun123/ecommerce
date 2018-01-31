@@ -5,7 +5,9 @@ import com.mongodb.MongoClientOptions;
 import com.mongodb.WriteConcern;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
+import com.mongodb.client.model.Accumulators;
 import com.mongodb.client.model.Aggregates;
+import com.mongodb.client.model.BsonField;
 import com.mongodb.client.model.Filters;
 import com.mongodb.client.model.Projections;
 import com.mongodb.client.model.Sorts;
@@ -465,8 +467,6 @@ public class MongoDBService {
         for(int i = fields.length - 2; i >= 0; i--) {
             filter = Filters.eq(fields[i], filter);
         }
-
-        //Bson filter = Filters.eq("carted", Filters.eq("cart_id", 42));
         return Optional.of(Updates.pullByFilter(filter));
     }
 
@@ -527,5 +527,69 @@ public class MongoDBService {
         };
         collection.aggregate(pipeline).forEach(consumer);
         return result;
+    }
+
+    public <T> List<T> executeAggregatePipineline(String databaseName, String collectionName,
+                                                 List<Bson> pipeline, Class<T> clazz) {
+        MongoDatabase mongoDatabase = mongoClient.getDatabase(databaseName);
+        MongoCollection<T> collection = mongoDatabase.getCollection(collectionName, clazz);
+        List<T> results = new ArrayList<>();
+        Consumer<T> addResult = r -> results.add(r);
+        collection.aggregate(pipeline, clazz).forEach(addResult);
+        return results;
+    }
+
+    public <T> List<T> executeAggregatePipineline(String databaseName, String collectionName,
+                                                 Map<String, Map<String, Object>> pipelineStageMap, Class<T> clazz) {
+        MongoDatabase mongoDatabase = mongoClient.getDatabase(databaseName);
+        MongoCollection<T> collection = mongoDatabase.getCollection(collectionName, clazz);
+        List<Bson> pipeline = pipelineStageMap.keySet()
+                .stream()
+                .map(key -> getPipelineBson(key, pipelineStageMap.get(key)))
+                .filter(o -> o.isPresent())
+                .map(Optional::get)
+                .collect(toList());
+
+        List<T> results = new ArrayList<>();
+        Consumer<T> addResult = r -> results.add(r);
+        collection.aggregate(pipeline, clazz).forEach(addResult);
+        return results;
+    }
+
+    private Optional<Bson> getPipelineBson(String key, Map<String, Object> aggregationMap) {
+        Objects.requireNonNull(key);
+        Objects.requireNonNull(aggregationMap);
+        if ("match".equals(key)) {
+            List<Bson> filters = aggregationMap.keySet()
+                    .stream()
+                    .map(k -> mapBsonFilter(k, aggregationMap))
+                    .collect(toList());
+            return Optional.of(Aggregates.match(and(filters)));
+        }
+        if ("group".equals(key)) {
+            BsonField aggregateField = aggregationMap.keySet()
+                    .stream()
+                    .filter(k -> !"_id".equals(k))
+                    .map(k -> {
+                        Map<String, Object> operationMap = (Map<String, Object>) aggregationMap.get(k);
+                        String operatioKey = operationMap.keySet().stream().collect(toList()).get(0);
+                        Object operationField = operationMap.get(operatioKey);
+                        if ("$sum".equals(operatioKey)) {
+                            return Accumulators.sum(k, operationField);
+                        }
+                        return null;
+                    })
+                    .filter(bson -> bson != null)
+                    .collect(toList()).get(0);
+            return Optional.of(Aggregates.group(aggregationMap.get("_id"), aggregateField));
+        }
+
+        return Optional.empty();
+    }
+
+    public void dropCollection(String databaseName, String collectionName) {
+        MongoDatabase mongoDatabase = mongoClient.getDatabase(databaseName);
+        Optional<MongoCollection> collectionOptional = Optional.of(mongoDatabase.getCollection(collectionName));
+        collectionOptional.ifPresent(c -> c.drop());
     }
 }
