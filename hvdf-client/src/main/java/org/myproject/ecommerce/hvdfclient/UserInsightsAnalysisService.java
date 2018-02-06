@@ -1,13 +1,10 @@
 package org.myproject.ecommerce.hvdfclient;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.commons.io.IOUtils;
 import org.bson.BsonArray;
 import org.bson.BsonDocument;
 import org.bson.BsonInt64;
 import org.bson.BsonString;
-import org.bson.Document;
 import org.bson.codecs.BsonArrayCodec;
 import org.bson.codecs.BsonValueCodecProvider;
 import org.bson.codecs.DecoderContext;
@@ -18,7 +15,6 @@ import org.bson.codecs.configuration.CodecRegistry;
 import org.bson.conversions.Bson;
 import org.bson.json.JsonReader;
 import org.myproject.ecommerce.core.services.MongoDBService;
-import org.myproject.ecommerce.core.utilities.LoggingUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -50,38 +46,21 @@ import static java.util.stream.Collectors.toList;
 public class UserInsightsAnalysisService {
     private final MongoDBService mongoDBService;
     private final HVDFClientService hvdfClientService;
+    private final HVDFClientPropertyService hvdfClientPropertyService;
     private final String defaultMapFunc;
     private final String defaultReduceFunc;
 
-    private String channelPrefix = "activity_";
+    private String channelPrefix;
     private long period = 0L;
-
-    private static final Map<String, Long> timeValues = new HashMap<>();
-
-    static {
-        // All valid time units used in config
-        timeValues.put("milliseconds", 1L);
-        timeValues.put("millisecond", 1L);
-        timeValues.put("seconds", 1000L);
-        timeValues.put("second", 1000L);
-        timeValues.put("minutes", 60 * 1000L);
-        timeValues.put("minute", 60 * 1000L);
-        timeValues.put("hours", 60 * 60 * 1000L);
-        timeValues.put("hour", 60 * 60 * 1000L);
-        timeValues.put("days", 24 * 60 * 60 * 1000L);
-        timeValues.put("day", 24 * 60 * 60 * 1000L);
-        timeValues.put("weeks", 7 * 24 * 60 * 60 * 1000L);
-        timeValues.put("week", 7 * 24 * 60 * 60 * 1000L);
-        timeValues.put("years", 365 * 24 * 60 * 60 * 1000L);
-        timeValues.put("year", 365 * 24 * 60 * 60 * 1000L);
-    }
 
     private static final Logger logger = LoggerFactory.getLogger(UserInsightsAnalysisService.class);
 
     @Autowired
-    public UserInsightsAnalysisService(MongoDBService mongoDBService, HVDFClientService hvdfClientService) {
+    public UserInsightsAnalysisService(MongoDBService mongoDBService, HVDFClientService hvdfClientService,
+                                       HVDFClientPropertyService hvdfClientPropertyService) {
         this.mongoDBService = mongoDBService;
         this.hvdfClientService = hvdfClientService;
+        this.hvdfClientPropertyService = hvdfClientPropertyService;
         try {
             defaultMapFunc = IOUtils.toString(getClass().getResourceAsStream("/map.js"),
                     StandardCharsets.UTF_8.name());
@@ -95,31 +74,8 @@ public class UserInsightsAnalysisService {
 
     @PostConstruct
     public void initilaise() {
-        Optional<Document> configOptional = mongoDBService.readOne("config",
-                "hvdf_channels_ecommerce", Document.class, new HashMap<>());
-        if (configOptional.isPresent()) {
-            String configJsonString = configOptional.get().toJson();
-            ObjectMapper objectMapper = new ObjectMapper();
-            try {
-                JsonNode rootNode = objectMapper.readValue(configJsonString, JsonNode.class);
-                Objects.requireNonNull(rootNode.get("storage"));
-                Objects.requireNonNull(rootNode.get("storage").get("type"));
-                String storageType = rootNode.get("storage").get("type").textValue();
-                channelPrefix = channelPrefix + storageType + "_";
-                Objects.requireNonNull(rootNode.get("time_slicing"));
-                Objects.requireNonNull(rootNode.get("time_slicing").get("config"));
-                Objects.requireNonNull(rootNode.get("time_slicing").get("config").get("period"));
-                JsonNode periodNode = rootNode.get("time_slicing").get("config").get("period");
-                periodNode.fields().forEachRemaining(entry ->
-                        period = period + timeValues.get(entry.getKey()) * entry.getValue().asInt());
-                if (period == 0) {
-                    throw new IllegalArgumentException("time slicing period cannot be zero");
-                }
-                LoggingUtils.info(logger,"period: " + period);
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-        }
+        period = hvdfClientPropertyService.getPeriod();
+        channelPrefix = hvdfClientPropertyService.getChannelPrefix();
     }
 
     public List<Activity> findUserActivities(String userId, long startTime, long endTime,
@@ -202,26 +158,6 @@ public class UserInsightsAnalysisService {
                 .map(time -> channelPrefix + String.valueOf(time))
                 .forEach(coll -> mongoDBService.performMapReduce("ecommerce", coll, mapFunc,
                         reduceFunc, filterMap, outputType.toUpperCase(), output,true));
-    }
-
-    public <T> List<T> performUserActivityAnalysis(String userId, Class<T> clazz, long hoursBefore) {
-        LocalDateTime now = LocalDateTime.now();
-        LocalDateTime lastOneHour = now.minusHours(hoursBefore);
-        long startTime = lastOneHour.atZone(ZoneId.systemDefault()).withZoneSameInstant(ZoneId.of("UTC"))
-                .toInstant().toEpochMilli();
-        long endTime = now.atZone(ZoneId.systemDefault()).withZoneSameInstant(ZoneId.of("UTC"))
-                .toInstant().toEpochMilli();
-        Map<String, Object> filterMap = new HashMap<>();
-        HashMap<String, Object> startTimeQueryMap = new HashMap<>();
-        startTimeQueryMap.put("data.ts", startTime);
-        filterMap.put("$gt", startTimeQueryMap);
-        List<T> results = new ArrayList<>();
-        LongStream.rangeClosed(startTime / period, endTime / period).boxed()
-                .sorted(reverseOrder())
-                .map(time -> channelPrefix + String.valueOf(time))
-                .forEach(coll -> results.addAll(mongoDBService.performMapReduce("ecommerce",
-                        coll, defaultMapFunc, defaultReduceFunc, filterMap, clazz)));
-        return results;
     }
 
     private List<Activity> findProductActivities(String itemId, long startTime, long endTime,
@@ -363,5 +299,13 @@ public class UserInsightsAnalysisService {
                         Collectors.summingLong(UserInsights::getCount)))
                 .entrySet().stream()
                            .map(e -> new UserInsights(e.getKey(), e.getValue())).collect(toList());
+    }
+
+    public List<UserActivityAggregate> getUserActivityAggregate(String inputName) {
+        return mongoDBService.readAll("ecommerce", inputName, UserActivityAggregate.class);
+    }
+
+    public long getNumberOfUniqueUsersFromActivityAggregate(String inputName) {
+        return mongoDBService.count("ecommerce", inputName);
     }
 }

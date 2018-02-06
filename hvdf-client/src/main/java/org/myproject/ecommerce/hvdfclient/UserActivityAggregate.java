@@ -3,14 +3,14 @@ package org.myproject.ecommerce.hvdfclient;
 import org.bson.codecs.pojo.annotations.BsonId;
 import org.bson.codecs.pojo.annotations.BsonProperty;
 
-public class ActivityAggregate {
+public class UserActivityAggregate {
     @BsonId
     private String userId;
 
     @BsonProperty("value")
     private long count;
 
-    public ActivityAggregate() {
+    public UserActivityAggregate() {
     }
 
     public String getUserId() {
@@ -34,7 +34,7 @@ public class ActivityAggregate {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
 
-        ActivityAggregate that = (ActivityAggregate) o;
+        UserActivityAggregate that = (UserActivityAggregate) o;
 
         if (count != that.count) return false;
         return userId != null ? userId.equals(that.userId) : that.userId == null;
@@ -49,7 +49,7 @@ public class ActivityAggregate {
 
     @Override
     public String toString() {
-        return "ActivityAggregate{" +
+        return "UserActivityAggregate{" +
                 "userId='" + userId + '\'' +
                 ", count=" + count +
                 '}';

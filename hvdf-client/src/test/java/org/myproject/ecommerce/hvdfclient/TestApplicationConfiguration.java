@@ -47,8 +47,13 @@ public class TestApplicationConfiguration {
     }
 
     @Bean
+    HVDFClientPropertyService hvdfClientPropertyService() {
+        return new HVDFClientPropertyService(mongoDBService());
+    }
+
+    @Bean
     UserInsightsAnalysisService userInsightsAnalysisService() {
-        return new UserInsightsAnalysisService(mongoDBService(), hvdfClientService());
+        return new UserInsightsAnalysisService(mongoDBService(), hvdfClientService(), hvdfClientPropertyService());
     }
 
 }

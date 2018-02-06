@@ -8,7 +8,6 @@ import org.myproject.ecommerce.core.utilities.LoggingUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.converter.json.MappingJackson2HttpMessageConverter;
 import org.springframework.stereotype.Service;
 
 import javax.annotation.PostConstruct;
@@ -19,7 +18,7 @@ import java.util.Objects;
 import java.util.Optional;
 
 @Service
-public class HVDFClientApplicationPropertyService {
+public class HVDFClientPropertyService {
     private final MongoDBService mongoDBService;
 
     private String channelPrefix = "activity_";
@@ -45,10 +44,10 @@ public class HVDFClientApplicationPropertyService {
         timeValues.put("year", 365 * 24 * 60 * 60 * 1000L);
     }
 
-    private static final Logger logger = LoggerFactory.getLogger(HVDFClientApplicationPropertyService.class);
+    private static final Logger logger = LoggerFactory.getLogger(HVDFClientPropertyService.class);
 
     @Autowired
-    public HVDFClientApplicationPropertyService(MongoDBService mongoDBService) {
+    public HVDFClientPropertyService(MongoDBService mongoDBService) {
         this.mongoDBService = mongoDBService;
     }
 
@@ -92,5 +91,9 @@ public class HVDFClientApplicationPropertyService {
 
     public boolean isConfigued() {
         return isConfigued;
+    }
+
+    public String getChannelPrefix() {
+        return channelPrefix;
     }
 }

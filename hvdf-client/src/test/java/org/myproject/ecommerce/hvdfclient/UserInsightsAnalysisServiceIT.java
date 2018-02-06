@@ -1,8 +1,5 @@
 package org.myproject.ecommerce.hvdfclient;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import org.bson.Document;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -16,8 +13,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
-import javax.annotation.PostConstruct;
-import java.io.IOException;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -36,7 +31,6 @@ import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.LongStream;
 
-import static java.util.Comparator.reverseOrder;
 import static java.util.stream.Collectors.toList;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
@@ -54,30 +48,10 @@ public class UserInsightsAnalysisServiceIT {
     private MongoDBService mongoDBService;
 
     @Autowired
-    private HVDFClientApplicationPropertyService hvdfClientApplicationPropertyService;
+    private HVDFClientPropertyService hvdfClientPropertyService;
 
-    private String channelPrefix = "activity_";
-    private long period = 0L;
-
-    private static final Map<String, Long> timeValues = new HashMap<>();
-
-    static {
-        // All valid time units used in config
-        timeValues.put("milliseconds", 1L);
-        timeValues.put("millisecond", 1L);
-        timeValues.put("seconds", 1000L);
-        timeValues.put("second", 1000L);
-        timeValues.put("minutes", 60 * 1000L);
-        timeValues.put("minute", 60 * 1000L);
-        timeValues.put("hours", 60 * 60 * 1000L);
-        timeValues.put("hour", 60 * 60 * 1000L);
-        timeValues.put("days", 24 * 60 * 60 * 1000L);
-        timeValues.put("day", 24 * 60 * 60 * 1000L);
-        timeValues.put("weeks", 7 * 24 * 60 * 60 * 1000L);
-        timeValues.put("week", 7 * 24 * 60 * 60 * 1000L);
-        timeValues.put("years", 365 * 24 * 60 * 60 * 1000L);
-        timeValues.put("year", 365 * 24 * 60 * 60 * 1000L);
-    }
+    private String channelPrefix;
+    private long period;
 
     private List<Long> times = List.of(1516181741620L, 1516182790560L, 1516182882582L,
             1516184589023L, 1516184589524L, 1516535591361L,
@@ -86,45 +60,15 @@ public class UserInsightsAnalysisServiceIT {
 
     private static final Logger logger = LoggerFactory.getLogger(UserInsightsAnalysisServiceIT.class);
 
-    @PostConstruct
-    public void initialise() {
-        Optional<Document> configOptional = mongoDBService.readOne("config",
-                "hvdf_channels_ecommerce", Document.class, new HashMap<>());
-        if (configOptional.isPresent()) {
-            String configJsonString = configOptional.get().toJson();
-            ObjectMapper objectMapper = new ObjectMapper();
-            try {
-                JsonNode rootNode = objectMapper.readValue(configJsonString, JsonNode.class);
-                Objects.requireNonNull(rootNode.get("storage"));
-                Objects.requireNonNull(rootNode.get("storage").get("type"));
-                String storageType = rootNode.get("storage").get("type").textValue();
-                channelPrefix = channelPrefix + storageType + "_";
-                Objects.requireNonNull(rootNode.get("time_slicing"));
-                Objects.requireNonNull(rootNode.get("time_slicing").get("config"));
-                Objects.requireNonNull(rootNode.get("time_slicing").get("config").get("period"));
-                JsonNode periodNode = rootNode.get("time_slicing").get("config").get("period");
-                periodNode.fields().forEachRemaining(entry ->
-                        period = period + timeValues.get(entry.getKey()) * entry.getValue().asInt());
-                if (period == 0) {
-                    throw new IllegalArgumentException("time slicing period cannot be zero");
-                }
-                LoggingUtils.info(logger,"period: " + period);
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-        }
-    }
-
     @Before
     public void setUp() throws InterruptedException {
+        period = hvdfClientPropertyService.getPeriod();
+        channelPrefix = hvdfClientPropertyService.getChannelPrefix();
         if(!checkTestData()) {
             times.stream()
                  .forEach(this::setupTestData);
+            Thread.sleep(10000);
         }
-        long now = LocalDateTime.now().atZone(ZoneId.systemDefault()).withZoneSameInstant(ZoneId.of("UTC"))
-                .toInstant().toEpochMilli();
-        setupTestData(now);
-        Thread.sleep(10000);
     }
 
     private boolean checkTestData() {
@@ -284,11 +228,15 @@ public class UserInsightsAnalysisServiceIT {
     }
 
     @Test
-    public void shouldPerformUserActivityAnalysis() {
+    public void shouldPerformUserActivityAnalysis() throws InterruptedException {
         // given
         String outputType = "replace";
         String output = "lastHourUniques";
         long hoursBefore = 1;
+        long now = LocalDateTime.now().atZone(ZoneId.systemDefault()).withZoneSameInstant(ZoneId.of("UTC"))
+                .toInstant().toEpochMilli();
+        setupTestData(now);
+        Thread.sleep(10000);
 
         // when
         userInsightsAnalysisService.performUserActivityAnalysis(outputType, output, hoursBefore);
@@ -298,7 +246,7 @@ public class UserInsightsAnalysisServiceIT {
     }
 
     @Test
-    public void shouldPerformUserActivityAnalysisWhenMapReduceFunctionsReceived() {
+    public void shouldPerformUserActivityAnalysisWhenMapReduceFunctionsReceived() throws InterruptedException {
         // given
         String mapFunc = "function() {" +
                             "emit(this.data.userId, 1);" +
@@ -309,12 +257,43 @@ public class UserInsightsAnalysisServiceIT {
         String outputType = "replace";
         String output = "lastHourUniques";
         long hoursBefore = 1;
+        Thread.sleep(10000);
 
         // when
         userInsightsAnalysisService.performUserActivityAnalysis(mapFunc, reduceFunc, outputType, output, hoursBefore);
 
         // verify
         assertTrue(mongoDBService.count("ecommerce", output) > 0);
+    }
+
+    @Test
+    public void shouldReturnUserActivityAggregateReport() {
+        // given
+        String inputName = "lastHourUniques";
+
+        // when
+        List<UserActivityAggregate> userActivityAggregates =
+                userInsightsAnalysisService.getUserActivityAggregate(inputName);
+
+        // verify
+        userActivityAggregates.stream()
+                              .forEach(u -> {
+                                  assertTrue(u.getUserId().length() > 0);
+                                  assertTrue(u.getCount() >= 1);
+                                  LoggingUtils.info(logger, u.toString());
+                              });
+    }
+
+    @Test
+    public void shouldReturnNumberOfUniqueUsersFromUserActivityAggregate() {
+        // given
+        String inputName = "lastHourUniques";
+
+        // when
+        long count = userInsightsAnalysisService.getNumberOfUniqueUsersFromActivityAggregate(inputName);
+
+        // verify
+        assertTrue(count >= 2);
     }
 
     private void setupTestData(long time) {
