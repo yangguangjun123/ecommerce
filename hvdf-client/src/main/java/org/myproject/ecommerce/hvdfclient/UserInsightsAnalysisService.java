@@ -18,6 +18,7 @@ import org.bson.codecs.configuration.CodecRegistry;
 import org.bson.conversions.Bson;
 import org.bson.json.JsonReader;
 import org.myproject.ecommerce.core.services.MongoDBService;
+import org.myproject.ecommerce.core.utilities.LoggingUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -25,10 +26,12 @@ import org.springframework.stereotype.Service;
 
 import javax.annotation.PostConstruct;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
@@ -47,6 +50,8 @@ import static java.util.stream.Collectors.toList;
 public class UserInsightsAnalysisService {
     private final MongoDBService mongoDBService;
     private final HVDFClientService hvdfClientService;
+    private final String defaultMapFunc;
+    private final String defaultReduceFunc;
 
     private String channelPrefix = "activity_";
     private long period = 0L;
@@ -77,6 +82,15 @@ public class UserInsightsAnalysisService {
     public UserInsightsAnalysisService(MongoDBService mongoDBService, HVDFClientService hvdfClientService) {
         this.mongoDBService = mongoDBService;
         this.hvdfClientService = hvdfClientService;
+        try {
+            defaultMapFunc = IOUtils.toString(getClass().getResourceAsStream("/map.js"),
+                    StandardCharsets.UTF_8.name());
+            defaultReduceFunc = IOUtils.toString(getClass().getResourceAsStream("/reduce.js"),
+                    StandardCharsets.UTF_8.name());
+        } catch (IOException e) {
+            e.printStackTrace();
+            throw new RuntimeException("cannot read default map/reduce function");
+        }
     }
 
     @PostConstruct
@@ -101,7 +115,7 @@ public class UserInsightsAnalysisService {
                 if (period == 0) {
                     throw new IllegalArgumentException("time slicing period cannot be zero");
                 }
-                logger.info("period: " + period);
+                LoggingUtils.info(logger,"period: " + period);
             } catch (IOException e) {
                 e.printStackTrace();
             }
@@ -126,13 +140,13 @@ public class UserInsightsAnalysisService {
         Map<String, Object> filterMap = new HashMap<>();
         filterMap.put("data.userId", userId);
         HashMap<String, Object> startTimeQueryMap = new HashMap<>();
-        startTimeQueryMap.put("ts", startTime);
+        startTimeQueryMap.put("data.ts", startTime);
         filterMap.put("$gt", startTimeQueryMap);
         HashMap<String, Object> endTimeQueryMap = new HashMap<>();
-        endTimeQueryMap.put("ts", endTime);
+        endTimeQueryMap.put("data.ts", endTime);
         filterMap.put("$lt", endTimeQueryMap);
         Map<String, Integer> sortMap = new LinkedHashMap<>();
-        sortMap.put("data.time", -1);
+        sortMap.put("data.ts", -1);
         return mongoDBService.readAll("ecommerce", collectionName,
                 Activity.class, filterMap, Optional.of(sortMap));
     }
@@ -148,6 +162,68 @@ public class UserInsightsAnalysisService {
                 .collect(toList());
     }
 
+    public void performUserActivityAnalysis(String outputType, String output, long hoursBefore) {
+        Objects.requireNonNull(outputType);
+        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime before = now.minusHours(hoursBefore);
+        long startTime = before.atZone(ZoneId.systemDefault()).withZoneSameInstant(ZoneId.of("UTC"))
+                .toInstant().toEpochMilli();
+        long endTime = now.atZone(ZoneId.systemDefault()).withZoneSameInstant(ZoneId.of("UTC"))
+                .toInstant().toEpochMilli();
+        Map<String, Object> filterMap = new HashMap<>();
+        HashMap<String, Object> startTimeQueryMap = new HashMap<>();
+        startTimeQueryMap.put("data.ts", startTime);
+        filterMap.put("$gt", startTimeQueryMap);
+        LongStream.rangeClosed(startTime / period, endTime / period).boxed()
+                .sorted(reverseOrder())
+                .map(time -> channelPrefix + String.valueOf(time))
+                .forEach(coll -> mongoDBService.performMapReduce("ecommerce", coll, defaultMapFunc,
+                        defaultReduceFunc, filterMap, outputType.toUpperCase(), output,true));
+    }
+
+
+    public void performUserActivityAnalysis(String mapFunc, String reduceFunc, String outputType,
+                                            String output, long hoursBefore) {
+        Objects.requireNonNull(outputType);
+        Objects.requireNonNull(mapFunc);
+        Objects.requireNonNull(reduceFunc);
+        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime before = now.minusHours(hoursBefore);
+        long startTime = before.atZone(ZoneId.systemDefault()).withZoneSameInstant(ZoneId.of("UTC"))
+                .toInstant().toEpochMilli();
+        long endTime = now.atZone(ZoneId.systemDefault()).withZoneSameInstant(ZoneId.of("UTC"))
+                .toInstant().toEpochMilli();
+        Map<String, Object> filterMap = new HashMap<>();
+        HashMap<String, Object> startTimeQueryMap = new HashMap<>();
+        startTimeQueryMap.put("data.ts", startTime);
+        filterMap.put("$gt", startTimeQueryMap);
+        LongStream.rangeClosed(startTime / period, endTime / period).boxed()
+                .sorted(reverseOrder())
+                .map(time -> channelPrefix + String.valueOf(time))
+                .forEach(coll -> mongoDBService.performMapReduce("ecommerce", coll, mapFunc,
+                        reduceFunc, filterMap, outputType.toUpperCase(), output,true));
+    }
+
+    public <T> List<T> performUserActivityAnalysis(String userId, Class<T> clazz, long hoursBefore) {
+        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime lastOneHour = now.minusHours(hoursBefore);
+        long startTime = lastOneHour.atZone(ZoneId.systemDefault()).withZoneSameInstant(ZoneId.of("UTC"))
+                .toInstant().toEpochMilli();
+        long endTime = now.atZone(ZoneId.systemDefault()).withZoneSameInstant(ZoneId.of("UTC"))
+                .toInstant().toEpochMilli();
+        Map<String, Object> filterMap = new HashMap<>();
+        HashMap<String, Object> startTimeQueryMap = new HashMap<>();
+        startTimeQueryMap.put("data.ts", startTime);
+        filterMap.put("$gt", startTimeQueryMap);
+        List<T> results = new ArrayList<>();
+        LongStream.rangeClosed(startTime / period, endTime / period).boxed()
+                .sorted(reverseOrder())
+                .map(time -> channelPrefix + String.valueOf(time))
+                .forEach(coll -> results.addAll(mongoDBService.performMapReduce("ecommerce",
+                        coll, defaultMapFunc, defaultReduceFunc, filterMap, clazz)));
+        return results;
+    }
+
     private List<Activity> findProductActivities(String itemId, long startTime, long endTime,
                                                  String collectionName) {
         Objects.requireNonNull(itemId);
@@ -155,13 +231,13 @@ public class UserInsightsAnalysisService {
         Map<String, Object> filterMap = new HashMap<>();
         filterMap.put("data.itemId", itemId);
         HashMap<String, Object> startTimeQueryMap = new HashMap<>();
-        startTimeQueryMap.put("ts", startTime);
+        startTimeQueryMap.put("data.ts", startTime);
         filterMap.put("$gt", startTimeQueryMap);
         HashMap<String, Object> endTimeQueryMap = new HashMap<>();
-        endTimeQueryMap.put("ts", endTime);
+        endTimeQueryMap.put("data.ts", endTime);
         filterMap.put("$lt", endTimeQueryMap);
         Map<String, Integer> sortMap = new LinkedHashMap<>();
-        sortMap.put("data.time", -1);
+        sortMap.put("data.ts", -1);
         return mongoDBService.readAll("ecommerce", collectionName,
                 Activity.class, filterMap, Optional.of(sortMap));
     }

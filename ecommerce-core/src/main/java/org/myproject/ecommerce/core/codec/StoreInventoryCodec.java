@@ -8,6 +8,7 @@ import org.bson.codecs.DecoderContext;
 import org.bson.codecs.EncoderContext;
 import org.bson.codecs.configuration.CodecRegistry;
 import org.myproject.ecommerce.core.domain.StoreInventory;
+import org.myproject.ecommerce.core.utilities.LoggingUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -29,7 +30,7 @@ public class StoreInventoryCodec implements Codec<StoreInventory> {
     @Override
     public StoreInventory decode(BsonReader reader, DecoderContext decoderContext) {
         Document document = codecRegistry.get(Document.class).decode(reader, decoderContext);
-        logger.info("document "+ document);
+        LoggingUtils.info(logger, "document "+ document);
         StoreInventory storeInventory = new StoreInventory();
         storeInventory.setId(document.getString("_id"));
         storeInventory.setStoreId(document.getString("storeId"));

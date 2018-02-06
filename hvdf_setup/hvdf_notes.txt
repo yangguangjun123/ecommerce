@@ -66,3 +66,15 @@ The channel configuration of HVDF for E-Cmmerce is specified in the hvdf-channel
   }
   }
 ]
+
+-- How to use user insights
+There are, of course, many different things the results of these queries might tell us about our user’s behaviors.
+For example, over time, we might see that the same user has viewed the same item multiple times, meaning we might
+want to suggest that item to them the next time they visit our site. Similarly, we may find that a particular
+item has had a surge in purchases due to a sale or ad campaign, meaning we might want to suggest it to users more
+frequently to further drive up sales.
+
+Up-selling is a big possibility here as well. For example, let’s say we know a user has looked at several different
+low-end cell phones, but that in general their total purchases are relatively high. In this case, we might suggest
+that they look at a higher-end device that is popular amongst users with similar stats.
+

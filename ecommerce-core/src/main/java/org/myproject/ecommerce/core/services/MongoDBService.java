@@ -1,5 +1,6 @@
 package org.myproject.ecommerce.core.services;
 
+import com.mongodb.Block;
 import com.mongodb.MongoClient;
 import com.mongodb.MongoClientOptions;
 import com.mongodb.WriteConcern;
@@ -9,6 +10,7 @@ import com.mongodb.client.model.Accumulators;
 import com.mongodb.client.model.Aggregates;
 import com.mongodb.client.model.BsonField;
 import com.mongodb.client.model.Filters;
+import com.mongodb.client.model.MapReduceAction;
 import com.mongodb.client.model.Projections;
 import com.mongodb.client.model.Sorts;
 import com.mongodb.client.model.Updates;
@@ -21,6 +23,7 @@ import org.bson.codecs.configuration.CodecRegistry;
 import org.bson.codecs.pojo.PojoCodecProvider;
 import org.bson.conversions.Bson;
 import org.myproject.ecommerce.core.codec.CustomCodecProvider;
+import org.myproject.ecommerce.core.utilities.LoggingUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -29,6 +32,7 @@ import org.springframework.stereotype.Service;
 
 import javax.annotation.PreDestroy;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -49,6 +53,7 @@ import static com.mongodb.client.model.Filters.gt;
 import static com.mongodb.client.model.Filters.gte;
 import static com.mongodb.client.model.Filters.in;
 import static com.mongodb.client.model.Filters.lt;
+import static com.mongodb.client.model.Filters.lte;
 import static com.mongodb.client.model.Filters.nearSphere;
 import static com.mongodb.client.model.Filters.regex;
 import static com.mongodb.client.model.Updates.combine;
@@ -89,12 +94,14 @@ public class MongoDBService {
     }
 
     public <T> void createOne(String databaseName, String collectionName, Class<T> clazz, T document) {
+        validateDB(databaseName, collectionName);
         MongoDatabase mongoDatabase = mongoClient.getDatabase(databaseName);
         MongoCollection<T> collection = mongoDatabase.getCollection(collectionName, clazz);
         collection.insertOne(document);
     }
 
     public <T> void createAll(String databaseName, String collectionName, Class<T> clazz, List<T> documents) {
+        validateDB(databaseName, collectionName);
         MongoDatabase mongoDatabase = mongoClient.getDatabase(databaseName);
         MongoCollection<T> collection = mongoDatabase.getCollection(collectionName, clazz);
         collection.insertMany(documents);
@@ -102,11 +109,13 @@ public class MongoDBService {
 
     public <T> List<T> readAll(String databaseName, String collectionName, Class<T> clazz,
                                Map<String, Object> filter) {
+        validateDB(databaseName, collectionName);
         return readAll(databaseName, collectionName, clazz, filter, Optional.empty());
     }
 
     public <T> List<T> readAll(String databaseName, String collectionName, Class<T> clazz,
                                Map<String, Object> filter, Optional<Map<String, Integer>> sortOptional) {
+        validateDB(databaseName, collectionName);
         MongoDatabase mongoDatabase = mongoClient.getDatabase(databaseName);
         MongoCollection<T> collection = mongoDatabase.getCollection(collectionName, clazz);
         List<Bson> filters = filter.keySet()
@@ -130,12 +139,14 @@ public class MongoDBService {
 
     public <T> void readAll(String databaseName, String collectionName, Class<T> clazz,
                             Map<String, Object> filter, Consumer<T> consumer) {
+        validateDB(databaseName, collectionName);
         readAll(databaseName, collectionName, clazz, filter)
                 .stream()
                 .forEach(consumer);
     }
 
     public <T> List<T> readAll(String databaseName, String collectionName, Class<T> clazz) {
+        validateDB(databaseName, collectionName);
         MongoDatabase mongoDatabase = mongoClient.getDatabase(databaseName);
         MongoCollection<T> collection = mongoDatabase.getCollection(collectionName, clazz);
         List<T> result = new ArrayList<>();
@@ -145,6 +156,7 @@ public class MongoDBService {
     }
 
     public <T> Optional<T> readById(String databaseName, String collectionName, Class<T> clazz, Object id) {
+        validateDB(databaseName, collectionName);
         Map<String, Object> filter = new HashMap<>();
         filter.put("_id", id);
         return this.readOne(databaseName, collectionName, clazz, filter);
@@ -152,11 +164,13 @@ public class MongoDBService {
 
     public <T> Optional<T> readOne(String databaseName, String collectionName, Class<T> clazz,
                                             Map<String, Object> filter) {
+        validateDB(databaseName, collectionName);
         List<T> results = readAll(databaseName, collectionName, clazz, filter);
         return results.isEmpty() ? Optional.empty() : Optional.of(results.get(0));
     }
 
     public <T> long getDocumentCount(String databaseName, String collectionName, Class<T> clazz) {
+        validateDB(databaseName, collectionName);
         MongoDatabase mongoDatabase = mongoClient.getDatabase(databaseName);
         MongoCollection<T> collection = mongoDatabase.getCollection(collectionName, clazz);
         return collection.count();
@@ -164,6 +178,7 @@ public class MongoDBService {
 
     public <T> boolean addOne(String databaseName, String collectionName, Class<T> clazz,
                               Map<String, Object> queryFilterMap, Map<String, Object> valueMap) {
+        validateDB(databaseName, collectionName);
         UpdateResult updateResult = null;
         try {
             updateResult = process(databaseName, collectionName, clazz, queryFilterMap,
@@ -177,6 +192,7 @@ public class MongoDBService {
 
     public <T> boolean removeOne(String databaseName, String collectionName, Class<T> clazz,
                                  Map<String, Object> queryFilterMap, Map<String, Object> valueMap) {
+        validateDB(databaseName, collectionName);
         UpdateResult updateResult = null;
         try {
             updateResult = process(databaseName, collectionName, clazz, queryFilterMap,
@@ -190,6 +206,7 @@ public class MongoDBService {
 
     public <T> boolean updateMany(String databaseName, String collectionName, Map<String, Object> queryFilterMap,
                                   Map<String, Object> valueMap) {
+        validateDB(databaseName, collectionName);
         MongoDatabase mongoDatabase = mongoClient.getDatabase(databaseName);
         MongoCollection<Document> collection = mongoDatabase.getCollection(collectionName);
         List<Bson> filters = queryFilterMap.keySet()
@@ -204,6 +221,7 @@ public class MongoDBService {
     public <T> boolean updateOne(String databaseName, String collectionName, Class<T> clazz,
                                  Map<String, Object> queryFilterMap, Map<String, Object> valueMap,
                                  Map<String, Object> updateOptions) {
+        validateDB(databaseName, collectionName);
         UpdateResult updateResult = null;
         try {
             updateResult = process(databaseName, collectionName, clazz, queryFilterMap,
@@ -216,12 +234,14 @@ public class MongoDBService {
     }
 
     public void deleteAll(String databaseName, String collectionName) {
+        validateDB(databaseName, collectionName);
         MongoDatabase mongoDatabase = mongoClient.getDatabase(databaseName);
         MongoCollection collection = mongoDatabase.getCollection(collectionName);
         collection.deleteMany(new Document());
     }
 
     public void deleteMany(String databaseName, String collectionName, Map<String, Object> filterMap) {
+        validateDB(databaseName, collectionName);
         MongoDatabase mongoDatabase = mongoClient.getDatabase(databaseName);
         MongoCollection collection = mongoDatabase.getCollection(collectionName);
         List<Bson> filters = filterMap.keySet()
@@ -232,6 +252,7 @@ public class MongoDBService {
     }
 
     public void deleteOne(String databaseName, String collectionName, Map<String, Object> filterMap) {
+        validateDB(databaseName, collectionName);
         MongoDatabase mongoDatabase = mongoClient.getDatabase(databaseName);
         MongoCollection collection = mongoDatabase.getCollection(collectionName);
         List<Bson> filters = filterMap.keySet()
@@ -243,6 +264,7 @@ public class MongoDBService {
 
     public <T> boolean replaceOne(String databaseName, String collectionName, Class<T> clazz,
                                  Map<String, Object> filterMap, T value) {
+        validateDB(databaseName, collectionName);
         MongoDatabase mongoDatabase = mongoClient.getDatabase(databaseName);
         MongoCollection<T> collection = mongoDatabase.getCollection(collectionName, clazz);
         List<Bson> filters = filterMap.keySet()
@@ -254,12 +276,21 @@ public class MongoDBService {
     }
 
     public <T> long count(String databaseName, String collectionName, Class<T> clazz) {
+        validateDB(databaseName, collectionName);
         MongoDatabase mongoDatabase = mongoClient.getDatabase(databaseName);
         MongoCollection<T> collection = mongoDatabase.getCollection(collectionName, clazz);
         return collection.count();
     }
 
+    public long count(String databaseName, String collectionName) {
+        validateDB(databaseName, collectionName);
+        MongoDatabase mongoDatabase = mongoClient.getDatabase(databaseName);
+        MongoCollection collection = mongoDatabase.getCollection(collectionName);
+        return collection.count();
+    }
+
     public void writeJson(String databaseName, String collectionName, String jsonString) {
+        validateDB(databaseName, collectionName);
         MongoDatabase mongoDatabase = mongoClient.getDatabase(databaseName);
         MongoCollection<Document> collection = mongoDatabase.getCollection(collectionName);
         collection.insertOne(Document.parse(jsonString));
@@ -267,6 +298,7 @@ public class MongoDBService {
 
     public Map<String, Object> processAggregatePipeline(String databaseName, String collectionName,
                                              List<Map<String, Object>> pipeline, List<String> resultFields) {
+        validateDB(databaseName, collectionName);
         MongoDatabase mongoDatabase = mongoClient.getDatabase(databaseName);
         MongoCollection<Document> collection = mongoDatabase.getCollection(collectionName);
         Map<String, Object> result = new HashMap<>();
@@ -320,7 +352,7 @@ public class MongoDBService {
 
     @PreDestroy
     public void cleanup() {
-        logger.info("dispose of mongoClient");
+        LoggingUtils.info(logger, "dispose of mongoClient");
         mongoClient.close();
     }
 
@@ -329,6 +361,7 @@ public class MongoDBService {
                                            Map<String, Object> updateOptions,
                                            Function<Map<String, Object>, List<Bson>> convert)
             throws EcommerceException {
+        validateDB(databaseName, collectionName);
         MongoDatabase mongoDatabase = mongoClient.getDatabase(databaseName);
         MongoCollection<Document> collection = mongoDatabase.getCollection(collectionName);
         List<Document> documents = readAll("ecommerce",
@@ -342,7 +375,7 @@ public class MongoDBService {
         }
 
         if(documents.size() > 1) {
-            logger.info("documents contain more than one record: " +
+            LoggingUtils.info(logger, "documents contain more than one record: " +
                     Objects.toString(queryFilterMap));
             throw new EcommerceException("documents contain more than one record: " +
                     Objects.toString(queryFilterMap));
@@ -380,6 +413,10 @@ public class MongoDBService {
             Map<String, Object> fieldValueMap = (Map<String, Object>) queryFilterMap.get("$lt");
             List<String> keys = fieldValueMap.keySet().stream().collect(toList());
             return lt(keys.get(0), fieldValueMap.get(keys.get(0)));
+        } else if(key.equals("$lte")) {
+            Map<String, Object> fieldValueMap = (Map<String, Object>) queryFilterMap.get("$lte");
+            List<String> keys = fieldValueMap.keySet().stream().collect(toList());
+            return lte(keys.get(0), fieldValueMap.get(keys.get(0)));
         } else if(key.equals("$in")) {
             Map<String, Object> fieldValueMap = (Map<String, Object>) queryFilterMap.get("$in");
             List<String> keys = fieldValueMap.keySet().stream().collect(toList());
@@ -473,6 +510,7 @@ public class MongoDBService {
     public  <T> List<T> performGeoQuery(String databaseName, String collectionName, Class<T> clazz,
                                         Map<String, Object> geoQueryMap, Map<String, Object> filterMap,
                                         List<Map<String, Object>> aggregatePipelineMapList) {
+        validateDB(databaseName, collectionName);
         MongoDatabase mongoDatabase = mongoClient.getDatabase(databaseName);
         MongoCollection<T> collection = mongoDatabase.getCollection(collectionName, clazz);
 
@@ -531,6 +569,7 @@ public class MongoDBService {
 
     public <T> List<T> executeAggregatePipineline(String databaseName, String collectionName,
                                                  List<Bson> pipeline, Class<T> clazz) {
+        validateDB(databaseName, collectionName);
         MongoDatabase mongoDatabase = mongoClient.getDatabase(databaseName);
         MongoCollection<T> collection = mongoDatabase.getCollection(collectionName, clazz);
         List<T> results = new ArrayList<>();
@@ -541,6 +580,7 @@ public class MongoDBService {
 
     public <T> List<T> executeAggregatePipineline(String databaseName, String collectionName,
                                                  Map<String, Map<String, Object>> pipelineStageMap, Class<T> clazz) {
+        validateDB(databaseName, collectionName);
         MongoDatabase mongoDatabase = mongoClient.getDatabase(databaseName);
         MongoCollection<T> collection = mongoDatabase.getCollection(collectionName, clazz);
         List<Bson> pipeline = pipelineStageMap.keySet()
@@ -588,8 +628,73 @@ public class MongoDBService {
     }
 
     public void dropCollection(String databaseName, String collectionName) {
+        validateDB(databaseName, collectionName);
         MongoDatabase mongoDatabase = mongoClient.getDatabase(databaseName);
         Optional<MongoCollection> collectionOptional = Optional.of(mongoDatabase.getCollection(collectionName));
         collectionOptional.ifPresent(c -> c.drop());
+    }
+
+    public void performMapReduce(String databaseName, String collectionName, String map, String reduce,
+                                 Map<String, Object> filterMap, String action,
+                                 String outputCollection, boolean sharded) {
+        validateDB(databaseName, collectionName);
+        Objects.requireNonNull(map);
+        Objects.requireNonNull(reduce);
+        Objects.requireNonNull(filterMap);
+        Objects.requireNonNull(outputCollection);
+        Objects.requireNonNull(MapReduceAction.valueOf(action));
+        LoggingUtils.info(logger, "collection: " + collectionName);
+        MongoDatabase mongoDatabase = mongoClient.getDatabase(databaseName);
+        MongoCollection collection = mongoDatabase.getCollection(collectionName);
+        if(collection.count() == 0) {
+            LoggingUtils.info(logger, "collection has no documents: " + collectionName);
+            return;
+        }
+        List<Bson> filters = filterMap.keySet()
+                .stream()
+                .map(key -> mapBsonFilter(key, filterMap))
+                .collect(toList());
+        collection.mapReduce(map, reduce)
+                .sharded(sharded)
+                .action(MapReduceAction.valueOf(action))
+                .databaseName(databaseName)
+                .collectionName(outputCollection)
+                .filter(and(filters))
+                .toCollection();
+    }
+
+    public <T> List<T> performMapReduce(String databaseName, String collectionName, String map,
+                                        String reduce, Map<String, Object> filterMap, Class<T> clazz) {
+        validateDB(databaseName, collectionName);
+        Objects.requireNonNull(map);
+        Objects.requireNonNull(reduce);
+        MongoDatabase mongoDatabase = mongoClient.getDatabase(databaseName);
+        MongoCollection collection = mongoDatabase.getCollection(collectionName);
+        if(collection.count() == 0) {
+            return Collections.emptyList();
+        }
+        List<Bson> filters = filterMap.keySet()
+                .stream()
+                .map(key -> mapBsonFilter(key, filterMap))
+                .collect(toList());
+        List<T> results = new ArrayList<>();
+        Consumer<T> consumer = r -> results.add(r);
+
+        Block<Document> printBlock = new Block<Document>() {
+            @Override
+            public void apply(final Document document) {
+                LoggingUtils.info(logger, document.toJson());
+            }
+        };
+
+        collection.mapReduce(map, reduce, clazz)
+                .databaseName(databaseName)
+                .forEach(consumer);
+        return results;
+    }
+
+    private void validateDB(String database, String collectionName) {
+        Objects.requireNonNull(database);
+        Objects.requireNonNull(collectionName);
     }
 }

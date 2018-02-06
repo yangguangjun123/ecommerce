@@ -7,6 +7,7 @@ import org.myproject.ecommerce.core.services.MongoDBService;
 import org.myproject.ecommerce.core.services.ProductCategoryService;
 import org.myproject.ecommerce.core.services.StoreInventoryService;
 import org.myproject.ecommerce.core.services.StoreService;
+import org.myproject.ecommerce.core.utilities.LoggingUtils;
 import org.myproject.ecommerce.hvdfclient.HVDFClientService;
 import org.myproject.ecommerce.hvdfclient.UserInsightsAnalysisService;
 import org.slf4j.Logger;
@@ -40,9 +41,9 @@ public class MainApp implements CommandLineRunner {
 
     @Override
     public void run(String... strings) throws Exception {
-        logger.info("Start E-Commerce/MongoDB Sharding Application ...");
+        LoggingUtils.info(logger, "Start E-Commerce/MongoDB Sharding Application ...");
 
-        logger.info("E-Commerce/MongoDB Sharding Application Complete ...");
+        LoggingUtils.info(logger, "E-Commerce/MongoDB Sharding Application Complete ...");
     }
 
     @Autowired
