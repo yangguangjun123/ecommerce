@@ -46,6 +46,7 @@ public class HVDFClientPropertyService {
 
     private static final Logger logger = LoggerFactory.getLogger(HVDFClientPropertyService.class);
 
+    // # TODO: fixed schedule of reading configuration
     @Autowired
     public HVDFClientPropertyService(MongoDBService mongoDBService) {
         this.mongoDBService = mongoDBService;

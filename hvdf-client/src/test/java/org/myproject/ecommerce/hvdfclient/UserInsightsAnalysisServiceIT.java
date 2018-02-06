@@ -69,6 +69,10 @@ public class UserInsightsAnalysisServiceIT {
                  .forEach(this::setupTestData);
             Thread.sleep(10000);
         }
+        long now = LocalDateTime.now().atZone(ZoneId.systemDefault()).withZoneSameInstant(ZoneId.of("UTC"))
+                .toInstant().toEpochMilli();
+        setupTestData(now);
+        Thread.sleep(10000);
     }
 
     private boolean checkTestData() {
@@ -233,10 +237,6 @@ public class UserInsightsAnalysisServiceIT {
         String outputType = "replace";
         String output = "lastHourUniques";
         long hoursBefore = 1;
-        long now = LocalDateTime.now().atZone(ZoneId.systemDefault()).withZoneSameInstant(ZoneId.of("UTC"))
-                .toInstant().toEpochMilli();
-        setupTestData(now);
-        Thread.sleep(10000);
 
         // when
         userInsightsAnalysisService.performUserActivityAnalysis(outputType, output, hoursBefore);
@@ -257,7 +257,6 @@ public class UserInsightsAnalysisServiceIT {
         String outputType = "replace";
         String output = "lastHourUniques";
         long hoursBefore = 1;
-        Thread.sleep(10000);
 
         // when
         userInsightsAnalysisService.performUserActivityAnalysis(mapFunc, reduceFunc, outputType, output, hoursBefore);
