@@ -44,32 +44,36 @@ import static java.util.stream.Collectors.toList;
 @Service
 public class UserInsightsAnalysisService {
     private final MongoDBService mongoDBService;
-    private final HVDFClientService hvdfClientService;
     private final HVDFClientPropertyService hvdfClientPropertyService;
-    private final String defaultMapFunc;
-    private final String defaultReduceFunc;
 
     private static final Logger logger = LoggerFactory.getLogger(UserInsightsAnalysisService.class);
 
     @Autowired
-    public UserInsightsAnalysisService(MongoDBService mongoDBService, HVDFClientService hvdfClientService,
+    public UserInsightsAnalysisService(MongoDBService mongoDBService,
                                        HVDFClientPropertyService hvdfClientPropertyService) {
         this.mongoDBService = mongoDBService;
-        this.hvdfClientService = hvdfClientService;
         this.hvdfClientPropertyService = hvdfClientPropertyService;
-        try {
-            defaultMapFunc = IOUtils.toString(getClass().getResourceAsStream("/map.js"),
-                    StandardCharsets.UTF_8.name());
-            defaultReduceFunc = IOUtils.toString(getClass().getResourceAsStream("/reduce.js"),
-                    StandardCharsets.UTF_8.name());
-        } catch (IOException e) {
-            e.printStackTrace();
-            throw new RuntimeException("cannot read default map/reduce function");
-        }
     }
 
     @PostConstruct
     public void initilaise() {
+        checkData();
+    }
+
+    private void checkData() {
+        try {
+            Objects.requireNonNull(IOUtils.toString(getClass().getResourceAsStream(
+                    "/mapreduce/map_purchase.js"), StandardCharsets.UTF_8.name()));
+            Objects.requireNonNull(IOUtils.toString(getClass().getResourceAsStream(
+                    "/mapreduce/reduce_purchase.js"), StandardCharsets.UTF_8.name()));
+            Objects.requireNonNull(IOUtils.toString(getClass().getResourceAsStream(
+                    "/mapreduce/map_activity.js"), StandardCharsets.UTF_8.name()));
+            Objects.requireNonNull(IOUtils.toString(getClass().getResourceAsStream(
+                    "/mapreduce/reduce_activity.js"), StandardCharsets.UTF_8.name()));
+        } catch (IOException e) {
+            e.printStackTrace();
+            throw new RuntimeException("cannot read default map/reduce function");
+        }
     }
 
     public List<Activity> findUserActivities(String userId, long startTime, long endTime,
@@ -116,22 +120,30 @@ public class UserInsightsAnalysisService {
 
     public void performUserActivityAnalysis(String outputType, String output, long hoursBefore, boolean sharded) {
         Objects.requireNonNull(outputType);
-        LocalDateTime now = LocalDateTime.now();
-        LocalDateTime before = now.minusHours(hoursBefore);
-        long startTime = before.atZone(ZoneId.systemDefault()).withZoneSameInstant(ZoneId.of("UTC"))
-                .toInstant().toEpochMilli();
-        long endTime = now.atZone(ZoneId.systemDefault()).withZoneSameInstant(ZoneId.of("UTC"))
-                .toInstant().toEpochMilli();
-        Map<String, Object> filterMap = new HashMap<>();
-        HashMap<String, Object> startTimeQueryMap = new HashMap<>();
-        startTimeQueryMap.put("data.ts", startTime);
-        filterMap.put("$gt", startTimeQueryMap);
-        LongStream.rangeClosed(startTime / hvdfClientPropertyService.getPeriod(),
+        try {
+            final String mapFunc = IOUtils.toString(getClass().getResourceAsStream(
+                    "/mapreduce/map_activity.js"), StandardCharsets.UTF_8.name());
+            final String reduceFunc = IOUtils.toString(getClass().getResourceAsStream(
+                    "/mapreduce/reduce_activity.js"), StandardCharsets.UTF_8.name());
+            LocalDateTime now = LocalDateTime.now();
+            LocalDateTime before = now.minusHours(hoursBefore);
+            long startTime = before.atZone(ZoneId.systemDefault()).withZoneSameInstant(ZoneId.of("UTC"))
+                    .toInstant().toEpochMilli();
+            long endTime = now.atZone(ZoneId.systemDefault()).withZoneSameInstant(ZoneId.of("UTC"))
+                    .toInstant().toEpochMilli();
+            Map<String, Object> filterMap = new HashMap<>();
+            HashMap<String, Object> startTimeQueryMap = new HashMap<>();
+            startTimeQueryMap.put("data.ts", startTime);
+            filterMap.put("$gt", startTimeQueryMap);
+            LongStream.rangeClosed(startTime / hvdfClientPropertyService.getPeriod(),
                     endTime / hvdfClientPropertyService.getPeriod()).boxed()
-                .sorted(reverseOrder())
-                .map(time -> hvdfClientPropertyService.getChannelPrefix() + String.valueOf(time))
-                .forEach(coll -> mongoDBService.performMapReduce("ecommerce", coll, defaultMapFunc,
-                        defaultReduceFunc, filterMap, outputType.toUpperCase(), output,sharded));
+                    .sorted(reverseOrder())
+                    .map(time -> hvdfClientPropertyService.getChannelPrefix() + String.valueOf(time))
+                    .forEach(coll -> mongoDBService.performMapReduce("ecommerce", coll, mapFunc,
+                            reduceFunc, filterMap, outputType.toUpperCase(), output,sharded));
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 
 
@@ -156,6 +168,62 @@ public class UserInsightsAnalysisService {
                 .map(time -> hvdfClientPropertyService.getChannelPrefix() + String.valueOf(time))
                 .forEach(coll -> mongoDBService.performMapReduce("ecommerce", coll, mapFunc,
                         reduceFunc, filterMap, outputType.toUpperCase(), output,sharded));
+    }
+
+    public void performUserPurchaseActivityAnalysis(String mapFunc, String reduceFunc, String outputType,
+                                            String output, long daysBefore, boolean sharded) {
+        Objects.requireNonNull(outputType);
+        Objects.requireNonNull(mapFunc);
+        Objects.requireNonNull(reduceFunc);
+        mongoDBService.dropCollection("ecommerce", output);
+        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime before = now.minusDays(daysBefore);
+        long startTime = before.atZone(ZoneId.systemDefault()).withZoneSameInstant(ZoneId.of("UTC"))
+                .toInstant().toEpochMilli();
+        long endTime = now.atZone(ZoneId.systemDefault()).withZoneSameInstant(ZoneId.of("UTC"))
+                .toInstant().toEpochMilli();
+        Map<String, Object> filterMap = new HashMap<>();
+        filterMap.put("data.type", Activity.Type.ORDER.name());
+        HashMap<String, Object> startTimeQueryMap = new HashMap<>();
+        startTimeQueryMap.put("data.ts", startTime);
+        filterMap.put("$gt", startTimeQueryMap);
+        LongStream.rangeClosed(startTime / hvdfClientPropertyService.getPeriod(),
+                endTime / hvdfClientPropertyService.getPeriod()).boxed()
+                .sorted(reverseOrder())
+                .map(time -> hvdfClientPropertyService.getChannelPrefix() + String.valueOf(time))
+                .forEach(coll -> mongoDBService.performMapReduce("ecommerce", coll, mapFunc,
+                        reduceFunc, filterMap, outputType.toUpperCase(), output,sharded));
+    }
+
+    public void performUserPurchaseActivityAnalysis(String outputType, String output, long daysBefore,
+                                                    boolean sharded) {
+        Objects.requireNonNull(outputType);
+        try {
+            final String mapFunc = IOUtils.toString(getClass().getResourceAsStream(
+                    "/mapreduce/map_purchase.js"), StandardCharsets.UTF_8.name());
+            final String reduceFunc = IOUtils.toString(getClass().getResourceAsStream(
+                    "/mapreduce/reduce_purchase.js"), StandardCharsets.UTF_8.name());
+            mongoDBService.dropCollection("ecommerce", output);
+            LocalDateTime now = LocalDateTime.now();
+            LocalDateTime before = now.minusDays(daysBefore);
+            long startTime = before.atZone(ZoneId.systemDefault()).withZoneSameInstant(ZoneId.of("UTC"))
+                    .toInstant().toEpochMilli();
+            long endTime = now.atZone(ZoneId.systemDefault()).withZoneSameInstant(ZoneId.of("UTC"))
+                    .toInstant().toEpochMilli();
+            Map<String, Object> filterMap = new HashMap<>();
+            filterMap.put("data.type", Activity.Type.ORDER.name());
+            HashMap<String, Object> startTimeQueryMap = new HashMap<>();
+            startTimeQueryMap.put("data.ts", startTime);
+            filterMap.put("$gt", startTimeQueryMap);
+            LongStream.rangeClosed(startTime / hvdfClientPropertyService.getPeriod(),
+                    endTime / hvdfClientPropertyService.getPeriod()).boxed()
+                    .sorted(reverseOrder())
+                    .map(time -> hvdfClientPropertyService.getChannelPrefix() + String.valueOf(time))
+                    .forEach(coll -> mongoDBService.performMapReduce("ecommerce", coll, mapFunc,
+                            reduceFunc, filterMap, outputType.toUpperCase(), output,sharded));
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 
     private List<Activity> findProductActivities(String itemId, long startTime, long endTime,

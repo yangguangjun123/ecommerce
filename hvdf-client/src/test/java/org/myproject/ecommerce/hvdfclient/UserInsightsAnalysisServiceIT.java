@@ -61,13 +61,18 @@ public class UserInsightsAnalysisServiceIT {
     public void setUp() throws InterruptedException {
         if(!checkTestData()) {
             times.stream()
-                 .forEach(this::setupTestData);
+                 .forEach(t -> {
+                     setupTestData(t, Activity.Type.VIEW);
+                     setupTestData(t, Activity.Type.ORDER);
+                 });
             Thread.sleep(10000);
         }
-        long now = LocalDateTime.now().atZone(ZoneId.systemDefault()).withZoneSameInstant(ZoneId.of("UTC"))
-                .toInstant().toEpochMilli();
-        setupTestData(now);
-        Thread.sleep(10000);
+        LocalDateTime now = LocalDateTime.now();
+        setupTestData(now.atZone(ZoneId.systemDefault()).withZoneSameInstant(ZoneId.of("UTC"))
+                .toInstant().toEpochMilli(), Activity.Type.VIEW);
+        setupTestData(now.plusSeconds(4).atZone(ZoneId.systemDefault()).withZoneSameInstant(ZoneId.of("UTC"))
+                .toInstant().toEpochMilli(), Activity.Type.ORDER);
+        Thread.sleep(20000);
     }
 
     private boolean checkTestData() {
@@ -284,6 +289,44 @@ public class UserInsightsAnalysisServiceIT {
     }
 
     @Test
+    public void shouldPerformUserPurchaseActivityAnalysisWhenMapAndReduceFunctionsReceived() {
+        // given
+        String mapFunc = "function() {" +
+                "emit(this.data.userId, this.data.itemId);" +
+                "}";
+        String reduceFunc = "function(key, values) {" +
+                "return values.join();" +
+                "}";
+        String outputType = "reduce";
+        String output = "lastDayOrders";
+        long hoursBefore = 1;
+        boolean sharded = true;
+
+        // when
+        userInsightsAnalysisService.performUserPurchaseActivityAnalysis(mapFunc, reduceFunc, outputType, output,
+                hoursBefore, sharded);
+
+        // verify
+        assertTrue(mongoDBService.count("ecommerce", output) > 0);
+    }
+
+    @Test
+    public void shouldPerformuserPurchaseActivityAnalysis() {
+        // given
+        String outputType = "reduce";
+        String output = "lastDayOrders";
+        long hoursBefore = 1;
+        boolean sharded = true;
+
+        // when
+        userInsightsAnalysisService.performUserPurchaseActivityAnalysis(outputType, output,
+                hoursBefore, sharded);
+
+        // verify
+        assertTrue(mongoDBService.count("ecommerce", output) > 0);
+    }
+
+    @Test
     public void shouldReturnNumberOfUniqueUsersFromUserActivityAggregate() {
         // given
         String inputName = "lastHourUniques";
@@ -295,11 +338,11 @@ public class UserInsightsAnalysisServiceIT {
         assertTrue(count >= 2);
     }
 
-    private void setupTestData(long time) {
+    private void setupTestData(long time, Activity.Type type) {
         ActivityDataBuilder builder = new ActivityDataBuilder();
         builder.setUserId("u123").setGeoCode(1).setSessionId("2373BB")
                 .setDevice(new Activity.Device("1234", "mobile/iphone", "Chrome/34.0.1847.131"))
-                .setType(Activity.Type.VIEW).setItemId("301671").setSku("730223104376")
+                .setType(type).setItemId("301671").setSku("730223104376")
                 .setLocations(Arrays.asList(-86.95444, 33.40178))
                 .setTags(Arrays.asList("smartphone", "iphone"));
         LocalDateTime localDateTime = LocalDateTime.ofInstant(Instant.ofEpochMilli(time), ZoneId.of("UTC"));
@@ -308,11 +351,10 @@ public class UserInsightsAnalysisServiceIT {
         Activity activity = new Activity("u123",
                 localDateTime.atZone(ZoneId.systemDefault()).toInstant().toEpochMilli(), builder.createActivity());
         hvdfClientService.record(activity);
-
         builder = new ActivityDataBuilder();
         builder.setUserId("u457").setGeoCode(1).setSessionId("2373BB")
                 .setDevice(new Activity.Device("1234", "mobile/iphone", "Chrome/34.0.1847.131"))
-                .setType(Activity.Type.ORDER).setItemId("301671").setSku("730223104376")
+                .setType(type).setItemId("301671").setSku("730223104376")
                 .setOrder(new Activity.Order("12520185", 1200))
                 .setLocations(Arrays.asList(-86.95444, 33.40178))
                 .setTags(Arrays.asList("smartphone", "iphone"));
