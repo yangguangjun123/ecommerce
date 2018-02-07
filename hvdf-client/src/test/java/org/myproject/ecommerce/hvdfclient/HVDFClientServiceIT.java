@@ -41,9 +41,6 @@ public class HVDFClientServiceIT {
     @Autowired
     private HVDFClientPropertyService hvdfClientPropertyService;
 
-    private String channelPrefix;
-    private long period;
-
     private List<Long> times = List.of(1516181741620L, 1516182790560L, 1516182882582L,
             1516184589023L, 1516184589524L, 1516535591361L,
             1516535610283L, 1516535706984L, 1516535808443L,
@@ -51,8 +48,6 @@ public class HVDFClientServiceIT {
 
     @Before
     public void setUp() throws InterruptedException, IOException {
-        period = hvdfClientPropertyService.getPeriod();
-        channelPrefix = hvdfClientPropertyService.getChannelPrefix();
         if(!checkTestData()) {
             times.stream()
                     .forEach(this::setupTestData);
@@ -65,7 +60,8 @@ public class HVDFClientServiceIT {
         ZonedDateTime ldtZoned = LocalDateTime.now().atZone(ZoneId.systemDefault());
         ZonedDateTime utcZoned = ldtZoned.withZoneSameInstant(ZoneId.of("UTC"));
         long time = utcZoned.toInstant().toEpochMilli();
-        String collection = channelPrefix + String.valueOf(time / period);
+        String collection = hvdfClientPropertyService.getChannelPrefix() +
+                String.valueOf(time / hvdfClientPropertyService.getPeriod());
         mongoDBService.dropCollection("ecommerce", collection);
     }
 
@@ -160,8 +156,9 @@ public class HVDFClientServiceIT {
 
     private boolean checkTestData() {
         List<Long> activitiesForU123 =
-                LongStream.rangeClosed(times.get(0) / period, times.get(times.size() - 1) / period).boxed()
-                        .map(time -> channelPrefix + String.valueOf(time))
+                LongStream.rangeClosed(times.get(0) / hvdfClientPropertyService.getPeriod(),
+                        times.get(times.size() - 1) / hvdfClientPropertyService.getPeriod()).boxed()
+                        .map(time -> hvdfClientPropertyService.getChannelPrefix() + String.valueOf(time))
                         .map(collection -> {
                             Map<String, Object> filterMap = new HashMap<>();
                             filterMap.put("data.userId", "u123");
@@ -182,8 +179,9 @@ public class HVDFClientServiceIT {
                         .sorted(Comparator.naturalOrder())
                         .collect(toList());
         List<Long> activitiesForU457 =
-                LongStream.rangeClosed(times.get(0) / period, times.get(times.size() - 1) / period).boxed()
-                        .map(time -> channelPrefix + String.valueOf(time))
+                LongStream.rangeClosed(times.get(0) / hvdfClientPropertyService.getPeriod(),
+                        times.get(times.size() - 1) / hvdfClientPropertyService.getPeriod()).boxed()
+                        .map(time -> hvdfClientPropertyService.getChannelPrefix() + String.valueOf(time))
                         .map(collection -> {
                             Map<String, Object> filterMap = new HashMap<>();
                             filterMap.put("data.userId", "u457");

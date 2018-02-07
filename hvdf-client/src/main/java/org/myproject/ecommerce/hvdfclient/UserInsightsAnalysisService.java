@@ -49,9 +49,6 @@ public class UserInsightsAnalysisService {
     private final String defaultMapFunc;
     private final String defaultReduceFunc;
 
-    private String channelPrefix;
-    private long period = 0L;
-
     private static final Logger logger = LoggerFactory.getLogger(UserInsightsAnalysisService.class);
 
     @Autowired
@@ -73,15 +70,14 @@ public class UserInsightsAnalysisService {
 
     @PostConstruct
     public void initilaise() {
-        period = hvdfClientPropertyService.getPeriod();
-        channelPrefix = hvdfClientPropertyService.getChannelPrefix();
     }
 
     public List<Activity> findUserActivities(String userId, long startTime, long endTime,
                                              long numberOfUserActivities) {
-        return LongStream.rangeClosed(startTime / period, endTime / period).boxed()
+        return LongStream.rangeClosed(startTime / hvdfClientPropertyService.getPeriod(),
+                    endTime / hvdfClientPropertyService.getPeriod()).boxed()
                 .sorted(reverseOrder())
-                .map(time -> channelPrefix + String.valueOf(time))
+                .map(time -> hvdfClientPropertyService.getChannelPrefix() + String.valueOf(time))
                 .map(collection -> findUserActivities(userId, startTime, endTime, collection))
                 .flatMap(List::stream)
                 .limit(numberOfUserActivities)
@@ -108,16 +104,17 @@ public class UserInsightsAnalysisService {
 
     public List<Activity> findProductActivities(String itemId, long startTime, long endTime,
                                                 long numberOfProductActivities) {
-        return LongStream.rangeClosed(startTime / period, endTime / period).boxed()
+        return LongStream.rangeClosed(startTime / hvdfClientPropertyService.getPeriod(),
+                    endTime / hvdfClientPropertyService.getPeriod()).boxed()
                 .sorted(reverseOrder())
-                .map(time -> channelPrefix + String.valueOf(time))
+                .map(time -> hvdfClientPropertyService.getChannelPrefix() + String.valueOf(time))
                 .map(collection -> findProductActivities(itemId, startTime, endTime, collection))
                 .flatMap(List::stream)
                 .limit(numberOfProductActivities)
                 .collect(toList());
     }
 
-    public void performUserActivityAnalysis(String outputType, String output, long hoursBefore) {
+    public void performUserActivityAnalysis(String outputType, String output, long hoursBefore, boolean sharded) {
         Objects.requireNonNull(outputType);
         LocalDateTime now = LocalDateTime.now();
         LocalDateTime before = now.minusHours(hoursBefore);
@@ -129,16 +126,17 @@ public class UserInsightsAnalysisService {
         HashMap<String, Object> startTimeQueryMap = new HashMap<>();
         startTimeQueryMap.put("data.ts", startTime);
         filterMap.put("$gt", startTimeQueryMap);
-        LongStream.rangeClosed(startTime / period, endTime / period).boxed()
+        LongStream.rangeClosed(startTime / hvdfClientPropertyService.getPeriod(),
+                    endTime / hvdfClientPropertyService.getPeriod()).boxed()
                 .sorted(reverseOrder())
-                .map(time -> channelPrefix + String.valueOf(time))
+                .map(time -> hvdfClientPropertyService.getChannelPrefix() + String.valueOf(time))
                 .forEach(coll -> mongoDBService.performMapReduce("ecommerce", coll, defaultMapFunc,
-                        defaultReduceFunc, filterMap, outputType.toUpperCase(), output,true));
+                        defaultReduceFunc, filterMap, outputType.toUpperCase(), output,sharded));
     }
 
 
     public void performUserActivityAnalysis(String mapFunc, String reduceFunc, String outputType,
-                                            String output, long hoursBefore) {
+                                            String output, long hoursBefore, boolean sharded) {
         Objects.requireNonNull(outputType);
         Objects.requireNonNull(mapFunc);
         Objects.requireNonNull(reduceFunc);
@@ -152,11 +150,12 @@ public class UserInsightsAnalysisService {
         HashMap<String, Object> startTimeQueryMap = new HashMap<>();
         startTimeQueryMap.put("data.ts", startTime);
         filterMap.put("$gt", startTimeQueryMap);
-        LongStream.rangeClosed(startTime / period, endTime / period).boxed()
+        LongStream.rangeClosed(startTime / hvdfClientPropertyService.getPeriod(),
+                    endTime / hvdfClientPropertyService.getPeriod()).boxed()
                 .sorted(reverseOrder())
-                .map(time -> channelPrefix + String.valueOf(time))
+                .map(time -> hvdfClientPropertyService.getChannelPrefix() + String.valueOf(time))
                 .forEach(coll -> mongoDBService.performMapReduce("ecommerce", coll, mapFunc,
-                        reduceFunc, filterMap, outputType.toUpperCase(), output,true));
+                        reduceFunc, filterMap, outputType.toUpperCase(), output,sharded));
     }
 
     private List<Activity> findProductActivities(String itemId, long startTime, long endTime,
@@ -194,9 +193,10 @@ public class UserInsightsAnalysisService {
             long endTime = utcZoned.toInstant().toEpochMilli();
             List<Bson> pipeline = documents.stream().filter(d -> d instanceof BsonDocument)
                     .map(d -> (Bson) d).collect(toList());
-            return LongStream.rangeClosed(startTime / period, endTime / period).boxed()
+            return LongStream.rangeClosed(startTime / hvdfClientPropertyService.getPeriod(),
+                        endTime / hvdfClientPropertyService.getPeriod()).boxed()
                     .sorted(reverseOrder())
-                    .map(time -> channelPrefix + String.valueOf(time))
+                    .map(time -> hvdfClientPropertyService.getChannelPrefix() + String.valueOf(time))
                     .map(collection -> mongoDBService.executeAggregatePipineline("ecommerce",
                             collection, (List<Bson>) pipeline, UserInsights.class))
                     .flatMap(List::stream)
@@ -249,9 +249,10 @@ public class UserInsightsAnalysisService {
         long endTime = utcZoned.toInstant().toEpochMilli();
 
         Optional<UserInsights> userInsights =
-                LongStream.rangeClosed(startTime / period, endTime / period).boxed()
+                LongStream.rangeClosed(startTime / hvdfClientPropertyService.getPeriod(),
+                        endTime / hvdfClientPropertyService.getPeriod()).boxed()
                     .sorted(reverseOrder())
-                    .map(time -> channelPrefix + String.valueOf(time))
+                    .map(time -> hvdfClientPropertyService.getChannelPrefix() + String.valueOf(time))
                     .map(collection -> mongoDBService.executeAggregatePipineline("ecommerce",
                             collection, pipelineStageMap, UserInsights.class))
                     .flatMap(List::stream)
@@ -286,9 +287,10 @@ public class UserInsightsAnalysisService {
         utcZoned = ldtZoned.withZoneSameInstant(ZoneId.of("UTC"));
         long endTime = utcZoned.toInstant().toEpochMilli();
 
-        return LongStream.rangeClosed(startTime / period, endTime / period).boxed()
+        return LongStream.rangeClosed(startTime / hvdfClientPropertyService.getPeriod(),
+                            endTime / hvdfClientPropertyService.getPeriod()).boxed()
                         .sorted(reverseOrder())
-                        .map(time -> channelPrefix + String.valueOf(time))
+                        .map(time -> hvdfClientPropertyService.getChannelPrefix() + String.valueOf(time))
                         .map(collection -> mongoDBService.executeAggregatePipineline("ecommerce",
                                 collection, pipelineStageMap, UserInsights.class))
                         .flatMap(List::stream)

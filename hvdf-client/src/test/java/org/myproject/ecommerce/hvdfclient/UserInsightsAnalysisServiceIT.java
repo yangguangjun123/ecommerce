@@ -50,9 +50,6 @@ public class UserInsightsAnalysisServiceIT {
     @Autowired
     private HVDFClientPropertyService hvdfClientPropertyService;
 
-    private String channelPrefix;
-    private long period;
-
     private List<Long> times = List.of(1516181741620L, 1516182790560L, 1516182882582L,
             1516184589023L, 1516184589524L, 1516535591361L,
             1516535610283L, 1516535706984L, 1516535808443L,
@@ -62,8 +59,6 @@ public class UserInsightsAnalysisServiceIT {
 
     @Before
     public void setUp() throws InterruptedException {
-        period = hvdfClientPropertyService.getPeriod();
-        channelPrefix = hvdfClientPropertyService.getChannelPrefix();
         if(!checkTestData()) {
             times.stream()
                  .forEach(this::setupTestData);
@@ -77,8 +72,9 @@ public class UserInsightsAnalysisServiceIT {
 
     private boolean checkTestData() {
         List<Long> activitiesForU123 =
-                LongStream.rangeClosed(times.get(0) / period, times.get(times.size() - 1) / period).boxed()
-                .map(time -> channelPrefix + String.valueOf(time))
+                LongStream.rangeClosed(times.get(0) / hvdfClientPropertyService.getPeriod(),
+                        times.get(times.size() - 1) / hvdfClientPropertyService.getPeriod()).boxed()
+                .map(time -> hvdfClientPropertyService.getChannelPrefix() + String.valueOf(time))
                 .map(collection -> {
                     Map<String, Object> filterMap = new HashMap<>();
                     filterMap.put("data.userId", "u123");
@@ -99,8 +95,9 @@ public class UserInsightsAnalysisServiceIT {
                 .sorted(Comparator.naturalOrder())
                 .collect(toList());
         List<Long> activitiesForU457 =
-                LongStream.rangeClosed(times.get(0) / period, times.get(times.size() - 1) / period).boxed()
-                        .map(time -> channelPrefix + String.valueOf(time))
+                LongStream.rangeClosed(times.get(0) / hvdfClientPropertyService.getPeriod(),
+                            times.get(times.size() - 1) / hvdfClientPropertyService.getPeriod()).boxed()
+                        .map(time -> hvdfClientPropertyService.getChannelPrefix() + String.valueOf(time))
                         .map(collection -> {
                             Map<String, Object> filterMap = new HashMap<>();
                             filterMap.put("data.userId", "u457");
@@ -237,9 +234,10 @@ public class UserInsightsAnalysisServiceIT {
         String outputType = "replace";
         String output = "lastHourUniques";
         long hoursBefore = 1;
+        boolean sharded = true;
 
         // when
-        userInsightsAnalysisService.performUserActivityAnalysis(outputType, output, hoursBefore);
+        userInsightsAnalysisService.performUserActivityAnalysis(outputType, output, hoursBefore, sharded);
 
         // verify
         assertTrue(mongoDBService.count("ecommerce", output) > 0);
@@ -257,9 +255,11 @@ public class UserInsightsAnalysisServiceIT {
         String outputType = "replace";
         String output = "lastHourUniques";
         long hoursBefore = 1;
+        boolean sharded = true;
 
         // when
-        userInsightsAnalysisService.performUserActivityAnalysis(mapFunc, reduceFunc, outputType, output, hoursBefore);
+        userInsightsAnalysisService.performUserActivityAnalysis(mapFunc, reduceFunc, outputType, output,
+                hoursBefore, sharded);
 
         // verify
         assertTrue(mongoDBService.count("ecommerce", output) > 0);
