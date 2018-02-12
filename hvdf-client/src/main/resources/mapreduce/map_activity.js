@@ -1,3 +1,8 @@
 function() {
-    emit(this.data.userId, 1);
+    var key = this.data.userId;
+    var value = {
+        userId: this.data.userId,
+        count: 1
+    };
+    emit( key, value );
 }

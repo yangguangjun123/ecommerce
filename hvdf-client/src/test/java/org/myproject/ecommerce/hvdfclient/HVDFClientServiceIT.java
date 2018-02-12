@@ -28,6 +28,7 @@ import java.util.stream.LongStream;
 
 import static java.util.stream.Collectors.toList;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(classes = { TestApplicationConfiguration.class})
@@ -137,7 +138,9 @@ public class HVDFClientServiceIT {
                 .setTimeStamp(localDateTime.atZone(ZoneId.systemDefault()).toInstant().toEpochMilli());
         Activity activity = new Activity("u123",
                 localDateTime.atZone(ZoneId.systemDefault()).toInstant().toEpochMilli(), builder.createActivity());
-        hvdfClientService.record(activity);
+        if(!hvdfClientService.record(activity)) {
+            fail("unable to setup test data");
+        }
 
         builder = new ActivityDataBuilder();
         builder.setUserId("u457").setGeoCode(1).setSessionId("2373BB")
@@ -151,7 +154,9 @@ public class HVDFClientServiceIT {
                 .setTimeStamp(localDateTime.atZone(ZoneId.systemDefault()).toInstant().toEpochMilli());
         activity = new Activity("u457",
                 localDateTime.atZone(ZoneId.systemDefault()).toInstant().toEpochMilli(), builder.createActivity());
-        hvdfClientService.record(activity);
+        if(!hvdfClientService.record(activity)) {
+            fail("unable to setup test data");
+        }
     }
 
     private boolean checkTestData() {

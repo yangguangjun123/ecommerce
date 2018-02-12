@@ -2,13 +2,15 @@ package org.myproject.ecommerce.hvdfclient;
 
 import org.bson.codecs.pojo.annotations.BsonId;
 
-public class UserActivityAggregate {
+import java.util.List;
+
+public class UserPurchaseAggregate {
     @BsonId
     private String id;
 
-    private UserActivityAggregateItem value;
+    private UserPurchaseAggregateItem value;
 
-    public UserActivityAggregate() {
+    public UserPurchaseAggregate() {
     }
 
     public String getId() {
@@ -19,12 +21,20 @@ public class UserActivityAggregate {
         this.id = id;
     }
 
+    public UserPurchaseAggregateItem getValue() {
+        return value;
+    }
+
+    public void setValue(UserPurchaseAggregateItem value) {
+        this.value = value;
+    }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
 
-        UserActivityAggregate that = (UserActivityAggregate) o;
+        UserPurchaseAggregate that = (UserPurchaseAggregate) o;
 
         if (id != null ? !id.equals(that.id) : that.id != null) return false;
         return value != null ? value.equals(that.value) : that.value == null;
@@ -39,25 +49,17 @@ public class UserActivityAggregate {
 
     @Override
     public String toString() {
-        return "UserActivityAggregate{" +
+        return "UserPurchaseAggregate{" +
                 "id='" + id + '\'' +
                 ", value=" + value +
                 '}';
     }
 
-    public UserActivityAggregateItem getValue() {
-        return value;
-    }
-
-    public void setValue(UserActivityAggregateItem value) {
-        this.value = value;
-    }
-
-    public static class UserActivityAggregateItem {
+    public static class UserPurchaseAggregateItem {
         private String userId;
-        private long count;
+        private List<String> items;
 
-        public UserActivityAggregateItem() {
+        public UserPurchaseAggregateItem() {
         }
 
         public String getUserId() {
@@ -68,12 +70,12 @@ public class UserActivityAggregate {
             this.userId = userId;
         }
 
-        public long getCount() {
-            return count;
+        public List<String> getItems() {
+            return items;
         }
 
-        public void setCount(long count) {
-            this.count = count;
+        public void setItems(List<String> items) {
+            this.items = items;
         }
 
         @Override
@@ -81,26 +83,25 @@ public class UserActivityAggregate {
             if (this == o) return true;
             if (o == null || getClass() != o.getClass()) return false;
 
-            UserActivityAggregateItem that = (UserActivityAggregateItem) o;
+            UserPurchaseAggregateItem that = (UserPurchaseAggregateItem) o;
 
-            if (count != that.count) return false;
-            return userId != null ? userId.equals(that.userId) : that.userId == null;
+            if (userId != null ? !userId.equals(that.userId) : that.userId != null) return false;
+            return items != null ? items.equals(that.items) : that.items == null;
         }
 
         @Override
         public int hashCode() {
             int result = userId != null ? userId.hashCode() : 0;
-            result = 31 * result + (int) (count ^ (count >>> 32));
+            result = 31 * result + (items != null ? items.hashCode() : 0);
             return result;
         }
 
         @Override
         public String toString() {
-            return "UserActivityAggregateItem{" +
+            return "UserPurchaseAggregateItem{" +
                     "userId='" + userId + '\'' +
-                    ", count=" + count +
+                    ", items=" + items +
                     '}';
         }
     }
-
 }

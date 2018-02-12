@@ -15,6 +15,7 @@ import org.bson.codecs.configuration.CodecRegistry;
 import org.bson.conversions.Bson;
 import org.bson.json.JsonReader;
 import org.myproject.ecommerce.core.services.MongoDBService;
+import org.myproject.ecommerce.core.utilities.LoggingUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -35,6 +36,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Properties;
 import java.util.stream.Collectors;
 import java.util.stream.LongStream;
 
@@ -62,17 +64,30 @@ public class UserInsightsAnalysisService {
 
     private void checkData() {
         try {
-            Objects.requireNonNull(IOUtils.toString(getClass().getResourceAsStream(
-                    "/mapreduce/map_purchase.js"), StandardCharsets.UTF_8.name()));
-            Objects.requireNonNull(IOUtils.toString(getClass().getResourceAsStream(
-                    "/mapreduce/reduce_purchase.js"), StandardCharsets.UTF_8.name()));
-            Objects.requireNonNull(IOUtils.toString(getClass().getResourceAsStream(
-                    "/mapreduce/map_activity.js"), StandardCharsets.UTF_8.name()));
-            Objects.requireNonNull(IOUtils.toString(getClass().getResourceAsStream(
-                    "/mapreduce/reduce_activity.js"), StandardCharsets.UTF_8.name()));
+            Properties mapReduceProps = new Properties();
+            mapReduceProps.load(getClass().getResourceAsStream("/mapreduce/mapreduce.properties"));
+            mapReduceProps.keySet()
+                    .stream()
+                    .map(Object::toString)
+                    .filter(key -> key != null && key.startsWith("mapreduce"))
+                    .map(key -> mapReduceProps.getProperty(key))
+                    .filter(value -> value != null && value.length() > 0)
+                    .map(value -> value.split(","))
+                    .flatMap(Arrays::stream)
+                    .peek(file -> LoggingUtils.info(logger, "file name: " + ("/mapreduce/" + file)))
+                    .forEach(file -> {
+                                try {
+                                    Objects.requireNonNull(IOUtils.toString(getClass().getResourceAsStream(
+                                            "/mapreduce/" + file.trim()), StandardCharsets.UTF_8.name()));
+                                } catch (IOException e) {
+                                    e.printStackTrace();
+                                    throw new RuntimeException("cannot read default map/reduce function: " + file);
+                                }
+                            }
+                        );
         } catch (IOException e) {
             e.printStackTrace();
-            throw new RuntimeException("cannot read default map/reduce function");
+            throw new RuntimeException("cannot read mapreduce property file: " + "/mapreduce/mapreduce.properties");
         }
     }
 
@@ -119,12 +134,15 @@ public class UserInsightsAnalysisService {
     }
 
     public void performUserActivityAnalysis(String outputType, String output, long hoursBefore, boolean sharded) {
+        LoggingUtils.info(logger, "outputType: " + outputType);
         Objects.requireNonNull(outputType);
         try {
             final String mapFunc = IOUtils.toString(getClass().getResourceAsStream(
                     "/mapreduce/map_activity.js"), StandardCharsets.UTF_8.name());
             final String reduceFunc = IOUtils.toString(getClass().getResourceAsStream(
                     "/mapreduce/reduce_activity.js"), StandardCharsets.UTF_8.name());
+            final String finalizeFunc = IOUtils.toString(getClass().getResourceAsStream(
+                    "/mapreduce/finalize_activity.js"), StandardCharsets.UTF_8.name());
             LocalDateTime now = LocalDateTime.now();
             LocalDateTime before = now.minusHours(hoursBefore);
             long startTime = before.atZone(ZoneId.systemDefault()).withZoneSameInstant(ZoneId.of("UTC"))
@@ -135,20 +153,23 @@ public class UserInsightsAnalysisService {
             HashMap<String, Object> startTimeQueryMap = new HashMap<>();
             startTimeQueryMap.put("data.ts", startTime);
             filterMap.put("$gt", startTimeQueryMap);
+            mongoDBService.dropCollection("ecommerce", output);
             LongStream.rangeClosed(startTime / hvdfClientPropertyService.getPeriod(),
                     endTime / hvdfClientPropertyService.getPeriod()).boxed()
                     .sorted(reverseOrder())
                     .map(time -> hvdfClientPropertyService.getChannelPrefix() + String.valueOf(time))
+                    .peek(coll -> LoggingUtils.info(logger, "perform map/reduce on: " + coll))
                     .forEach(coll -> mongoDBService.performMapReduce("ecommerce", coll, mapFunc,
-                            reduceFunc, filterMap, outputType.toUpperCase(), output,sharded));
+                            reduceFunc, Optional.ofNullable(finalizeFunc), filterMap, outputType.toUpperCase(),
+                            output,sharded));
         } catch (IOException e) {
             e.printStackTrace();
         }
     }
 
 
-    public void performUserActivityAnalysis(String mapFunc, String reduceFunc, String outputType,
-                                            String output, long hoursBefore, boolean sharded) {
+    public void performUserActivityAnalysis(String mapFunc, String reduceFunc, Optional<String> finalizeFunc,
+                                            String outputType, String output, long hoursBefore, boolean sharded) {
         Objects.requireNonNull(outputType);
         Objects.requireNonNull(mapFunc);
         Objects.requireNonNull(reduceFunc);
@@ -162,16 +183,18 @@ public class UserInsightsAnalysisService {
         HashMap<String, Object> startTimeQueryMap = new HashMap<>();
         startTimeQueryMap.put("data.ts", startTime);
         filterMap.put("$gt", startTimeQueryMap);
+        mongoDBService.dropCollection("ecommerce", output);
         LongStream.rangeClosed(startTime / hvdfClientPropertyService.getPeriod(),
                     endTime / hvdfClientPropertyService.getPeriod()).boxed()
                 .sorted(reverseOrder())
                 .map(time -> hvdfClientPropertyService.getChannelPrefix() + String.valueOf(time))
                 .forEach(coll -> mongoDBService.performMapReduce("ecommerce", coll, mapFunc,
-                        reduceFunc, filterMap, outputType.toUpperCase(), output,sharded));
+                        reduceFunc, finalizeFunc, filterMap, outputType.toUpperCase(), output, sharded));
     }
 
-    public void performUserPurchaseActivityAnalysis(String mapFunc, String reduceFunc, String outputType,
-                                            String output, long daysBefore, boolean sharded) {
+    public void performUserPurchaseActivityAnalysis(String mapFunc, String reduceFunc, Optional<String> finalizeFunc,
+                                                    String outputType, String output, long daysBefore,
+                                                    boolean sharded) {
         Objects.requireNonNull(outputType);
         Objects.requireNonNull(mapFunc);
         Objects.requireNonNull(reduceFunc);
@@ -191,36 +214,24 @@ public class UserInsightsAnalysisService {
                 endTime / hvdfClientPropertyService.getPeriod()).boxed()
                 .sorted(reverseOrder())
                 .map(time -> hvdfClientPropertyService.getChannelPrefix() + String.valueOf(time))
+                .peek(coll -> LoggingUtils.info(logger, "perform map/reduce on collection: " + coll))
                 .forEach(coll -> mongoDBService.performMapReduce("ecommerce", coll, mapFunc,
-                        reduceFunc, filterMap, outputType.toUpperCase(), output,sharded));
+                        reduceFunc, finalizeFunc, filterMap, outputType.toUpperCase(), output,sharded));
     }
 
     public void performUserPurchaseActivityAnalysis(String outputType, String output, long daysBefore,
                                                     boolean sharded) {
         Objects.requireNonNull(outputType);
+        mongoDBService.dropCollection("ecommerce", output);
         try {
             final String mapFunc = IOUtils.toString(getClass().getResourceAsStream(
                     "/mapreduce/map_purchase.js"), StandardCharsets.UTF_8.name());
             final String reduceFunc = IOUtils.toString(getClass().getResourceAsStream(
                     "/mapreduce/reduce_purchase.js"), StandardCharsets.UTF_8.name());
-            mongoDBService.dropCollection("ecommerce", output);
-            LocalDateTime now = LocalDateTime.now();
-            LocalDateTime before = now.minusDays(daysBefore);
-            long startTime = before.atZone(ZoneId.systemDefault()).withZoneSameInstant(ZoneId.of("UTC"))
-                    .toInstant().toEpochMilli();
-            long endTime = now.atZone(ZoneId.systemDefault()).withZoneSameInstant(ZoneId.of("UTC"))
-                    .toInstant().toEpochMilli();
-            Map<String, Object> filterMap = new HashMap<>();
-            filterMap.put("data.type", Activity.Type.ORDER.name());
-            HashMap<String, Object> startTimeQueryMap = new HashMap<>();
-            startTimeQueryMap.put("data.ts", startTime);
-            filterMap.put("$gt", startTimeQueryMap);
-            LongStream.rangeClosed(startTime / hvdfClientPropertyService.getPeriod(),
-                    endTime / hvdfClientPropertyService.getPeriod()).boxed()
-                    .sorted(reverseOrder())
-                    .map(time -> hvdfClientPropertyService.getChannelPrefix() + String.valueOf(time))
-                    .forEach(coll -> mongoDBService.performMapReduce("ecommerce", coll, mapFunc,
-                            reduceFunc, filterMap, outputType.toUpperCase(), output,sharded));
+            final String finalizeFunc = IOUtils.toString(getClass().getResourceAsStream(
+                    "/mapreduce/finalize_purchase.js"), StandardCharsets.UTF_8.name());
+            performUserPurchaseActivityAnalysis(mapFunc, reduceFunc, Optional.ofNullable(finalizeFunc), outputType,
+                    output, daysBefore, sharded);
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -370,11 +381,58 @@ public class UserInsightsAnalysisService {
                            .map(e -> new UserInsights(e.getKey(), e.getValue())).collect(toList());
     }
 
-    public List<UserActivityAggregate> getUserActivityAggregate(String inputName) {
-        return mongoDBService.readAll("ecommerce", inputName, UserActivityAggregate.class);
+    public <T> List<T> getUserAggregates(String inputName, Class<T> clazz) {
+        return mongoDBService.readAll("ecommerce", inputName, clazz);
     }
 
-    public long getNumberOfUniqueUsersFromActivityAggregate(String inputName) {
+    public long getNumberOfUniqueUserAggregates(String inputName) {
         return mongoDBService.count("ecommerce", inputName);
+    }
+
+    public void performUserPurchaseOccurrenceAnalysis(String input, String outputType, String output,
+                                                      boolean sharded) {
+        Objects.requireNonNull(input);
+        Objects.requireNonNull(output);
+        Objects.requireNonNull(outputType);
+        try {
+            final String mapFunc = IOUtils.toString(getClass().getResourceAsStream(
+                    "/mapreduce/map_purchase_occurrence.js"), StandardCharsets.UTF_8.name());
+            final String reduceFunc = IOUtils.toString(getClass().getResourceAsStream(
+                    "/mapreduce/reduce_purchase_occurrence.js"), StandardCharsets.UTF_8.name());
+            performUserPurchaseOccurrenceAnalysis(input, mapFunc, reduceFunc, Optional.empty(), outputType,
+                    output, sharded);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    public void performUserPurchaseOccurrenceAnalysis(String input, String mapFunc, String reduceFunc,
+                                                      Optional<String> finalizeFunc, String outputType,
+                                                      String output, boolean sharded) {
+        Objects.requireNonNull(input);
+        Objects.requireNonNull(output);
+        Objects.requireNonNull(outputType);
+        Objects.requireNonNull(mapFunc);
+        Objects.requireNonNull(reduceFunc);
+        mongoDBService.dropCollection("ecommerce", output);
+        mongoDBService.performMapReduce("ecommerce", input, mapFunc,
+                reduceFunc, finalizeFunc, new HashMap<>(), outputType.toUpperCase(), output,sharded);
+    }
+
+    public List<UserPurchaseOccurrenceAggregate> getAllUserPurchaseOccurrenceAggregates() {
+        return getUserAggregates("pairs", UserPurchaseOccurrenceAggregate.class);
+    }
+
+    public List<UserPurchaseOccurrenceAggregate> getAllUserPurchaseOccurrenceAggregates(String itemId, long count) {
+        Map<String, Object> filterMap = new HashMap<>();
+        filterMap.put("_id.a", itemId);
+        HashMap<String, Object> countQueryMap = new HashMap<>();
+        countQueryMap.put("value", count);
+        filterMap.put("$gt", countQueryMap);
+        Map<String, Integer> sortMap = new LinkedHashMap<>();
+        sortMap.put("value", -1);
+        return mongoDBService.readAll("ecommerce", "pairs",
+                UserPurchaseOccurrenceAggregate.class, filterMap, Optional.of(sortMap));
+
     }
 }

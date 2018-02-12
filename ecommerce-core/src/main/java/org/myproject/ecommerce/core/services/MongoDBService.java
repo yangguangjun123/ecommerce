@@ -4,6 +4,7 @@ import com.mongodb.Block;
 import com.mongodb.MongoClient;
 import com.mongodb.MongoClientOptions;
 import com.mongodb.WriteConcern;
+import com.mongodb.client.MapReduceIterable;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
 import com.mongodb.client.model.Accumulators;
@@ -635,7 +636,7 @@ public class MongoDBService {
     }
 
     public void performMapReduce(String databaseName, String collectionName, String map, String reduce,
-                                 Map<String, Object> filterMap, String action,
+                                 Optional<String> finalize, Map<String, Object> filterMap, String action,
                                  String outputCollection, boolean sharded) {
         validateDB(databaseName, collectionName);
         Objects.requireNonNull(map);
@@ -654,13 +655,18 @@ public class MongoDBService {
                 .stream()
                 .map(key -> mapBsonFilter(key, filterMap))
                 .collect(toList());
-        collection.mapReduce(map, reduce)
+        MapReduceIterable mapReduceIterable = collection.mapReduce(map, reduce)
                 .sharded(sharded)
                 .action(MapReduceAction.valueOf(action))
                 .databaseName(databaseName)
-                .collectionName(outputCollection)
-                .filter(and(filters))
-                .toCollection();
+                .collectionName(outputCollection);
+        if(filters.size() > 0) {
+            mapReduceIterable = mapReduceIterable.filter(and(filters));
+        }
+        if(finalize.isPresent()) {
+            mapReduceIterable = mapReduceIterable.finalizeFunction(finalize.get());
+        }
+        mapReduceIterable.toCollection();
     }
 
     public <T> List<T> performMapReduce(String databaseName, String collectionName, String map,

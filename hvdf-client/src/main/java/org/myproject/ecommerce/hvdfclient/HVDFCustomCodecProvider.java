@@ -13,6 +13,9 @@ public class HVDFCustomCodecProvider implements CodecProvider {
         if(clazz == Activity.Order.class) {
             return (Codec<T>) new ActivityOrderCodec(registry);
         }
+        if(clazz == UserPurchaseOccurrenceAggregate.IdKey.class) {
+            return (Codec<T>) new UserPurchaseOccurrenceAggregateIdKeyCodec(registry);
+        }
         return null;
     }
 }

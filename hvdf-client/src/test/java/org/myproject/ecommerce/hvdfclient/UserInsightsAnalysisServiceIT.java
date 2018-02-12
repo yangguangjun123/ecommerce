@@ -17,6 +17,7 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
+import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -30,10 +31,13 @@ import java.util.Optional;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.LongStream;
+import java.util.stream.Stream;
 
+import static java.util.Comparator.reverseOrder;
 import static java.util.stream.Collectors.toList;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(classes = { TestApplicationConfiguration.class})
@@ -55,24 +59,70 @@ public class UserInsightsAnalysisServiceIT {
             1516535610283L, 1516535706984L, 1516535808443L,
             1516535944773L);
 
+    private static boolean isSetupDone = false;
     private static final Logger logger = LoggerFactory.getLogger(UserInsightsAnalysisServiceIT.class);
 
     @Before
     public void setUp() throws InterruptedException {
-        if(!checkTestData()) {
-            times.stream()
-                 .forEach(t -> {
-                     setupTestData(t, Activity.Type.VIEW);
-                     setupTestData(t, Activity.Type.ORDER);
-                 });
-            Thread.sleep(10000);
+        if(!isSetupDone) {
+            if(!checkTestData()) {
+                times.stream()
+                        .forEach(t -> {
+                            setupTestData(t, Activity.Type.VIEW);
+                            setupTestData(t, Activity.Type.ORDER);
+                        });
+                Thread.sleep(10000);
+            }
+
+            Stream<String> items = Stream.of("2", "2","3", "3", "3", "3", "8", "8", "8", "8", "8", "8", "8", "8");
+            List<Activity.Type> types = List.of(Activity.Type.VIEW, Activity.Type.ORDER);
+            LocalDateTime now = LocalDateTime.now();
+            long startTime = now.atZone(ZoneId.systemDefault()).withZoneSameInstant(ZoneId.of("UTC"))
+                    .toInstant().toEpochMilli();
+            long endTime = now.plusSeconds(4).atZone(ZoneId.systemDefault())
+                    .withZoneSameInstant(ZoneId.of("UTC")).toInstant().toEpochMilli();
+            List<String> userIds = List.of("u123", "u457");
+
+            LongStream.rangeClosed(startTime / hvdfClientPropertyService.getPeriod(),
+                    endTime / hvdfClientPropertyService.getPeriod()).boxed()
+                    .sorted(reverseOrder())
+                    .map(time -> hvdfClientPropertyService.getChannelPrefix() + String.valueOf(time))
+                    .peek(coll -> LoggingUtils.info(logger, "drop collection: " + coll))
+                    .forEach(collection -> mongoDBService.dropCollection("ecommerce", collection));
+
+            items.forEach(itemId -> {
+                types.stream()
+                        .forEach(type -> {
+                            userIds.stream()
+                                    .forEach(userId -> {
+                                        LoggingUtils.info(logger, "itemId/type/userId: " +
+                                                String.format("%s/%s/%s", itemId, type, userId));
+                                        setupTestData(itemId, type, userId);
+                                    });
+                        });
+            });
+            Thread.sleep(20000);
+
+            isSetupDone = true;
         }
+    }
+
+    private void setupTestData(String itemId, Activity.Type type, String userId) {
+        ActivityDataBuilder builder = new ActivityDataBuilder();
+        builder.setUserId(userId).setGeoCode(1).setSessionId("2373BB")
+                .setDevice(new Activity.Device("1234", "mobile/iphone", "Chrome/34.0.1847.131"))
+                .setType(type).setItemId(itemId).setSku("730223104376")
+                .setLocations(Arrays.asList(-86.95444, 33.40178))
+                .setTags(Arrays.asList("smartphone", "iphone"));
         LocalDateTime now = LocalDateTime.now();
-        setupTestData(now.atZone(ZoneId.systemDefault()).withZoneSameInstant(ZoneId.of("UTC"))
-                .toInstant().toEpochMilli(), Activity.Type.VIEW);
-        setupTestData(now.plusSeconds(4).atZone(ZoneId.systemDefault()).withZoneSameInstant(ZoneId.of("UTC"))
-                .toInstant().toEpochMilli(), Activity.Type.ORDER);
-        Thread.sleep(20000);
+        ZonedDateTime ldtZoned = now.atZone(ZoneId.systemDefault());
+        ZonedDateTime utcZoned = ldtZoned.withZoneSameInstant(ZoneId.of("UTC"));
+        builder.setTime(now)
+                .setTimeStamp(utcZoned.toInstant().toEpochMilli());
+        Activity activity = new Activity(userId, utcZoned.toInstant().toEpochMilli(), builder.createActivity());
+        if(!hvdfClientService.record(activity)) {
+            fail("unable to setup test data");
+        }
     }
 
     private boolean checkTestData() {
@@ -236,7 +286,7 @@ public class UserInsightsAnalysisServiceIT {
     @Test
     public void shouldPerformUserActivityAnalysis() throws InterruptedException {
         // given
-        String outputType = "replace";
+        String outputType = "reduce";
         String output = "lastHourUniques";
         long hoursBefore = 1;
         boolean sharded = true;
@@ -252,75 +302,68 @@ public class UserInsightsAnalysisServiceIT {
     public void shouldPerformUserActivityAnalysisWhenMapReduceFunctionsReceived() throws InterruptedException {
         // given
         String mapFunc = "function() {" +
-                            "emit(this.data.userId, 1);" +
+                            "var key = this.data.userId;" +
+                            "var value = {" +
+                                "userId: this.data.userId," +
+                                "count: 1" +
+                            "};" +
+                         "emit( key, value );" +
                          "}";
         String reduceFunc = "function(key, values) {" +
-                                "return Array.sum(values);" +
-                            "}";
-        String outputType = "replace";
+                                "var reducedObject = {" +
+                                    "userId: key," +
+                                    "count:0" +
+                                "};" +
+                                "values.forEach( function(value) {" +
+                                    "reducedObject.count += value.count;" +
+                                "});" +
+                                "return reducedObject;" +
+                                "}";
+        String finalizeFunc = "function(key, reduced_value) {" +
+                                "return reduced_value;"  +
+                             "}";
+        String outputType = "reduce";
         String output = "lastHourUniques";
         long hoursBefore = 1;
         boolean sharded = true;
 
         // when
-        userInsightsAnalysisService.performUserActivityAnalysis(mapFunc, reduceFunc, outputType, output,
-                hoursBefore, sharded);
+        userInsightsAnalysisService.performUserActivityAnalysis(mapFunc, reduceFunc,
+                Optional.ofNullable(finalizeFunc), outputType, output, hoursBefore, sharded);
 
         // verify
         assertTrue(mongoDBService.count("ecommerce", output) > 0);
     }
 
     @Test
-    public void shouldReturnUserActivityAggregateReport() {
+    public void shouldReturnListOfUserActivityAggregates() {
         // given
         String inputName = "lastHourUniques";
 
         // when
         List<UserActivityAggregate> userActivityAggregates =
-                userInsightsAnalysisService.getUserActivityAggregate(inputName);
+                userInsightsAnalysisService.getUserAggregates(inputName, UserActivityAggregate.class);
 
         // verify
         userActivityAggregates.stream()
                               .forEach(u -> {
-                                  assertTrue(u.getUserId().length() > 0);
-                                  assertTrue(u.getCount() >= 1);
+                                  assertTrue(u.getValue().getUserId().length() > 0);
+                                  assertTrue(u.getValue().getCount() >= 1);
                                   LoggingUtils.info(logger, u.toString());
                               });
     }
 
     @Test
-    public void shouldPerformUserPurchaseActivityAnalysisWhenMapAndReduceFunctionsReceived() {
-        // given
-        String mapFunc = "function() {" +
-                "emit(this.data.userId, this.data.itemId);" +
-                "}";
-        String reduceFunc = "function(key, values) {" +
-                "return values.join();" +
-                "}";
-        String outputType = "reduce";
-        String output = "lastDayOrders";
-        long hoursBefore = 1;
-        boolean sharded = true;
-
-        // when
-        userInsightsAnalysisService.performUserPurchaseActivityAnalysis(mapFunc, reduceFunc, outputType, output,
-                hoursBefore, sharded);
-
-        // verify
-        assertTrue(mongoDBService.count("ecommerce", output) > 0);
-    }
-
-    @Test
-    public void shouldPerformuserPurchaseActivityAnalysis() {
+    public void shouldPerformUserPurchaseActivityAnalysis() {
         // given
         String outputType = "reduce";
         String output = "lastDayOrders";
-        long hoursBefore = 1;
+        long daysBefore = 1;
         boolean sharded = true;
 
         // when
         userInsightsAnalysisService.performUserPurchaseActivityAnalysis(outputType, output,
-                hoursBefore, sharded);
+                daysBefore, sharded);
 
         // verify
         assertTrue(mongoDBService.count("ecommerce", output) > 0);
@@ -332,11 +375,156 @@ public class UserInsightsAnalysisServiceIT {
         String inputName = "lastHourUniques";
 
         // when
-        long count = userInsightsAnalysisService.getNumberOfUniqueUsersFromActivityAggregate(inputName);
+        long count = userInsightsAnalysisService.getNumberOfUniqueUserAggregates(inputName);
 
         // verify
         assertTrue(count >= 2);
     }
+
+    @Test
+    public void shouldPerformUserPurchaseActivityAnalysisWhenMapAndReduceFunctionsReceived() {
+        // given
+        String mapFunc = "function() {" +
+                            "var key = this.data.userId;" +
+                            "var value = {" +
+                                "userId: this.data.userId," +
+                                "items: this.data.itemId" +
+                            "};" +
+                            "emit( key, value );" +
+                            "}";
+        String reduceFunc = "function(key, values) {" +
+                                "var reducedObject = {" +
+                                    "userId: key," +
+                                    "items: []" +
+                                "};" +
+                                "values.forEach( function(value) {" +
+                                "reducedObject.items = reducedObject.items.concat(value.items)" +
+                                "});" +
+                                "return reducedObject;" +
+                                "}";
+        String finalizeFunc = "function(key, reduced_value) {" +
+                              "return reduced_value;" +
+                              "}";
+        String outputType = "reduce";
+        String output = "lastDayOrders";
+        long daysBefore = 1;
+        boolean sharded = true;
+
+        // when
+        userInsightsAnalysisService.performUserPurchaseActivityAnalysis(mapFunc, reduceFunc,
+                Optional.ofNullable(finalizeFunc), outputType, output, daysBefore, sharded);
+
+        // verify
+        assertTrue(mongoDBService.count("ecommerce", output) > 0);
+    }
+
+    @Test
+    public void shouldReturnListofUserPurchaseAggregates() {
+        // given
+        String inputName = "lastDayOrders";
+
+        // when
+        List<UserPurchaseAggregate> userPurchaseAggregates =
+                userInsightsAnalysisService.getUserAggregates(inputName, UserPurchaseAggregate.class);
+
+        // verify
+        userPurchaseAggregates.stream()
+                .forEach(u -> {
+                    assertTrue(u.getValue().getUserId().length() > 0);
+                    assertTrue(u.getValue().getItems().size() >= 0);
+                    LoggingUtils.info(logger, u.toString());
+                });
+    }
+
+    @Test
+    public void shouldPerformUserPurchaseOccurrenceAnalysis() {
+        // given
+        String input = "lastDayOrders";
+        String outputType = "reduce";
+        String output = "pairs";
+        boolean sharded = true;
+
+        // when
+        userInsightsAnalysisService.performUserPurchaseOccurrenceAnalysis(input, outputType, output, sharded);
+
+        // verify
+        assertTrue(mongoDBService.count("ecommerce", output) > 0);
+    }
+
+    @Test
+    public void shouldPerformUserPurchaseOccurrenceAnalysisWhenMapAndReduceFunctionsReceived() {
+        // given
+        String mapFunc = "function() {" +
+                            "for (i = 0; i < this.value.items.length; i++) {" +
+                                "for (j = i + 1; j <= this.value.items.length; j++) {" +
+                                    "if (typeof this.value.items[j] != 'undefined') {" +
+                                        "emit({a: this.value.items[i] ,b: this.value.items[j] }, 1);" +
+                                    "}" +
+                                "}" +
+                            "}" +
+                          "}";
+        String reduceFunc = "function(key, values) {" +
+                                "return Array.sum(values);" +
+                            "}";
+        String input = "lastDayOrders";
+        String outputType = "reduce";
+        String output = "pairs";
+        boolean sharded = true;
+
+        // when
+        userInsightsAnalysisService.performUserPurchaseOccurrenceAnalysis(input, mapFunc, reduceFunc,
+                Optional.empty(), outputType, output, sharded);
+
+        // verify
+        assertTrue(mongoDBService.count("ecommerce", output) > 0);
+    }
+
+    @Test
+    public void shouldReturnAllUserPurchaseOccurrenceAggregates() {
+        // given
+
+        // when
+        List<UserPurchaseOccurrenceAggregate> userPurchaseOccurrenceAggregates =
+                userInsightsAnalysisService.getAllUserPurchaseOccurrenceAggregates();
+
+        // verify
+        assertTrue(userPurchaseOccurrenceAggregates.size() > 0);
+        userPurchaseOccurrenceAggregates.stream()
+                .forEach(u -> {
+                    assertTrue(Long.parseLong(u.getId().getItem1()) > 0);
+                    assertTrue(Long.parseLong(u.getId().getItem2()) > 0);
+                    assertTrue(u.getCount() > 0);
+                    LoggingUtils.info(logger, u.toString());
+                });
+    }
+
+    @Test
+    public void shouldReturnListOfUserPurchaseOccurrenceAggregates() {
+        // given
+        String itemId = "2";
+        long count = 1L;
+
+        // when
+        List<UserPurchaseOccurrenceAggregate> userPurchaseOccurrenceAggregates =
+                userInsightsAnalysisService.getAllUserPurchaseOccurrenceAggregates(itemId, count);
+
+        // verify
+        assertTrue(userPurchaseOccurrenceAggregates.size() > 0);
+        userPurchaseOccurrenceAggregates.stream()
+                .forEach(u -> {
+                    assertTrue(Long.parseLong(u.getId().getItem1()) > 0);
+                    assertTrue(Long.parseLong(u.getId().getItem2()) > 0);
+                    assertTrue(u.getCount() > 0);
+                    LoggingUtils.info(logger, u.toString());
+                });
+        List<Long> counts = userPurchaseOccurrenceAggregates
+                .stream()
+                .map(UserPurchaseOccurrenceAggregate::getCount)
+                .collect(toList());
+        List<Long> sortedCounts = counts.stream().collect(toList());
+        sortedCounts.sort(Comparator.reverseOrder());
+        assertEquals(counts, sortedCounts);
+     }
 
     private void setupTestData(long time, Activity.Type type) {
         ActivityDataBuilder builder = new ActivityDataBuilder();
@@ -350,7 +538,10 @@ public class UserInsightsAnalysisServiceIT {
                 .setTimeStamp(localDateTime.atZone(ZoneId.systemDefault()).toInstant().toEpochMilli());
         Activity activity = new Activity("u123",
                 localDateTime.atZone(ZoneId.systemDefault()).toInstant().toEpochMilli(), builder.createActivity());
-        hvdfClientService.record(activity);
+        if(!hvdfClientService.record(activity)) {
+            fail("unable to setup test data");
+        }
+
         builder = new ActivityDataBuilder();
         builder.setUserId("u457").setGeoCode(1).setSessionId("2373BB")
                 .setDevice(new Activity.Device("1234", "mobile/iphone", "Chrome/34.0.1847.131"))
@@ -363,6 +554,8 @@ public class UserInsightsAnalysisServiceIT {
                 .setTimeStamp(localDateTime.atZone(ZoneId.systemDefault()).toInstant().toEpochMilli());
         activity = new Activity("u457",
                 localDateTime.atZone(ZoneId.systemDefault()).toInstant().toEpochMilli(), builder.createActivity());
-        hvdfClientService.record(activity);
+        if(!hvdfClientService.record(activity)) {
+            fail("unable to setup test data");
+        }
     }
 }
