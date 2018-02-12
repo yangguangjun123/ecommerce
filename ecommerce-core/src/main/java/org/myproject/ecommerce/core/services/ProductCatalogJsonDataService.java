@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import org.myproject.ecommerce.core.domain.AudioAlbum;
 import org.myproject.ecommerce.core.domain.Film;
+import org.myproject.ecommerce.core.utilities.LoggingUtils;
 import org.myproject.ecommerce.core.utilities.SKUCodeProductIdGenerator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -39,7 +40,7 @@ public class ProductCatalogJsonDataService {
             product.setSku(skuCodeGeneratorService.createProductSKUCode());
             product.getDetails().setIssueDate(Date.from(LocalDate.now().atStartOfDay().toInstant(ZoneOffset.UTC)));
             audioAlbum = mapper.writeValueAsString(product);
-            logger.info(audioAlbum);
+            LoggingUtils.info(logger, audioAlbum);
         } catch (IOException e) {
             e.printStackTrace();
         }

@@ -18,6 +18,7 @@ import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
 import org.json.simple.parser.ParseException;
 import org.myproject.ecommerce.core.services.MongoDBService;
+import org.myproject.ecommerce.core.utilities.LoggingUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -164,7 +165,7 @@ public class HVDFClientService {
     }
 
     private void configure(String feed, String channel, String configJsonString) {
-        logger.info("HVDF configuration(json format): " + configJsonString);
+        LoggingUtils.info(logger, "HVDF configuration(json format): " + configJsonString);
         try {
             String requestUrl = serviceUrl + CONFIG_URL;
             requestUrl = StringUtils.replace(requestUrl, "{feed}", feed);

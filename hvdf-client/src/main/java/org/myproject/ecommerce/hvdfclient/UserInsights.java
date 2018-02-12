@@ -1,7 +1,5 @@
 package org.myproject.ecommerce.hvdfclient;
 
-import org.bson.codecs.pojo.annotations.BsonId;
-
 public class UserInsights {
     private String id;
     private long count;

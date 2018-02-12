@@ -1,8 +1,5 @@
 package org.myproject.ecommerce.hvdfclient;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import org.bson.Document;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -20,13 +17,18 @@ import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Comparator;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.stream.LongStream;
 
+import static java.util.stream.Collectors.toList;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(classes = { TestApplicationConfiguration.class})
@@ -37,57 +39,21 @@ public class HVDFClientServiceIT {
     @Autowired
     private MongoDBService mongoDBService;
 
-    private String channelPrefix = "activity_";
-    private long period = 0L;
+    @Autowired
+    private HVDFClientPropertyService hvdfClientPropertyService;
 
-    private static final Map<String, Long> timeValues = new HashMap<>();
-
-    static {
-        // All valid time units used in config
-        timeValues.put("milliseconds", 1L);
-        timeValues.put("millisecond", 1L);
-        timeValues.put("seconds", 1000L);
-        timeValues.put("second", 1000L);
-        timeValues.put("minutes", 60 * 1000L);
-        timeValues.put("minute", 60 * 1000L);
-        timeValues.put("hours", 60 * 60 * 1000L);
-        timeValues.put("hour", 60 * 60 * 1000L);
-        timeValues.put("days", 24 * 60 * 60 * 1000L);
-        timeValues.put("day", 24 * 60 * 60 * 1000L);
-        timeValues.put("weeks", 7 * 24 * 60 * 60 * 1000L);
-        timeValues.put("week", 7 * 24 * 60 * 60 * 1000L);
-        timeValues.put("years", 365 * 24 * 60 * 60 * 1000L);
-        timeValues.put("year", 365 * 24 * 60 * 60 * 1000L);
-    }
+    private List<Long> times = List.of(1516181741620L, 1516182790560L, 1516182882582L,
+            1516184589023L, 1516184589524L, 1516535591361L,
+            1516535610283L, 1516535706984L, 1516535808443L,
+            1516535944773L);
 
     @Before
     public void setUp() throws InterruptedException, IOException {
-        List<Long> times = List.of(1516181741620L, 1516182790560L, 1516182882582L,
-                1516184589023L, 1516184589524L, 1516535591361L,
-                1516535610283L, 1516535706984L, 1516535808443L,
-                1516535944773L);
-        times.stream()
-                .forEach(this::setupTestData);
-        Thread.sleep(10000);
-
-        Optional<Document> configOptional = mongoDBService.readOne("config",
-                "hvdf_channels_ecommerce", Document.class, new HashMap<>());
-        String configJsonString = configOptional.get().toJson();
-        ObjectMapper objectMapper = new ObjectMapper();
-        JsonNode rootNode = objectMapper.readValue(configJsonString, JsonNode.class);
-        Objects.requireNonNull(rootNode.get("storage"));
-        Objects.requireNonNull(rootNode.get("storage").get("type"));
-        String storageType = rootNode.get("storage").get("type").textValue();
-        channelPrefix = channelPrefix + storageType + "_";
-        Objects.requireNonNull(rootNode.get("time_slicing"));
-        Objects.requireNonNull(rootNode.get("time_slicing").get("config"));
-        Objects.requireNonNull(rootNode.get("time_slicing").get("config").get("period"));
-        JsonNode periodNode = rootNode.get("time_slicing").get("config").get("period");
-        periodNode.fields().forEachRemaining(entry ->
-                period = period + timeValues.get(entry.getKey()) * entry.getValue().asInt());
-        if (period == 0) {
-            throw new IllegalArgumentException("time slicing period cannot be zero");
+        if(!checkTestData()) {
+            times.stream()
+                    .forEach(this::setupTestData);
         }
+        Thread.sleep(10000);
     }
 
     @After
@@ -95,7 +61,8 @@ public class HVDFClientServiceIT {
         ZonedDateTime ldtZoned = LocalDateTime.now().atZone(ZoneId.systemDefault());
         ZonedDateTime utcZoned = ldtZoned.withZoneSameInstant(ZoneId.of("UTC"));
         long time = utcZoned.toInstant().toEpochMilli();
-        String collection = channelPrefix + String.valueOf(time / period);
+        String collection = hvdfClientPropertyService.getChannelPrefix() +
+                String.valueOf(time / hvdfClientPropertyService.getPeriod());
         mongoDBService.dropCollection("ecommerce", collection);
     }
 
@@ -171,7 +138,9 @@ public class HVDFClientServiceIT {
                 .setTimeStamp(localDateTime.atZone(ZoneId.systemDefault()).toInstant().toEpochMilli());
         Activity activity = new Activity("u123",
                 localDateTime.atZone(ZoneId.systemDefault()).toInstant().toEpochMilli(), builder.createActivity());
-        hvdfClientService.record(activity);
+        if(!hvdfClientService.record(activity)) {
+            fail("unable to setup test data");
+        }
 
         builder = new ActivityDataBuilder();
         builder.setUserId("u457").setGeoCode(1).setSessionId("2373BB")
@@ -185,7 +154,58 @@ public class HVDFClientServiceIT {
                 .setTimeStamp(localDateTime.atZone(ZoneId.systemDefault()).toInstant().toEpochMilli());
         activity = new Activity("u457",
                 localDateTime.atZone(ZoneId.systemDefault()).toInstant().toEpochMilli(), builder.createActivity());
-        hvdfClientService.record(activity);
+        if(!hvdfClientService.record(activity)) {
+            fail("unable to setup test data");
+        }
     }
 
+    private boolean checkTestData() {
+        List<Long> activitiesForU123 =
+                LongStream.rangeClosed(times.get(0) / hvdfClientPropertyService.getPeriod(),
+                        times.get(times.size() - 1) / hvdfClientPropertyService.getPeriod()).boxed()
+                        .map(time -> hvdfClientPropertyService.getChannelPrefix() + String.valueOf(time))
+                        .map(collection -> {
+                            Map<String, Object> filterMap = new HashMap<>();
+                            filterMap.put("data.userId", "u123");
+                            HashMap<String, Object> startTimeQueryMap = new HashMap<>();
+                            startTimeQueryMap.put("data.ts", times.get(0));
+                            filterMap.put("$gte", startTimeQueryMap);
+                            HashMap<String, Object> endTimeQueryMap = new HashMap<>();
+                            endTimeQueryMap.put("data.ts", times.get(times.size() - 1));
+                            filterMap.put("$lte", endTimeQueryMap);
+                            Map<String, Integer> sortMap = new LinkedHashMap<>();
+                            sortMap.put("data.ts", -1);
+                            return mongoDBService.readAll("ecommerce", collection,
+                                    Activity.class, filterMap, Optional.of(sortMap));
+                        })
+                        .flatMap(List::stream)
+                        .map(Activity::getData)
+                        .map(Activity.Data::getTimeStamp)
+                        .sorted(Comparator.naturalOrder())
+                        .collect(toList());
+        List<Long> activitiesForU457 =
+                LongStream.rangeClosed(times.get(0) / hvdfClientPropertyService.getPeriod(),
+                        times.get(times.size() - 1) / hvdfClientPropertyService.getPeriod()).boxed()
+                        .map(time -> hvdfClientPropertyService.getChannelPrefix() + String.valueOf(time))
+                        .map(collection -> {
+                            Map<String, Object> filterMap = new HashMap<>();
+                            filterMap.put("data.userId", "u457");
+                            HashMap<String, Object> startTimeQueryMap = new HashMap<>();
+                            startTimeQueryMap.put("data.ts", times.get(0));
+                            filterMap.put("$gte", startTimeQueryMap);
+                            HashMap<String, Object> endTimeQueryMap = new HashMap<>();
+                            endTimeQueryMap.put("data.ts", times.get(times.size() - 1));
+                            filterMap.put("$lte", endTimeQueryMap);
+                            Map<String, Integer> sortMap = new LinkedHashMap<>();
+                            sortMap.put("data.ts", -1);
+                            return mongoDBService.readAll("ecommerce", collection,
+                                    Activity.class, filterMap, Optional.of(sortMap));
+                        })
+                        .flatMap(List::stream)
+                        .map(Activity::getData)
+                        .map(Activity.Data::getTimeStamp)
+                        .sorted(Comparator.naturalOrder())
+                        .collect(toList());
+        return Objects.equals(activitiesForU123, times) && Objects.equals(activitiesForU457, times);
+    }
 }
