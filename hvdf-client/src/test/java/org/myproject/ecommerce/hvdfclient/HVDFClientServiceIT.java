@@ -17,16 +17,10 @@ import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Comparator;
-import java.util.HashMap;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
-import java.util.Optional;
 import java.util.stream.LongStream;
 
-import static java.util.stream.Collectors.toList;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
@@ -47,13 +41,21 @@ public class HVDFClientServiceIT {
             1516535610283L, 1516535706984L, 1516535808443L,
             1516535944773L);
 
+    private static boolean isSetupDone = false;
+
     @Before
     public void setUp() throws InterruptedException, IOException {
-        if(!checkTestData()) {
+        if(!isSetupDone) {
+            LongStream.rangeClosed(times.get(0) / hvdfClientPropertyService.getPeriod(),
+                    times.get(times.size() - 1) / hvdfClientPropertyService.getPeriod()).boxed()
+                    .map(time -> hvdfClientPropertyService.getChannelPrefix() + String.valueOf(time))
+                    .forEach(collection -> mongoDBService.dropCollection("ecommerce", collection));
             times.stream()
                     .forEach(this::setupTestData);
+            Thread.sleep(10000);
+
+            isSetupDone = true;
         }
-        Thread.sleep(10000);
     }
 
     @After
@@ -157,55 +159,5 @@ public class HVDFClientServiceIT {
         if(!hvdfClientService.record(activity)) {
             fail("unable to setup test data");
         }
-    }
-
-    private boolean checkTestData() {
-        List<Long> activitiesForU123 =
-                LongStream.rangeClosed(times.get(0) / hvdfClientPropertyService.getPeriod(),
-                        times.get(times.size() - 1) / hvdfClientPropertyService.getPeriod()).boxed()
-                        .map(time -> hvdfClientPropertyService.getChannelPrefix() + String.valueOf(time))
-                        .map(collection -> {
-                            Map<String, Object> filterMap = new HashMap<>();
-                            filterMap.put("data.userId", "u123");
-                            HashMap<String, Object> startTimeQueryMap = new HashMap<>();
-                            startTimeQueryMap.put("data.ts", times.get(0));
-                            filterMap.put("$gte", startTimeQueryMap);
-                            HashMap<String, Object> endTimeQueryMap = new HashMap<>();
-                            endTimeQueryMap.put("data.ts", times.get(times.size() - 1));
-                            filterMap.put("$lte", endTimeQueryMap);
-                            Map<String, Integer> sortMap = new LinkedHashMap<>();
-                            sortMap.put("data.ts", -1);
-                            return mongoDBService.readAll("ecommerce", collection,
-                                    Activity.class, filterMap, Optional.of(sortMap));
-                        })
-                        .flatMap(List::stream)
-                        .map(Activity::getData)
-                        .map(Activity.Data::getTimeStamp)
-                        .sorted(Comparator.naturalOrder())
-                        .collect(toList());
-        List<Long> activitiesForU457 =
-                LongStream.rangeClosed(times.get(0) / hvdfClientPropertyService.getPeriod(),
-                        times.get(times.size() - 1) / hvdfClientPropertyService.getPeriod()).boxed()
-                        .map(time -> hvdfClientPropertyService.getChannelPrefix() + String.valueOf(time))
-                        .map(collection -> {
-                            Map<String, Object> filterMap = new HashMap<>();
-                            filterMap.put("data.userId", "u457");
-                            HashMap<String, Object> startTimeQueryMap = new HashMap<>();
-                            startTimeQueryMap.put("data.ts", times.get(0));
-                            filterMap.put("$gte", startTimeQueryMap);
-                            HashMap<String, Object> endTimeQueryMap = new HashMap<>();
-                            endTimeQueryMap.put("data.ts", times.get(times.size() - 1));
-                            filterMap.put("$lte", endTimeQueryMap);
-                            Map<String, Integer> sortMap = new LinkedHashMap<>();
-                            sortMap.put("data.ts", -1);
-                            return mongoDBService.readAll("ecommerce", collection,
-                                    Activity.class, filterMap, Optional.of(sortMap));
-                        })
-                        .flatMap(List::stream)
-                        .map(Activity::getData)
-                        .map(Activity.Data::getTimeStamp)
-                        .sorted(Comparator.naturalOrder())
-                        .collect(toList());
-        return Objects.equals(activitiesForU123, times) && Objects.equals(activitiesForU457, times);
     }
 }

@@ -104,6 +104,7 @@ public class Activity {
         private Device device;
         private Type type;
         private String itemId;
+        private int weight;
         private String sku;
         private Order order;
         private List<Double> locations;
@@ -118,7 +119,7 @@ public class Activity {
         }
 
         public Data(String userId, int geoCode, String sessionId, Device device,
-                    Type type, String itemId, String sku, Order order, List<Double> locations,
+                    Type type, String itemId, int weight, String sku, Order order, List<Double> locations,
                     List<String> tags, LocalDateTime time, long timeStamp) {
             this.userId = userId;
             this.geoCode = geoCode;
@@ -126,6 +127,7 @@ public class Activity {
             this.device = device;
             this.type = type;
             this.itemId = itemId;
+            this.weight = weight;
             this.sku = sku;
             this.order = order;
             this.locations = locations;
@@ -230,6 +232,14 @@ public class Activity {
             this.timeStamp = timeStamp;
         }
 
+        public int getWeight() {
+            return weight;
+        }
+
+        public void setWeight(int weight) {
+            this.weight = weight;
+        }
+
         @Override
         public boolean equals(Object o) {
             if (this == o) return true;
@@ -238,6 +248,7 @@ public class Activity {
             Data data = (Data) o;
 
             if (geoCode != data.geoCode) return false;
+            if (weight != data.weight) return false;
             if (timeStamp != data.timeStamp) return false;
             if (userId != null ? !userId.equals(data.userId) : data.userId != null) return false;
             if (sessionId != null ? !sessionId.equals(data.sessionId) : data.sessionId != null) return false;
@@ -259,6 +270,7 @@ public class Activity {
             result = 31 * result + (device != null ? device.hashCode() : 0);
             result = 31 * result + (type != null ? type.hashCode() : 0);
             result = 31 * result + (itemId != null ? itemId.hashCode() : 0);
+            result = 31 * result + weight;
             result = 31 * result + (sku != null ? sku.hashCode() : 0);
             result = 31 * result + (order != null ? order.hashCode() : 0);
             result = 31 * result + (locations != null ? locations.hashCode() : 0);
@@ -277,6 +289,7 @@ public class Activity {
                     ", device=" + device +
                     ", type=" + type +
                     ", itemId='" + itemId + '\'' +
+                    ", weight=" + weight +
                     ", sku='" + sku + '\'' +
                     ", order=" + order +
                     ", locations=" + locations +

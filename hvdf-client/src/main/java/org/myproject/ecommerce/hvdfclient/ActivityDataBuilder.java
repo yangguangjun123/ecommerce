@@ -10,6 +10,7 @@ public class ActivityDataBuilder {
     private Activity.Device device;
     private Activity.Type type;
     private String itemId;
+    private int weight;
     private String sku;
     private Activity.Order order;
     private List<Double> locations;
@@ -47,6 +48,11 @@ public class ActivityDataBuilder {
         return this;
     }
 
+    public ActivityDataBuilder setWeight(int weight) {
+        this.weight = weight;
+        return this;
+    }
+
     public ActivityDataBuilder setSku(String sku) {
         this.sku = sku;
         return this;
@@ -78,7 +84,7 @@ public class ActivityDataBuilder {
     }
 
     public Activity.Data createActivity() {
-        return new Activity.Data(userId, geoCode, sessionId, device, type, itemId, sku, order,
+        return new Activity.Data(userId, geoCode, sessionId, device, type, itemId, weight, sku, order,
                 locations, tags, time, timeStamp);
     }
 }

@@ -22,11 +22,8 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
-import java.util.HashMap;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
@@ -65,16 +62,27 @@ public class UserInsightsAnalysisServiceIT {
     @Before
     public void setUp() throws InterruptedException {
         if(!isSetupDone) {
-            if(!checkTestData()) {
-                times.stream()
-                        .forEach(t -> {
-                            setupTestData(t, Activity.Type.VIEW);
-                            setupTestData(t, Activity.Type.ORDER);
-                        });
-                Thread.sleep(10000);
-            }
+            LongStream.rangeClosed(times.get(0) / hvdfClientPropertyService.getPeriod(),
+                    times.get(times.size() - 1) / hvdfClientPropertyService.getPeriod()).boxed()
+                    .map(time -> hvdfClientPropertyService.getChannelPrefix() + String.valueOf(time))
+                    .forEach(collection -> mongoDBService.dropCollection("ecommerce", collection));
+            mongoDBService.dropCollection("ecommerce", "lastHourUniques");
+            mongoDBService.dropCollection("ecommerce", "lastHourUniques");
+            mongoDBService.dropCollection("ecommerce", "pairs");
+            times.stream()
+                    .forEach(t -> {
+                        setupTestData(t, Activity.Type.VIEW);
+                        setupTestData(t + 1L, Activity.Type.ORDER);
+                    });
+            Thread.sleep(10000);
 
-            Stream<String> items = Stream.of("2", "2","3", "3", "3", "3", "8", "8", "8", "8", "8", "8", "8", "8");
+            Map<String, Integer> weightLookup = Map.of("32", 36, "158", 23);
+            List<Long> itemIds = List.of(2L, 3L, 8L, 32L, 158L);
+            LongStream.rangeClosed(1, 2).mapToObj(l -> "2").collect(toList());
+            Stream<String> items =
+                    itemIds.stream()
+                           .flatMap(i -> LongStream.rangeClosed(1, i).mapToObj(l -> String.valueOf(i)));
+
             List<Activity.Type> types = List.of(Activity.Type.VIEW, Activity.Type.ORDER);
             LocalDateTime now = LocalDateTime.now();
             long startTime = now.atZone(ZoneId.systemDefault()).withZoneSameInstant(ZoneId.of("UTC"))
@@ -97,7 +105,7 @@ public class UserInsightsAnalysisServiceIT {
                                     .forEach(userId -> {
                                         LoggingUtils.info(logger, "itemId/type/userId: " +
                                                 String.format("%s/%s/%s", itemId, type, userId));
-                                        setupTestData(itemId, type, userId);
+                                        setupTestData(itemId, type, userId, weightLookup.getOrDefault(itemId, 4));
                                     });
                         });
             });
@@ -107,11 +115,11 @@ public class UserInsightsAnalysisServiceIT {
         }
     }
 
-    private void setupTestData(String itemId, Activity.Type type, String userId) {
+    private void setupTestData(String itemId, Activity.Type type, String userId, int weight) {
         ActivityDataBuilder builder = new ActivityDataBuilder();
         builder.setUserId(userId).setGeoCode(1).setSessionId("2373BB")
                 .setDevice(new Activity.Device("1234", "mobile/iphone", "Chrome/34.0.1847.131"))
-                .setType(type).setItemId(itemId).setSku("730223104376")
+                .setType(type).setItemId(itemId).setSku("730223104376").setWeight(weight)
                 .setLocations(Arrays.asList(-86.95444, 33.40178))
                 .setTags(Arrays.asList("smartphone", "iphone"));
         LocalDateTime now = LocalDateTime.now();
@@ -123,56 +131,6 @@ public class UserInsightsAnalysisServiceIT {
         if(!hvdfClientService.record(activity)) {
             fail("unable to setup test data");
         }
-    }
-
-    private boolean checkTestData() {
-        List<Long> activitiesForU123 =
-                LongStream.rangeClosed(times.get(0) / hvdfClientPropertyService.getPeriod(),
-                        times.get(times.size() - 1) / hvdfClientPropertyService.getPeriod()).boxed()
-                .map(time -> hvdfClientPropertyService.getChannelPrefix() + String.valueOf(time))
-                .map(collection -> {
-                    Map<String, Object> filterMap = new HashMap<>();
-                    filterMap.put("data.userId", "u123");
-                    HashMap<String, Object> startTimeQueryMap = new HashMap<>();
-                    startTimeQueryMap.put("data.ts", times.get(0));
-                    filterMap.put("$gte", startTimeQueryMap);
-                    HashMap<String, Object> endTimeQueryMap = new HashMap<>();
-                    endTimeQueryMap.put("data.ts", times.get(times.size() - 1));
-                    filterMap.put("$lte", endTimeQueryMap);
-                    Map<String, Integer> sortMap = new LinkedHashMap<>();
-                    sortMap.put("data.ts", -1);
-                    return mongoDBService.readAll("ecommerce", collection,
-                            Activity.class, filterMap, Optional.of(sortMap));
-                })
-                .flatMap(List::stream)
-                .map(Activity::getData)
-                .map(Activity.Data::getTimeStamp)
-                .sorted(Comparator.naturalOrder())
-                .collect(toList());
-        List<Long> activitiesForU457 =
-                LongStream.rangeClosed(times.get(0) / hvdfClientPropertyService.getPeriod(),
-                            times.get(times.size() - 1) / hvdfClientPropertyService.getPeriod()).boxed()
-                        .map(time -> hvdfClientPropertyService.getChannelPrefix() + String.valueOf(time))
-                        .map(collection -> {
-                            Map<String, Object> filterMap = new HashMap<>();
-                            filterMap.put("data.userId", "u457");
-                            HashMap<String, Object> startTimeQueryMap = new HashMap<>();
-                            startTimeQueryMap.put("data.ts", times.get(0));
-                            filterMap.put("$gte", startTimeQueryMap);
-                            HashMap<String, Object> endTimeQueryMap = new HashMap<>();
-                            endTimeQueryMap.put("data.ts", times.get(times.size() - 1));
-                            filterMap.put("$lte", endTimeQueryMap);
-                            Map<String, Integer> sortMap = new LinkedHashMap<>();
-                            sortMap.put("data.ts", -1);
-                            return mongoDBService.readAll("ecommerce", collection,
-                                    Activity.class, filterMap, Optional.of(sortMap));
-                        })
-                        .flatMap(List::stream)
-                        .map(Activity::getData)
-                        .map(Activity.Data::getTimeStamp)
-                        .sorted(Comparator.naturalOrder())
-                        .collect(toList());
-        return Objects.equals(activitiesForU123, times) && Objects.equals(activitiesForU457, times);
     }
 
     @After
@@ -187,15 +145,17 @@ public class UserInsightsAnalysisServiceIT {
         long timeEnd = 1516535944773L;
         long numberOfUserActivities = 100;
         List<Long> expectedTimes = new ArrayList<>();
-        expectedTimes.addAll(times.subList(1, times.size() - 1));
+        expectedTimes.addAll(times);
+        expectedTimes.addAll(times.stream().map(t -> t + 1L).collect(toList()));
         expectedTimes.sort(Comparator.reverseOrder());
+        expectedTimes = expectedTimes.stream().skip(2).limit(times.size() * 2 - 3).collect(toList());
 
         // when
         List<Activity> userActivities = userInsightsAnalysisService.findUserActivities(userId, timeStart,
                 timeEnd, numberOfUserActivities);
 
         // verify
-        assertTrue(userActivities.size() == times.size() - 2);
+        assertTrue(userActivities.size() == times.size() * 2 - 3);
         userActivities.stream()
                 .forEach(a -> {
                     Assert.assertEquals(userId, a.getSource());
@@ -213,15 +173,17 @@ public class UserInsightsAnalysisServiceIT {
         long timeEnd = 1516535944773L;
         long numberOfPrductActivities = 100;
         List<Long> expectedTimes = new ArrayList<>();
-        expectedTimes.addAll(times.subList(1, times.size() - 1));
+        expectedTimes.addAll(times);
+        expectedTimes.addAll(times.stream().map(t -> t + 1L).collect(toList()));
         expectedTimes.sort(Comparator.reverseOrder());
+        expectedTimes = expectedTimes.stream().skip(2).limit(times.size() * 2 - 3).collect(toList());
 
         // when
         List<Activity> productActivities = userInsightsAnalysisService.findProductActivities(itemId, timeStart,
                 timeEnd, numberOfPrductActivities);
 
         // verify
-        assertTrue(productActivities.size() == times.size() * 2 - 4);
+        assertTrue(productActivities.size() == times.size() * 4 - 6);
         productActivities.stream()
                 .forEach(a -> Assert.assertEquals(itemId, a.getData().getItemId()));
         Assert.assertEquals(expectedTimes, productActivities.stream().map(Activity::getTimeStamp).distinct()
@@ -243,8 +205,10 @@ public class UserInsightsAnalysisServiceIT {
                  .sorted(Collections.reverseOrder())
                  .limit(2)
                  .map(index -> userInsights.get(index))
+                 .peek(u -> LoggingUtils.info(logger, "user insights: " + u.toString()))
                  .forEach(insight -> {
-                     assertEquals(Activity.Type.VIEW.name(), insight.getId());
+                     assertTrue(Activity.Type.VIEW.name().equals(insight.getId())
+                             || Activity.Type.ORDER.name().equals(insight.getId()));
                      assertTrue(insight.getCount() == 5);
                  });
     }
@@ -336,9 +300,12 @@ public class UserInsightsAnalysisServiceIT {
     }
 
     @Test
-    public void shouldReturnListOfUserActivityAggregates() {
+    public void shouldReturnListOfUserActivityAggregates() throws InterruptedException {
         // given
         String inputName = "lastHourUniques";
+        userInsightsAnalysisService.performUserActivityAnalysis("reduce", "lastHourUniques",
+                1, true);
+        Thread.sleep(4000);
 
         // when
         List<UserActivityAggregate> userActivityAggregates =
@@ -370,9 +337,12 @@ public class UserInsightsAnalysisServiceIT {
     }
 
     @Test
-    public void shouldReturnNumberOfUniqueUsersFromUserActivityAggregate() {
+    public void shouldReturnNumberOfUniqueUsersFromUserActivityAggregate() throws InterruptedException {
         // given
         String inputName = "lastHourUniques";
+        userInsightsAnalysisService.performUserActivityAnalysis("reduce", "lastHourUniques",
+                1, true);
+        Thread.sleep(4000);
 
         // when
         long count = userInsightsAnalysisService.getNumberOfUniqueUserAggregates(inputName);
@@ -382,7 +352,8 @@ public class UserInsightsAnalysisServiceIT {
     }
 
     @Test
-    public void shouldPerformUserPurchaseActivityAnalysisWhenMapAndReduceFunctionsReceived() {
+    public void shouldPerformUserPurchaseActivityAnalysisWhenMapAndReduceFunctionsReceived()
+            throws InterruptedException {
         // given
         String mapFunc = "function() {" +
                             "var key = this.data.userId;" +
@@ -409,6 +380,9 @@ public class UserInsightsAnalysisServiceIT {
         String output = "lastDayOrders";
         long daysBefore = 1;
         boolean sharded = true;
+        userInsightsAnalysisService.performUserPurchaseActivityAnalysis("reduce", "lastDayOrders",
+                1, true);
+        Thread.sleep(4000);
 
         // when
         userInsightsAnalysisService.performUserPurchaseActivityAnalysis(mapFunc, reduceFunc,
@@ -419,9 +393,12 @@ public class UserInsightsAnalysisServiceIT {
     }
 
     @Test
-    public void shouldReturnListofUserPurchaseAggregates() {
+    public void shouldReturnListofUserPurchaseAggregates() throws InterruptedException {
         // given
         String inputName = "lastDayOrders";
+        userInsightsAnalysisService.performUserPurchaseActivityAnalysis("reduce", "lastDayOrders",
+                1, true);
+        Thread.sleep(4000);
 
         // when
         List<UserPurchaseAggregate> userPurchaseAggregates =
@@ -437,12 +414,15 @@ public class UserInsightsAnalysisServiceIT {
     }
 
     @Test
-    public void shouldPerformUserPurchaseOccurrenceAnalysis() {
+    public void shouldPerformUserPurchaseOccurrenceAnalysis() throws InterruptedException {
         // given
         String input = "lastDayOrders";
         String outputType = "reduce";
         String output = "pairs";
         boolean sharded = true;
+        userInsightsAnalysisService.performUserPurchaseActivityAnalysis("reduce", "lastDayOrders",
+                1, true);
+        Thread.sleep(4000);
 
         // when
         userInsightsAnalysisService.performUserPurchaseOccurrenceAnalysis(input, outputType, output, sharded);
@@ -452,7 +432,8 @@ public class UserInsightsAnalysisServiceIT {
     }
 
     @Test
-    public void shouldPerformUserPurchaseOccurrenceAnalysisWhenMapAndReduceFunctionsReceived() {
+    public void shouldPerformUserPurchaseOccurrenceAnalysisWhenMapAndReduceFunctionsReceived()
+            throws InterruptedException {
         // given
         String mapFunc = "function() {" +
                             "for (i = 0; i < this.value.items.length; i++) {" +
@@ -470,6 +451,9 @@ public class UserInsightsAnalysisServiceIT {
         String outputType = "reduce";
         String output = "pairs";
         boolean sharded = true;
+        userInsightsAnalysisService.performUserPurchaseActivityAnalysis("reduce", "lastDayOrders",
+                1, true);
+        Thread.sleep(4000);
 
         // when
         userInsightsAnalysisService.performUserPurchaseOccurrenceAnalysis(input, mapFunc, reduceFunc,
@@ -480,8 +464,14 @@ public class UserInsightsAnalysisServiceIT {
     }
 
     @Test
-    public void shouldReturnAllUserPurchaseOccurrenceAggregates() {
+    public void shouldReturnAllUserPurchaseOccurrenceAggregates() throws InterruptedException {
         // given
+        userInsightsAnalysisService.performUserPurchaseActivityAnalysis("reduce", "lastDayOrders",
+                1, true);
+        Thread.sleep(4000);
+        userInsightsAnalysisService.performUserPurchaseOccurrenceAnalysis("lastDayOrders", "reduce",
+                "pairs", true);
+        Thread.sleep(4000);
 
         // when
         List<UserPurchaseOccurrenceAggregate> userPurchaseOccurrenceAggregates =
@@ -499,10 +489,16 @@ public class UserInsightsAnalysisServiceIT {
     }
 
     @Test
-    public void shouldReturnListOfUserPurchaseOccurrenceAggregates() {
+    public void shouldReturnListOfUserPurchaseOccurrenceAggregates() throws InterruptedException {
         // given
         String itemId = "2";
         long count = 1L;
+        userInsightsAnalysisService.performUserPurchaseActivityAnalysis("reduce", "lastDayOrders",
+                1, true);
+        Thread.sleep(4000);
+        userInsightsAnalysisService.performUserPurchaseOccurrenceAnalysis("lastDayOrders", "reduce",
+                "pairs", true);
+        Thread.sleep(4000);
 
         // when
         List<UserPurchaseOccurrenceAggregate> userPurchaseOccurrenceAggregates =
@@ -527,35 +523,70 @@ public class UserInsightsAnalysisServiceIT {
      }
 
     private void setupTestData(long time, Activity.Type type) {
-        ActivityDataBuilder builder = new ActivityDataBuilder();
-        builder.setUserId("u123").setGeoCode(1).setSessionId("2373BB")
-                .setDevice(new Activity.Device("1234", "mobile/iphone", "Chrome/34.0.1847.131"))
-                .setType(type).setItemId("301671").setSku("730223104376")
-                .setLocations(Arrays.asList(-86.95444, 33.40178))
-                .setTags(Arrays.asList("smartphone", "iphone"));
-        LocalDateTime localDateTime = LocalDateTime.ofInstant(Instant.ofEpochMilli(time), ZoneId.of("UTC"));
-        builder.setTime(localDateTime)
-                .setTimeStamp(localDateTime.atZone(ZoneId.systemDefault()).toInstant().toEpochMilli());
-        Activity activity = new Activity("u123",
-                localDateTime.atZone(ZoneId.systemDefault()).toInstant().toEpochMilli(), builder.createActivity());
-        if(!hvdfClientService.record(activity)) {
-            fail("unable to setup test data");
+        if(type == Activity.Type.VIEW) {
+            ActivityDataBuilder builder = new ActivityDataBuilder();
+            builder.setUserId("u123").setGeoCode(1).setSessionId("2373BB")
+                    .setDevice(new Activity.Device("1234", "mobile/iphone", "Chrome/34.0.1847.131"))
+                    .setType(type).setItemId("301671").setSku("730223104376").setWeight(4)
+                    .setLocations(Arrays.asList(-86.95444, 33.40178))
+                    .setTags(Arrays.asList("smartphone", "iphone"));
+            LocalDateTime localDateTime = LocalDateTime.ofInstant(Instant.ofEpochMilli(time), ZoneId.of("UTC"));
+            builder.setTime(localDateTime)
+                    .setTimeStamp(localDateTime.atZone(ZoneId.systemDefault()).toInstant().toEpochMilli());
+            Activity activity = new Activity("u123",
+                    localDateTime.atZone(ZoneId.systemDefault()).toInstant().toEpochMilli(), builder.createActivity());
+            if(!hvdfClientService.record(activity)) {
+                fail("unable to setup test data");
+            }
+
+            builder = new ActivityDataBuilder();
+            builder.setUserId("u457").setGeoCode(1).setSessionId("2373BB")
+                    .setDevice(new Activity.Device("1234", "mobile/iphone", "Chrome/34.0.1847.131"))
+                    .setType(type).setItemId("301671").setSku("730223104376").setWeight(4)
+                    .setLocations(Arrays.asList(-86.95444, 33.40178))
+                    .setTags(Arrays.asList("smartphone", "iphone"));
+            localDateTime = LocalDateTime.ofInstant(Instant.ofEpochMilli(time), ZoneId.of("UTC"));
+            builder.setTime(localDateTime)
+                    .setTimeStamp(localDateTime.atZone(ZoneId.systemDefault()).toInstant().toEpochMilli());
+            activity = new Activity("u457",
+                    localDateTime.atZone(ZoneId.systemDefault()).toInstant().toEpochMilli(), builder.createActivity());
+            if(!hvdfClientService.record(activity)) {
+                fail("unable to setup test data");
+            }
         }
 
-        builder = new ActivityDataBuilder();
-        builder.setUserId("u457").setGeoCode(1).setSessionId("2373BB")
-                .setDevice(new Activity.Device("1234", "mobile/iphone", "Chrome/34.0.1847.131"))
-                .setType(type).setItemId("301671").setSku("730223104376")
-                .setOrder(new Activity.Order("12520185", 1200))
-                .setLocations(Arrays.asList(-86.95444, 33.40178))
-                .setTags(Arrays.asList("smartphone", "iphone"));
-        localDateTime = LocalDateTime.ofInstant(Instant.ofEpochMilli(time), ZoneId.of("UTC"));
-        builder.setTime(localDateTime)
-                .setTimeStamp(localDateTime.atZone(ZoneId.systemDefault()).toInstant().toEpochMilli());
-        activity = new Activity("u457",
-                localDateTime.atZone(ZoneId.systemDefault()).toInstant().toEpochMilli(), builder.createActivity());
-        if(!hvdfClientService.record(activity)) {
-            fail("unable to setup test data");
+        if(type == Activity.Type.ORDER) {
+            ActivityDataBuilder builder = new ActivityDataBuilder();
+            builder.setUserId("u123").setGeoCode(1).setSessionId("2373BB")
+                    .setDevice(new Activity.Device("1234", "mobile/iphone", "Chrome/34.0.1847.131"))
+                    .setType(type).setItemId("301671").setSku("730223104376").setWeight(4)
+                    .setOrder(new Activity.Order("12520185", 1200))
+                    .setLocations(Arrays.asList(-86.95444, 33.40178))
+                    .setTags(Arrays.asList("smartphone", "iphone"));
+            LocalDateTime localDateTime = LocalDateTime.ofInstant(Instant.ofEpochMilli(time), ZoneId.of("UTC"));
+            builder.setTime(localDateTime)
+                    .setTimeStamp(localDateTime.atZone(ZoneId.systemDefault()).toInstant().toEpochMilli());
+            Activity activity = new Activity("u123",
+                    localDateTime.atZone(ZoneId.systemDefault()).toInstant().toEpochMilli(), builder.createActivity());
+            if(!hvdfClientService.record(activity)) {
+                fail("unable to setup test data");
+            }
+
+            builder = new ActivityDataBuilder();
+            builder.setUserId("u457").setGeoCode(1).setSessionId("2373BB")
+                    .setDevice(new Activity.Device("1234", "mobile/iphone", "Chrome/34.0.1847.131"))
+                    .setType(type).setItemId("301671").setSku("730223104376").setWeight(4)
+                    .setOrder(new Activity.Order("12520185", 1200))
+                    .setLocations(Arrays.asList(-86.95444, 33.40178))
+                    .setTags(Arrays.asList("smartphone", "iphone"));
+            localDateTime = LocalDateTime.ofInstant(Instant.ofEpochMilli(time), ZoneId.of("UTC"));
+            builder.setTime(localDateTime)
+                    .setTimeStamp(localDateTime.atZone(ZoneId.systemDefault()).toInstant().toEpochMilli());
+            activity = new Activity("u457",
+                    localDateTime.atZone(ZoneId.systemDefault()).toInstant().toEpochMilli(), builder.createActivity());
+            if(!hvdfClientService.record(activity)) {
+                fail("unable to setup test data");
+            }
         }
     }
 }
