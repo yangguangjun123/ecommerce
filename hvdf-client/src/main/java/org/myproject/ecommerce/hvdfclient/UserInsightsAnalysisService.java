@@ -457,6 +457,8 @@ public class UserInsightsAnalysisService {
                     mapFuncGroup, reduceFuncGroup, Optional.empty(), new HashMap<>(), "replace".toUpperCase(),
                     output, sharded);
 
+            mongoDBService.dropCollection("ecommerce", "most_popular_pairs_reshape");
+
             LoggingUtils.info(logger, "map/reduce complete");
 
         } catch (IOException e) {
