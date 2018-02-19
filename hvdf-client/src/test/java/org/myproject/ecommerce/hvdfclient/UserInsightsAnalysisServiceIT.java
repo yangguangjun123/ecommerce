@@ -76,12 +76,14 @@ public class UserInsightsAnalysisServiceIT {
                     });
             Thread.sleep(10000);
 
-            Map<String, Integer> weightLookup = Map.of("32", 36, "158", 23);
+            Map<String, Integer> weightLookup = Map.of("2", 4, "3", 6,"32",
+                    36, "158", 23);
             List<Long> itemIds = List.of(2L, 3L, 8L, 32L, 158L);
-            LongStream.rangeClosed(1, 2).mapToObj(l -> "2").collect(toList());
-            Stream<String> items =
+
+            List<String> items =
                     itemIds.stream()
-                           .flatMap(i -> LongStream.rangeClosed(1, i).mapToObj(l -> String.valueOf(i)));
+                           .flatMap(i -> LongStream.rangeClosed(1, i).mapToObj(l -> String.valueOf(i)))
+                           .collect(toList());
 
             List<Activity.Type> types = List.of(Activity.Type.VIEW, Activity.Type.ORDER);
             LocalDateTime now = LocalDateTime.now();
@@ -305,7 +307,6 @@ public class UserInsightsAnalysisServiceIT {
         String inputName = "lastHourUniques";
         userInsightsAnalysisService.performUserActivityAnalysis("reduce", "lastHourUniques",
                 1, true);
-        Thread.sleep(4000);
 
         // when
         List<UserActivityAggregate> userActivityAggregates =
@@ -342,7 +343,6 @@ public class UserInsightsAnalysisServiceIT {
         String inputName = "lastHourUniques";
         userInsightsAnalysisService.performUserActivityAnalysis("reduce", "lastHourUniques",
                 1, true);
-        Thread.sleep(4000);
 
         // when
         long count = userInsightsAnalysisService.getNumberOfUniqueUserAggregates(inputName);
@@ -382,7 +382,6 @@ public class UserInsightsAnalysisServiceIT {
         boolean sharded = true;
         userInsightsAnalysisService.performUserPurchaseActivityAnalysis("reduce", "lastDayOrders",
                 1, true);
-        Thread.sleep(4000);
 
         // when
         userInsightsAnalysisService.performUserPurchaseActivityAnalysis(mapFunc, reduceFunc,
@@ -398,7 +397,6 @@ public class UserInsightsAnalysisServiceIT {
         String inputName = "lastDayOrders";
         userInsightsAnalysisService.performUserPurchaseActivityAnalysis("reduce", "lastDayOrders",
                 1, true);
-        Thread.sleep(4000);
 
         // when
         List<UserPurchaseAggregate> userPurchaseAggregates =
@@ -422,7 +420,6 @@ public class UserInsightsAnalysisServiceIT {
         boolean sharded = true;
         userInsightsAnalysisService.performUserPurchaseActivityAnalysis("reduce", "lastDayOrders",
                 1, true);
-        Thread.sleep(4000);
 
         // when
         userInsightsAnalysisService.performUserPurchaseOccurrenceAnalysis(input, outputType, output, sharded);
@@ -453,7 +450,6 @@ public class UserInsightsAnalysisServiceIT {
         boolean sharded = true;
         userInsightsAnalysisService.performUserPurchaseActivityAnalysis("reduce", "lastDayOrders",
                 1, true);
-        Thread.sleep(4000);
 
         // when
         userInsightsAnalysisService.performUserPurchaseOccurrenceAnalysis(input, mapFunc, reduceFunc,
@@ -468,10 +464,8 @@ public class UserInsightsAnalysisServiceIT {
         // given
         userInsightsAnalysisService.performUserPurchaseActivityAnalysis("reduce", "lastDayOrders",
                 1, true);
-        Thread.sleep(4000);
         userInsightsAnalysisService.performUserPurchaseOccurrenceAnalysis("lastDayOrders", "reduce",
                 "pairs", true);
-        Thread.sleep(4000);
 
         // when
         List<UserPurchaseOccurrenceAggregate> userPurchaseOccurrenceAggregates =
@@ -495,10 +489,8 @@ public class UserInsightsAnalysisServiceIT {
         long count = 1L;
         userInsightsAnalysisService.performUserPurchaseActivityAnalysis("reduce", "lastDayOrders",
                 1, true);
-        Thread.sleep(4000);
         userInsightsAnalysisService.performUserPurchaseOccurrenceAnalysis("lastDayOrders", "reduce",
                 "pairs", true);
-        Thread.sleep(4000);
 
         // when
         List<UserPurchaseOccurrenceAggregate> userPurchaseOccurrenceAggregates =
@@ -520,6 +512,50 @@ public class UserInsightsAnalysisServiceIT {
         List<Long> sortedCounts = counts.stream().collect(toList());
         sortedCounts.sort(Comparator.reverseOrder());
         assertEquals(counts, sortedCounts);
+     }
+
+     @Test
+     public void shouldPerformUserMostPopularPurchaseAnalysis() throws InterruptedException {
+        // when
+        String input = "pairs";
+        String outputType = "replace";
+        String output = "most_popular_pairs";
+        boolean sharded = true;
+        userInsightsAnalysisService.performUserPurchaseActivityAnalysis("reduce", "lastDayOrders",
+                 1, true);
+        userInsightsAnalysisService.performUserPurchaseOccurrenceAnalysis("lastDayOrders", "reduce",
+                 "pairs", true);
+
+        // given
+        userInsightsAnalysisService.performUserMostPopularPairPurchaseOccurrenceAnalysis(input, outputType,
+                output, sharded);
+
+        // verify
+         List<UserPurchaseMostPopularPairAggregate> mostPopularPairs = mongoDBService.readAll(
+                 "ecommerce", output, UserPurchaseMostPopularPairAggregate.class);
+         mostPopularPairs.stream()
+                         .forEach(pair -> {
+                             assertTrue(pair.getId().getItemId().length() > 0);
+                             pair.getRecom().getPairs().stream()
+                                            .forEach(item -> {
+                                                assertTrue(item.getItemId().length() > 0);
+                                                assertTrue(item.getCount() > 0);
+                                                assertTrue(item.getWeight() > 0);
+                                            });
+                             List<Integer> countList =
+                                     pair.getRecom().getPairs()
+                                            .stream()
+                                            .map(UserPurchaseMostPopularPairAggregate.PurchasePair::getCount)
+                                            .collect(toList());
+                             List<Integer> countListSorted =
+                                     pair.getRecom().getPairs()
+                                             .stream()
+                                             .map(UserPurchaseMostPopularPairAggregate.PurchasePair::getCount)
+                                             .sorted(Comparator.reverseOrder())
+                                             .collect(toList());
+                             assertEquals(countList, countListSorted);
+
+                         });
      }
 
     private void setupTestData(long time, Activity.Type type) {

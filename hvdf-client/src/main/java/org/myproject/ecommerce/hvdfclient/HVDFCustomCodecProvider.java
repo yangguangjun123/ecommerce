@@ -16,6 +16,9 @@ public class HVDFCustomCodecProvider implements CodecProvider {
         if(clazz == UserPurchaseOccurrenceAggregate.IdKey.class) {
             return (Codec<T>) new UserPurchaseOccurrenceAggregateIdKeyCodec(registry);
         }
+        if(clazz == UserPurchaseMostPopularPairAggregate.IdKey.class) {
+            return (Codec<T>) new UserPurchaseMostPopularPairAggregateIdKeyCodec(registry);
+        }
         return null;
     }
 }
