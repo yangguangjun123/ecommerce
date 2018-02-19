@@ -76,17 +76,14 @@ public class UserInsightsAnalysisServiceIT {
                     });
             Thread.sleep(10000);
 
-//            Map<String, Integer> weightLookup = Map.of("32", 36, "158", 23);
-//            List<Long> itemIds = List.of(2L, 3L, 8L, 32L, 158L);
-
             Map<String, Integer> weightLookup = Map.of("2", 4, "3", 6,"32",
                     36, "158", 23);
-            List<Long> itemIds = List.of(2L, 3L);
+            List<Long> itemIds = List.of(2L, 3L, 8L, 32L, 158L);
 
-            LongStream.rangeClosed(1, 2).mapToObj(l -> "2").collect(toList());
-            Stream<String> items =
+            List<String> items =
                     itemIds.stream()
-                           .flatMap(i -> LongStream.rangeClosed(1, i).mapToObj(l -> String.valueOf(i)));
+                           .flatMap(i -> LongStream.rangeClosed(1, i).mapToObj(l -> String.valueOf(i)))
+                           .collect(toList());
 
             List<Activity.Type> types = List.of(Activity.Type.VIEW, Activity.Type.ORDER);
             LocalDateTime now = LocalDateTime.now();
@@ -523,7 +520,7 @@ public class UserInsightsAnalysisServiceIT {
         String input = "pairs";
         String outputType = "replace";
         String output = "most_popular_pairs";
-        boolean sharded = false;
+        boolean sharded = true;
         userInsightsAnalysisService.performUserPurchaseActivityAnalysis("reduce", "lastDayOrders",
                  1, true);
         userInsightsAnalysisService.performUserPurchaseOccurrenceAnalysis("lastDayOrders", "reduce",
