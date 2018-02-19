@@ -81,6 +81,8 @@ public class UserInsightsAnalysisService {
                                             "/mapreduce/" + file.trim()), StandardCharsets.UTF_8.name()));
                                 } catch (IOException e) {
                                     e.printStackTrace();
+                                    LoggingUtils.info(logger, "cannot read default map/reduce function: " +
+                                            ("/mapreduce/" + file));
                                     throw new RuntimeException("cannot read default map/reduce function: " + file);
                                 }
                             }
@@ -401,6 +403,62 @@ public class UserInsightsAnalysisService {
                     "/mapreduce/reduce_purchase_occurrence.js"), StandardCharsets.UTF_8.name());
             performUserPurchaseOccurrenceAnalysis(input, mapFunc, reduceFunc, Optional.empty(), outputType,
                     output, sharded);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    public void performUserMostPopularPairPurchaseOccurrenceAnalysis(String input, String outputType, String output,
+                                                      boolean sharded) {
+        Objects.requireNonNull(input);
+        Objects.requireNonNull(output);
+        Objects.requireNonNull(outputType);
+        try {
+            mongoDBService.dropCollection("ecommerce", output);
+            final String mapFuncPair = IOUtils.toString(getClass().getResourceAsStream(
+                    "/mapreduce/map_mostpopular_pairs.js"), StandardCharsets.UTF_8.name());
+            final String reduceFuncPair = IOUtils.toString(getClass().getResourceAsStream(
+                    "/mapreduce/reduce_mostpopular_pairs.js"), StandardCharsets.UTF_8.name());
+            mongoDBService.performMapReduce("ecommerce", input, mapFuncPair,
+                    reduceFuncPair, Optional.empty(), new HashMap<>(), outputType.toUpperCase(), output, sharded);
+
+            final String mapFuncReshape = IOUtils.toString(getClass().getResourceAsStream(
+                    "/mapreduce/map_mostpopular_reshape.js"), StandardCharsets.UTF_8.name());
+            final String reduceFuncReshape = IOUtils.toString(getClass().getResourceAsStream(
+                    "/mapreduce/reduce_mostpopular_reshape.js"), StandardCharsets.UTF_8.name());
+            mongoDBService.performMapReduce("ecommerce", output, mapFuncReshape,
+                    reduceFuncReshape, Optional.empty(), new HashMap<>(), "replace".toUpperCase(),
+                    "most_popular_pairs_reshape", sharded);
+
+            final String mapFuncWeight = IOUtils.toString(getClass().getResourceAsStream(
+                    "/mapreduce/map_mostpopular_weight.js"), StandardCharsets.UTF_8.name());
+            final String reduceFuncWeight = IOUtils.toString(getClass().getResourceAsStream(
+                    "/mapreduce/reduce_mostpopular_weight.js"), StandardCharsets.UTF_8.name());
+            LocalDateTime now = LocalDateTime.now();
+            LocalDateTime before = now.minusHours(24);
+            long startTime = before.atZone(ZoneId.systemDefault()).withZoneSameInstant(ZoneId.of("UTC"))
+                    .toInstant().toEpochMilli();
+            long endTime = now.atZone(ZoneId.systemDefault()).withZoneSameInstant(ZoneId.of("UTC"))
+                    .toInstant().toEpochMilli();
+            LongStream.rangeClosed(startTime / hvdfClientPropertyService.getPeriod(),
+                    endTime / hvdfClientPropertyService.getPeriod()).boxed()
+                    .map(time -> hvdfClientPropertyService.getChannelPrefix() + String.valueOf(time))
+                    .peek(coll -> LoggingUtils.info(logger, "collection(weight): " + coll))
+                    .filter(coll -> mongoDBService.count("ecommerce", coll) > 0)
+                    .forEach(collection -> mongoDBService.performMapReduce("ecommerce",
+                            collection, mapFuncWeight, reduceFuncWeight, Optional.empty(), new HashMap<>(),
+                            "reduce".toUpperCase(), "most_popular_pairs_reshape", sharded));
+
+            final String mapFuncGroup = IOUtils.toString(getClass().getResourceAsStream(
+                    "/mapreduce/map_mostpopular_group.js"), StandardCharsets.UTF_8.name());
+            final String reduceFuncGroup = IOUtils.toString(getClass().getResourceAsStream(
+                    "/mapreduce/reduce_mostpopular_group.js"), StandardCharsets.UTF_8.name());
+            mongoDBService.performMapReduce("ecommerce", "most_popular_pairs_reshape",
+                    mapFuncGroup, reduceFuncGroup, Optional.empty(), new HashMap<>(), "replace".toUpperCase(),
+                    output, sharded);
+
+            LoggingUtils.info(logger, "map/reduce complete");
+
         } catch (IOException e) {
             e.printStackTrace();
         }
