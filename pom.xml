@@ -13,6 +13,9 @@
     <description>Development of a Java Application to demostrate MongoDB Sharding</description>
 
     <modules>
+        <!-- The repository module must be first in order to ensure
+        that the local repository is populated -->
+        <module>repository</module>
         <module>ecommerce-application</module>
         <module>ecommerce-core</module>
         <module>hvdf-client</module>
@@ -20,6 +23,7 @@
     </modules>
 
     <properties>
+        <main.basedir>${project.basedir}</main.basedir>
         <java.version>1.9</java.version>
         <maven.compiler.source>1.9</maven.compiler.source>
         <maven.compiler.target>1.9</maven.compiler.target>
