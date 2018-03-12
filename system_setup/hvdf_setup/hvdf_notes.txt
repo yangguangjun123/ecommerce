@@ -78,3 +78,9 @@ Up-selling is a big possibility here as well. For example, let’s say we know a
 low-end cell phones, but that in general their total purchases are relatively high. In this case, we might suggest
 that they look at a higher-end device that is popular amongst users with similar stats.
 
+-- Summarization
+Performing user analytics, whether in real-time or incrementally, is no small task. Every step of the process from
+capturing user data, to data storage, to data retrieval, to crunching the numbers present challenges that require
+significant planning if the system is to perform well. Luckily, MongoDB and HVDF can be great tools for accomplishing
+these types of tasks, either on their own or used in conjunction with other tools like Hadoop.
+

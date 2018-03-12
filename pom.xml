@@ -16,6 +16,7 @@
         <module>ecommerce-application</module>
         <module>ecommerce-core</module>
         <module>hvdf-client</module>
+        <module>hadoop</module>
     </modules>
 
     <properties>

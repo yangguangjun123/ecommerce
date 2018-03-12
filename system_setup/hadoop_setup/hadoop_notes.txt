@@ -1,0 +1,14 @@
+Hadoop Integration
+For many applications, either using the aggregation framework for real-time data analytics, or the map-reduce function
+for less frequent handling of large data sets in MongoDB are great options, but clearly, for complex number crunching
+of truly massive datasets, Hadoop is going to be the tool of choice. For this reason, we have created a Hadoop
+connector for MongoDB that makes processing data from a MongoDB cluster in Hadoop a much simpler task. Here are just
+a few of the features:
+
+Read/write from MongoDB or exported BSON
+Integration with Pig, Spark, Hive, MapReduce and others
+Works with Apache Hadoop, Cloudera CDH, Hortonworks HDP
+Open source
+Support for filtering with MongoDB queries, authentication, reading from replica set tags, and more
+
+
