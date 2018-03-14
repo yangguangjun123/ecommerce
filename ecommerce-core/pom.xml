@@ -12,7 +12,7 @@
     <artifactId>ecommerce-core</artifactId>
     <packaging>jar</packaging>
 
-    <name>ECommerce Core Module</name>
+    <name>E-Commerce Core Module</name>
     <description>ecommerce-core module</description>
 
     <dependencies>

@@ -9,7 +9,7 @@
     <version>1.0-SNAPSHOT</version>
     <packaging>pom</packaging>
 
-    <name>ECommerce-Parent</name>
+    <name>E-Commerce Parent</name>
     <description>Development of a Java Application to demostrate MongoDB Sharding</description>
 
     <modules>

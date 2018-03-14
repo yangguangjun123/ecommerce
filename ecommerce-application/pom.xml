@@ -11,7 +11,7 @@
 
     <artifactId>ecommerce-application</artifactId>
 
-    <name>ECommerce Application Module</name>
+    <name>E-Commerce Application Module</name>
     <description>ecommerce-application module</description>
 
     <dependencies>
