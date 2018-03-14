@@ -1,0 +1,6 @@
+<FindBugsFilter>
+    <Match>
+        <Bug pattern="I18N"/>
+    </Match>
+</FindBugsFilter>
+
