@@ -35,7 +35,7 @@ public class ProductInventoryService implements IProductInventoryService {
         valueMap.put("qty", 16);
         Map<String, Object> updateMap = new HashMap<>();
         updateMap.put("addOrRemove", valueMap);
-        boolean result = mongoDBService.updateOne("ecommerce", "product", Product.class,
+        mongoDBService.updateOne("ecommerce", "product", Product.class,
                 queryFilterMap, updateMap, new HashMap<>());
     }
 

@@ -669,36 +669,6 @@ public class MongoDBService {
         mapReduceIterable.toCollection();
     }
 
-    public <T> List<T> performMapReduce(String databaseName, String collectionName, String map,
-                                        String reduce, Map<String, Object> filterMap, Class<T> clazz) {
-        validateDB(databaseName, collectionName);
-        Objects.requireNonNull(map);
-        Objects.requireNonNull(reduce);
-        MongoDatabase mongoDatabase = mongoClient.getDatabase(databaseName);
-        MongoCollection collection = mongoDatabase.getCollection(collectionName);
-        if(collection.count() == 0) {
-            return Collections.emptyList();
-        }
-        List<Bson> filters = filterMap.keySet()
-                .stream()
-                .map(key -> mapBsonFilter(key, filterMap))
-                .collect(toList());
-        List<T> results = new ArrayList<>();
-        Consumer<T> consumer = r -> results.add(r);
-
-        Block<Document> printBlock = new Block<Document>() {
-            @Override
-            public void apply(final Document document) {
-                LoggingUtils.info(logger, document.toJson());
-            }
-        };
-
-        collection.mapReduce(map, reduce, clazz)
-                .databaseName(databaseName)
-                .forEach(consumer);
-        return results;
-    }
-
     private void validateDB(String database, String collectionName) {
         Objects.requireNonNull(database);
         Objects.requireNonNull(collectionName);
