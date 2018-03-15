@@ -10,6 +10,7 @@
     <modelVersion>4.0.0</modelVersion>
 
     <artifactId>hadoop</artifactId>
+    <packaging>jar</packaging>
 
     <name>E-Commerce Hadoop Module</name>
     <description>hadoop module</description>

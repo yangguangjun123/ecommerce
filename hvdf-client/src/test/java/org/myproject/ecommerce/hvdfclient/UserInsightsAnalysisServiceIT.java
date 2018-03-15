@@ -124,6 +124,9 @@ public class UserInsightsAnalysisServiceIT {
                 .setType(type).setItemId(itemId).setSku("730223104376").setWeight(weight)
                 .setLocations(Arrays.asList(-86.95444, 33.40178))
                 .setTags(Arrays.asList("smartphone", "iphone"));
+        if(type == Activity.Type.ORDER) {
+            builder.setOrder(new Activity.Order("12520185", 1200));
+        }
         LocalDateTime now = LocalDateTime.now();
         ZonedDateTime ldtZoned = now.atZone(ZoneId.systemDefault());
         ZonedDateTime utcZoned = ldtZoned.withZoneSameInstant(ZoneId.of("UTC"));
