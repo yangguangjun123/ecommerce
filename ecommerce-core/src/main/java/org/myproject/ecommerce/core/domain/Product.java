@@ -344,11 +344,6 @@ public class Product {
             return this;
         }
 
-        public ProductBuilder buildShipping(int width, int height, int depth) {
-            Shipping.Dimensions dimensions = new Shipping.Dimensions(width, height, depth);
-            return this;
-        }
-
         public ProductBuilder buildShipping(Shipping shipping) {
             this.shipping = shipping;
             return this;
