@@ -12,6 +12,11 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 
+/**
+ * ActivityMapper/ActivityReducer classes crunch activity collections(timed series) to
+ * product lastDayOrders collection.
+ *
+ */
 public class ActivityMapper extends Mapper<Object, BSONObject, Text, Text>
         implements org.apache.hadoop.mapred.Mapper<Object, BSONWritable, Text, Text> {
 
@@ -25,9 +30,19 @@ public class ActivityMapper extends Mapper<Object, BSONObject, Text, Text>
         valueText = new Text();
     }
 
+    /**
+     * Map method implementing MAPRED V1(Classic)
+     *
+     * @param key
+     * @param value
+     * @param context
+     * @throws IOException
+     * @throws InterruptedException
+     */
     @Override
     public void map(Object key, BSONObject value, final Context context)
             throws IOException, InterruptedException {
+        logger.info("Map processing with Context class");
         logger.info("key: " + key.toString());
         String keyOut = (String) ((BSONObject) value.get("data")).get("userId");
         keyText.set(keyOut);
@@ -35,9 +50,19 @@ public class ActivityMapper extends Mapper<Object, BSONObject, Text, Text>
         context.write(keyText, valueText);
     }
 
+    /**
+     * Map method implementing MAPRED V2
+     *
+     * @param key
+     * @param bsonWritable
+     * @param outputCollector
+     * @param reporter
+     * @throws IOException
+     */
     @Override
-    public void map(Object o, BSONWritable bsonWritable, OutputCollector<Text, Text> outputCollector,
+    public void map(Object key, BSONWritable bsonWritable, OutputCollector<Text, Text> outputCollector,
                     Reporter reporter) throws IOException {
+        logger.info("processing with OutputCollector class");
         BSONObject doc = bsonWritable.getDoc();
         String keyOut = (String) ((BSONObject) doc.get("data")).get("userId");
         keyText.set(keyOut);
