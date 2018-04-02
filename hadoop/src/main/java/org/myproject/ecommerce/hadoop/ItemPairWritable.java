@@ -1,4 +1,4 @@
-package org.myproject.ecommerce.hadoop.crossselling;
+package org.myproject.ecommerce.hadoop;
 
 import org.apache.hadoop.io.WritableComparable;
 

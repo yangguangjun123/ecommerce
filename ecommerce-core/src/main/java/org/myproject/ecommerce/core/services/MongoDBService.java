@@ -91,7 +91,8 @@ public class MongoDBService {
                 pojoCodecRegistry);
         MongoClientOptions options = MongoClientOptions.builder().codecRegistry(codecRegistry)
                 .build();
-        mongoClient = new MongoClient("localhost", options);
+        mongoClient = new MongoClient(System.getProperty("mongodb_host") == null ? "localhost" :
+                System.getProperty("mongodb_host"), options);
     }
 
     public <T> void createOne(String databaseName, String collectionName, Class<T> clazz, T document) {

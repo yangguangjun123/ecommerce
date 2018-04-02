@@ -1,4 +1,4 @@
-Hadoop Integration
+-- Hadoop Integration
 For many applications, either using the aggregation framework for real-time data analytics, or the map-reduce function
 for less frequent handling of large data sets in MongoDB are great options, but clearly, for complex number crunching
 of truly massive datasets, Hadoop is going to be the tool of choice. For this reason, we have created a Hadoop
@@ -10,5 +10,15 @@ Integration with Pig, Spark, Hive, MapReduce and others
 Works with Apache Hadoop, Cloudera CDH, Hortonworks HDP
 Open source
 Support for filtering with MongoDB queries, authentication, reading from replica set tags, and more
+
+-- Install Hadoop 2.7.2
+Download and install VMware Workstation 14 Payer
+Download and install latest Ubuntu 64-bit on VMware Workstation
+Extract Hadoop into hadoop-binaries directory
+Install mongo-java-driver jar and mongo-hadoop-core.jar jar in the /share/hadoop/common directory
+
+
+
+
 
 

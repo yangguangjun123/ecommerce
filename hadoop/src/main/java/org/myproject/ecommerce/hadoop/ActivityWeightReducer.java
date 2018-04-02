@@ -1,4 +1,4 @@
-package org.myproject.ecommerce.hadoop.crossselling;
+package org.myproject.ecommerce.hadoop;
 
 import com.mongodb.hadoop.io.MongoUpdateWritable;
 import org.apache.hadoop.io.IntWritable;

@@ -1,4 +1,4 @@
-package org.myproject.ecommerce.hadoop.crossselling;
+package org.myproject.ecommerce.hadoop;
 
 public class MostPopularPairedItem {
     private String itemId;
