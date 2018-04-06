@@ -15,11 +15,11 @@
     <modules>
         <!-- The repository module must be first in order to ensure
         that the local repository is populated -->
-        <module>repository</module>
+        <module>ecommerce-repository</module>
         <module>ecommerce-application</module>
         <module>ecommerce-core</module>
-        <module>hvdf-client</module>
-        <module>hadoop</module>
+        <module>ecommerce-hvdf-client</module>
+        <module>ecommerce-hadoop</module>
     </modules>
 
     <properties>

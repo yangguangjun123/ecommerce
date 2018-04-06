@@ -15,7 +15,18 @@ Support for filtering with MongoDB queries, authentication, reading from replica
 Download and install VMware Workstation 14 Payer
 Download and install latest Ubuntu 64-bit on VMware Workstation
 Extract Hadoop into hadoop-binaries directory
-Install mongo-java-driver jar and mongo-hadoop-core.jar jar in the /share/hadoop/common directory
+Install mongo-java-driver.jar file in the $HADOOP_HOME/share/hadoop/common directory
+Install mongo-hadoop-core.jar file in the $HADOOP_HOME/share/hadoop/common directory
+Install mongo-hadoop-streaming.jar file in the $HADOOP_HOME/share/hadoop/common directory
+Install bson-3.5.0.jar file in the $HADOOP_HOME/share/hadoop/common directory
+Install jackson-databind-2.9.0.jar file in the $HADOOP_HOME/share/hadoop/common directory
+Install jackson-annotations-2.9.0.jar file in the $HADOOP_HOME/share/hadoop/common directory
+Install ecommerce-core-1.0-SNAPSHOT.jar file in the $HADOOP_HOME/share/hadoop/common directory
+Install hvdf-client-1.0-SNAPSHOT.jar file in the $HADOOP_HOME/share/hadoop/common directory
+Install hadoop-1.0-SNAPSHOT.jar file in the $HADOOP_HOME/share/hadoop/common directory
+
+
+
 
 
 
