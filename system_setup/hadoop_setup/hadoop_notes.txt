@@ -14,6 +14,7 @@ Support for filtering with MongoDB queries, authentication, reading from replica
 -- Install Hadoop 2.7.2
 Download and install VMware Workstation 14 Payer
 Download and install latest Ubuntu 64-bit on VMware Workstation
+Download Hadoop 2.7.2 from https://archive.apache.org/dist/hadoop/core/hadoop-2.7.2/
 Extract Hadoop into hadoop-binaries directory
 
 Find jars files in the library_3rdparty directory:
