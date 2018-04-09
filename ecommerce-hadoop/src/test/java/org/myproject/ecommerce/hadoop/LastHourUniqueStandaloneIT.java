@@ -1,7 +1,10 @@
 package org.myproject.ecommerce.hadoop;
 
+import com.mongodb.BasicDBObject;
 import com.mongodb.MongoClientURI;
 import com.mongodb.hadoop.mapred.output.MongoOutputCommitter;
+import com.mongodb.hadoop.splitter.MultiCollectionSplitBuilder;
+import com.mongodb.hadoop.splitter.MultiMongoCollectionSplitter;
 import com.mongodb.hadoop.util.MongoClientURIBuilder;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -11,15 +14,27 @@ import org.junit.runner.RunWith;
 import org.junit.runners.BlockJUnit4ClassRunner;
 import org.myproject.ecommerce.core.services.MongoDBService;
 import org.myproject.ecommerce.hadoop.utils.MapReduceJob;
+import org.myproject.ecommerce.hvdfclient.HVDFClientPropertyService;
 
 import java.io.File;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Optional;
+import java.util.stream.LongStream;
 
+import static com.mongodb.hadoop.splitter.MultiMongoCollectionSplitter.MULTI_COLLECTION_CONF_KEY;
+import static com.mongodb.hadoop.util.MongoConfigUtil.MONGO_SPLITTER_CLASS;
+import static java.util.Comparator.reverseOrder;
 import static org.junit.Assert.assertTrue;
 
 @RunWith(BlockJUnit4ClassRunner.class)
 public class LastHourUniqueStandaloneIT extends BaseHadoopTest {
-    private MongoDBService mongoDBService = new MongoDBService(Collections.emptyList());
+    private MongoDBService mongoDBService;
+    private HVDFClientPropertyService hvdfClientPropertyService;
 
     //    private final MongoClientURI inputUri;
     private final MongoClientURI outputUri;
@@ -48,6 +63,28 @@ public class LastHourUniqueStandaloneIT extends BaseHadoopTest {
                         .collection("ecommerce", "lastHourUniques"))
                 .build();
         logger.info("outputUri: " + outputUri);
+
+        initialise();
+    }
+
+    private void initialise() {
+        String mongoHost = Optional.ofNullable(System.getProperty("mongodb_host"))
+                .map(s -> s.split(":"))
+                .map(Arrays::stream)
+                .flatMap(s -> s.findFirst())
+                .orElse("localhost");
+        int mongoPort = Optional.ofNullable(System.getProperty("mongodb_host"))
+                .map(s -> s.split(":"))
+                .map(Arrays::stream)
+                .flatMap(s -> s.skip(1).findFirst())
+                .map(s -> Integer.parseInt(s))
+                .orElse(27017);
+        logger.info("mongo host: " + mongoHost);
+        logger.info("mongo port: " + mongoPort);
+
+        MongoDBService mongoDBService = new MongoDBService(Collections.emptyList(), mongoHost, mongoPort);
+        HVDFClientPropertyService hvdfClientPropertyService = new HVDFClientPropertyService(mongoDBService);
+        hvdfClientPropertyService.initialise();
     }
 
     @Before
@@ -55,18 +92,44 @@ public class LastHourUniqueStandaloneIT extends BaseHadoopTest {
 //        assumeFalse(isSharded(inputUri));
     }
 
+//    @Test
+//    public void shouldPerformLastHourUniqueMapReduceJob() {
+//        logger.info("testing shouldPerformLastHourUniqueMapReduceJob");
+//
+//        // when
+//
+//        // given
+//        MapReduceJob lastHourUniqueJob =
+//                new MapReduceJob(LastHourUniqueMulti.class.getName())
+//                        .jar(JOBJAR_PATH)
+//                        .param("mongo.input.notimeout", "true")
+////                        .inputUris(getInputUris())
+//                        .outputUri(outputUri);
+//        if (isHadoopV1()) {
+//            logger.info("isHadoopV1: " + isHadoopV1());
+//            lastHourUniqueJob.outputCommitter(MongoOutputCommitter.class);
+//        }
+//        logger.info("lastHourUniqueJob: " + lastHourUniqueJob.toString());
+//        logger.info("isRunTestInVm: " + isRunTestInVm());
+//        lastHourUniqueJob.execute(isRunTestInVm());
+//
+//        // verify
+//        assertTrue(mongoDBService.count("ecommerce", "lastHourUniques") > 0);
+//
+//
+//
+//        compareResults(getClient(getInputUri()).getDB(getOutputUri().getDatabase()).getCollection(getOutputUri().getCollection()),
+//                getReference());
+//    }
+
     @Test
     public void shouldPerformLastHourUniqueMapReduceJob() {
-        logger.info("testing shouldPerformLastHourUniqueMapReduceJob");
-
         // when
-
-        // given
         MapReduceJob lastHourUniqueJob =
-                new MapReduceJob(LastHourUniqueConfig.class.getName())
+                new MapReduceJob(LastHourUniqueXMLConfig.class.getName())
                         .jar(JOBJAR_PATH)
-                        .param("mongo.input.notimeout", "true")
-//                        .inputUris(getInputUri())
+                        .param(MONGO_SPLITTER_CLASS, MultiMongoCollectionSplitter.class.getName())
+                        .param(MULTI_COLLECTION_CONF_KEY, collectionSettings().toString())
                         .outputUri(outputUri);
         if (isHadoopV1()) {
             logger.info("isHadoopV1: " + isHadoopV1());
@@ -74,14 +137,64 @@ public class LastHourUniqueStandaloneIT extends BaseHadoopTest {
         }
         logger.info("lastHourUniqueJob: " + lastHourUniqueJob.toString());
         logger.info("isRunTestInVm: " + isRunTestInVm());
+
+        // given
         lastHourUniqueJob.execute(isRunTestInVm());
 
         // verify
         assertTrue(mongoDBService.count("ecommerce", "lastHourUniques") > 0);
 
-
-
 //        compareResults(getClient(getInputUri()).getDB(getOutputUri().getDatabase()).getCollection(getOutputUri().getCollection()),
 //                getReference());
     }
+
+    private Object collectionSettings() {
+        String mongoHost = Optional.ofNullable(System.getProperty("mongodb_host"))
+                .map(s -> s.split(":"))
+                .map(Arrays::stream)
+                .flatMap(s -> s.findFirst())
+                .orElse("localhost");
+        int mongoPort = Optional.ofNullable(System.getProperty("mongodb_host"))
+                .map(s -> s.split(":"))
+                .map(Arrays::stream)
+                .flatMap(s -> s.skip(1).findFirst())
+                .map(s -> Integer.parseInt(s))
+                .orElse(27017);
+        logger.info("mongo host: " + mongoHost);
+        logger.info("mongo port: " + mongoPort);
+
+        MongoDBService mongoDBService = new MongoDBService(Collections.emptyList(), mongoHost, mongoPort);
+        HVDFClientPropertyService hvdfClientPropertyService = new HVDFClientPropertyService(mongoDBService);
+        hvdfClientPropertyService.initialise();
+
+        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime before = now.minusHours(1);
+        long startTime = before.atZone(ZoneId.systemDefault()).withZoneSameInstant(ZoneId.of("UTC"))
+                .toInstant().toEpochMilli();
+        long endTime = now.atZone(ZoneId.systemDefault()).withZoneSameInstant(ZoneId.of("UTC"))
+                .toInstant().toEpochMilli();
+
+        BasicDBObject query = new BasicDBObject("data.ts", new BasicDBObject("$gt", startTime));
+        Map<String, Object> filterMap = new HashMap<>();
+        HashMap<String, Object> startTimeQueryMap = new HashMap<>();
+        startTimeQueryMap.put("data.ts", startTime);
+        filterMap.put("$gt", startTimeQueryMap);
+
+        MultiCollectionSplitBuilder builder = new MultiCollectionSplitBuilder();
+        String mongoDBHost = System.getProperty("mongodb_host") == null ? "mongodb://localhost:27017/ecommerce." :
+                ("mongodb://" + System.getProperty("mongodb_host") + "/ecommerce.");
+        logger.info("mongoDBHost: " + mongoDBHost);
+
+        LongStream.rangeClosed(startTime / hvdfClientPropertyService.getPeriod(),
+                endTime / hvdfClientPropertyService.getPeriod()).boxed()
+                .sorted(reverseOrder())
+                .map(time -> mongoDBHost + hvdfClientPropertyService.getChannelPrefix() + String.valueOf(time))
+                .forEach(url -> builder.add(new
+                                MongoClientURI(url), null, true, null, null, query,
+                        false, null));
+        logger.info("MultiCollectionSplitBuilder: " + builder.toJSON());
+
+        return builder.toJSON();
+    }
+
 }

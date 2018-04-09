@@ -22,7 +22,11 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
 import java.net.URLClassLoader;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -98,10 +102,7 @@ public class MapReduceJob {
 
     public void execute(final boolean inVM) {
         try {
-            if(System.getProperty("copyJars") != null &&
-                    System.getProperty("copyJars").equalsIgnoreCase("true")) {
-                copyJars();
-            }
+            copyJars();
             if (inVM) {
                 executeInVM();
             } else {
@@ -239,20 +240,36 @@ public class MapReduceJob {
     private void copyJars() {
         String hadoopLib = format(isHadoopV1() ? HADOOP_HOME + "/lib" : HADOOP_HOME + "/share/hadoop/common");
         try {
-            URLClassLoader classLoader = (URLClassLoader) getClass().getClassLoader();
-            for (URL url : classLoader.getURLs()) {
-                boolean contains = url.getPath().contains("mongo-java-driver");
-                if (contains) {
-                    File file = new File(url.toURI());
-                    FileUtils.copyFile(file, new File(hadoopLib, "mongo-java-driver.jar"));
-                }
-            }
-            File coreJar = new File(PROJECT_HOME, "core/build/libs").listFiles(new HadoopVersionFilter())[0];
-            FileUtils.copyFile(coreJar, new File(hadoopLib, "mongo-hadoop-core.jar"));
+//            URLClassLoader classLoader = (URLClassLoader) getClass().getClassLoader();
+//            for (URL url : classLoader.getURLs()) {
+//                boolean contains = url.getPath().contains("mongo-java-driver");
+//                if (contains) {
+//                    File file = new File(url.toURI());
+//                    FileUtils.copyFile(file, new File(hadoopLib, "mongo-java-driver.jar"));
+//                }
+//            }
 
+//            File coreJar = new File(PROJECT_HOME, "library_3rdparty").listFiles(new HadoopVersionFilter())[0];
+            File hadoopCommonLib = new File(PROJECT_HOME, "library_3rdparty/hadoop_common_lib");
+            Arrays.stream(hadoopCommonLib.listFiles((d, name) -> name.endsWith(".jar")))
+                  .forEach(f -> {
+                      try {
+                          FileUtils.copyFile(f, new File(hadoopLib, f.getName()));
+                      } catch (IOException e) {
+                          e.printStackTrace();
+                      }
+                  });
+//            FileUtils.copyFile(coreJar, new File(hadoopLib, "mongo-hadoop-core.jar"));
+            File ecommerceCore = new File(PROJECT_HOME, "ecommerce-core/target")
+                    .listFiles(new HadoopVersionFilter())[0];
+            FileUtils.copyFile(ecommerceCore, new File(hadoopLib, ecommerceCore.getName()));
+            File ecommerceHVDFClient = new File(PROJECT_HOME, "ecommerce-hvdf-client/target")
+                    .listFiles(new HadoopVersionFilter())[0];
+            FileUtils.copyFile(ecommerceHVDFClient, new File(hadoopLib, ecommerceHVDFClient.getName()));
+            File ecommerceHadoop = new File(PROJECT_HOME, "ecommerce-hadoop/target")
+                    .listFiles(new HadoopVersionFilter())[0];
+            FileUtils.copyFile(ecommerceHadoop, new File(hadoopLib, ecommerceHadoop.getName()));
         } catch (IOException e) {
-            throw new RuntimeException(e);
-        } catch (URISyntaxException e) {
             throw new RuntimeException(e);
         }
     }

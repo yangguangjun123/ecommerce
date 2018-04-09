@@ -31,14 +31,14 @@ import java.util.stream.LongStream;
 import static java.util.Comparator.reverseOrder;
 import static java.util.stream.Collectors.joining;
 
-public class LastHourUniqueConfig extends MongoTool {
-    private static final Log logger = LogFactory.getLog(LastHourUniqueConfig.class);
+public class LastHourUniqueMulti extends MongoTool {
+    private static final Log logger = LogFactory.getLog(LastHourUniqueMulti.class);
 
-    public LastHourUniqueConfig() {
+    public LastHourUniqueMulti() {
         this(new Configuration());
     }
 
-    public LastHourUniqueConfig(final Configuration conf) {
+    public LastHourUniqueMulti(final Configuration conf) {
         setMultiCollectionInput(conf);
         setConf(conf);
 
@@ -133,7 +133,7 @@ public class LastHourUniqueConfig extends MongoTool {
         logger.info("pArgs passed to ToolRunner: " +
                 Arrays.stream(pArgs)
                       .filter(s -> !s.contains("-Dmongodb_host=")).collect(joining(",")));
-        System.exit(ToolRunner.run(new LastHourUniqueConfig(), Arrays.stream(pArgs)
+        System.exit(ToolRunner.run(new LastHourUniqueMulti(), Arrays.stream(pArgs)
                 .filter(s -> !s.contains("-Dmongodb_host=")).toArray(String[]::new)));
     }
 }

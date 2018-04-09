@@ -122,7 +122,7 @@ public abstract class BaseHadoopTest {
 //            }
 
             final File file = new File(root, "target").getCanonicalFile();
-            final File[] files = file.listFiles(new HadoopVersionFilter(findTestJar));
+            final File[] files = file.listFiles(new HadoopVersionFilter());
             if (files.length == 0) {
                 throw new RuntimeException(format("Can't find jar.  project version = %s, path = %s, findTestJar = %s",
                         PROJECT_VERSION, file, findTestJar));

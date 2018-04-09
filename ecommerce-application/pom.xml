@@ -23,7 +23,7 @@
 
         <dependency>
             <groupId>org.myproject</groupId>
-            <artifactId>hvdf-client</artifactId>
+            <artifactId>ecommerce-hvdf-client</artifactId>
             <version>1.0-SNAPSHOT</version>
         </dependency>
 
