@@ -35,6 +35,8 @@ import static org.junit.Assert.assertTrue;
 public class LastHourUniqueStandaloneIT extends BaseHadoopTest {
     private MongoDBService mongoDBService;
     private HVDFClientPropertyService hvdfClientPropertyService;
+    private String mongoHost;
+    private int mongoPort;
 
     //    private final MongoClientURI inputUri;
     private final MongoClientURI outputUri;
@@ -44,7 +46,7 @@ public class LastHourUniqueStandaloneIT extends BaseHadoopTest {
     private static final Log logger = LogFactory.getLog(LastHourUniqueStandaloneIT.class);
 
     public LastHourUniqueStandaloneIT() {
-        ECOMMERC_HADOOP_HOME = new File(PROJECT_HOME, "hadoop");
+        ECOMMERC_HADOOP_HOME = new File(PROJECT_HOME, "ecommerce-hadoop");
         logger.info("ECOMMERC_HADOOP_HOME: " + ECOMMERC_HADOOP_HOME);
         JOBJAR_PATH = findProjectJar(ECOMMERC_HADOOP_HOME);
         logger.info("JOBJAR_PATH: " + JOBJAR_PATH);
@@ -68,12 +70,12 @@ public class LastHourUniqueStandaloneIT extends BaseHadoopTest {
     }
 
     private void initialise() {
-        String mongoHost = Optional.ofNullable(System.getProperty("mongodb_host"))
+        mongoHost = Optional.ofNullable(System.getProperty("mongodb_host"))
                 .map(s -> s.split(":"))
                 .map(Arrays::stream)
                 .flatMap(s -> s.findFirst())
                 .orElse("localhost");
-        int mongoPort = Optional.ofNullable(System.getProperty("mongodb_host"))
+        mongoPort = Optional.ofNullable(System.getProperty("mongodb_host"))
                 .map(s -> s.split(":"))
                 .map(Arrays::stream)
                 .flatMap(s -> s.skip(1).findFirst())
@@ -82,8 +84,8 @@ public class LastHourUniqueStandaloneIT extends BaseHadoopTest {
         logger.info("mongo host: " + mongoHost);
         logger.info("mongo port: " + mongoPort);
 
-        MongoDBService mongoDBService = new MongoDBService(Collections.emptyList(), mongoHost, mongoPort);
-        HVDFClientPropertyService hvdfClientPropertyService = new HVDFClientPropertyService(mongoDBService);
+        mongoDBService = new MongoDBService(Collections.emptyList(), mongoHost, mongoPort);
+        hvdfClientPropertyService = new HVDFClientPropertyService(mongoDBService);
         hvdfClientPropertyService.initialise();
     }
 
@@ -128,8 +130,14 @@ public class LastHourUniqueStandaloneIT extends BaseHadoopTest {
         MapReduceJob lastHourUniqueJob =
                 new MapReduceJob(LastHourUniqueXMLConfig.class.getName())
                         .jar(JOBJAR_PATH)
-                        .param(MONGO_SPLITTER_CLASS, MultiMongoCollectionSplitter.class.getName())
-                        .param(MULTI_COLLECTION_CONF_KEY, collectionSettings().toString())
+                        .param("mongo.input.notimeout", "true")
+//                        .param(MONGO_SPLITTER_CLASS, MultiMongoCollectionSplitter.class.getName())
+//                        .param(MULTI_COLLECTION_CONF_KEY, collectionSettings().toString())
+                        .inputUris(        (System.getProperty("mongodb_host") != null ?
+                                new MongoClientURIBuilder().host(System.getProperty("mongodb_host"))
+                                        .collection("ecommerce", "activity_raw_11751") :
+                                new MongoClientURIBuilder()
+                                        .collection("ecommerce", "activity_raw_11751")).build())
                         .outputUri(outputUri);
         if (isHadoopV1()) {
             logger.info("isHadoopV1: " + isHadoopV1());
@@ -149,24 +157,6 @@ public class LastHourUniqueStandaloneIT extends BaseHadoopTest {
     }
 
     private Object collectionSettings() {
-        String mongoHost = Optional.ofNullable(System.getProperty("mongodb_host"))
-                .map(s -> s.split(":"))
-                .map(Arrays::stream)
-                .flatMap(s -> s.findFirst())
-                .orElse("localhost");
-        int mongoPort = Optional.ofNullable(System.getProperty("mongodb_host"))
-                .map(s -> s.split(":"))
-                .map(Arrays::stream)
-                .flatMap(s -> s.skip(1).findFirst())
-                .map(s -> Integer.parseInt(s))
-                .orElse(27017);
-        logger.info("mongo host: " + mongoHost);
-        logger.info("mongo port: " + mongoPort);
-
-        MongoDBService mongoDBService = new MongoDBService(Collections.emptyList(), mongoHost, mongoPort);
-        HVDFClientPropertyService hvdfClientPropertyService = new HVDFClientPropertyService(mongoDBService);
-        hvdfClientPropertyService.initialise();
-
         LocalDateTime now = LocalDateTime.now();
         LocalDateTime before = now.minusHours(1);
         long startTime = before.atZone(ZoneId.systemDefault()).withZoneSameInstant(ZoneId.of("UTC"))

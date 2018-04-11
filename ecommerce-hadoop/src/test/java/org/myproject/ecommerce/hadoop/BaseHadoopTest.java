@@ -9,20 +9,13 @@ import com.mongodb.MongoClientURI;
 import com.mongodb.hadoop.util.MongoClientURIBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.zeroturnaround.exec.ProcessExecutor;
-import org.zeroturnaround.exec.ProcessResult;
 
-import java.io.ByteArrayOutputStream;
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Iterator;
 import java.util.List;
-import java.util.concurrent.TimeoutException;
 
 import static java.lang.String.format;
-import static java.util.Arrays.asList;
 
 public abstract class BaseHadoopTest {
     private static final Logger LOG = LoggerFactory.getLogger(BaseHadoopTest.class);
@@ -135,59 +128,6 @@ public abstract class BaseHadoopTest {
 
     public static boolean isHadoopV1() {
         return BaseHadoopTest.HADOOP_VERSION.startsWith("1.");
-    }
-
-    public void mongoImport(final String collection, final File file) {
-        try {
-            final List<String> command = new ArrayList<String>();
-            command.addAll(asList(MONGO_IMPORT,
-                    "--host", System.getProperty("mongodb_host"),
-                    "--drop",
-                    "--db", "mongo_hadoop",
-                    "--collection", collection,
-                    "--file", file.getAbsolutePath()));
-            if (isAuthEnabled()) {
-                final List<String> list = new ArrayList<String>(asList("-u", "bob",
-                        "-p", "pwd123"));
-                command.addAll(list);
-            }
-            final StringBuilder output = new StringBuilder();
-            final Iterator<String> iterator = command.iterator();
-            while (iterator.hasNext()) {
-                final String s = iterator.next();
-                if (output.length() != 0) {
-                    output.append("\t");
-                } else {
-                    output.append("\n");
-                }
-                output.append(s);
-                if (iterator.hasNext()) {
-                    output.append(" \\");
-                }
-                output.append("\n");
-            }
-            LOG.info(output.toString());
-
-            final ByteArrayOutputStream outStream = new ByteArrayOutputStream();
-            final ByteArrayOutputStream errStream = new ByteArrayOutputStream();
-            final ProcessExecutor executor = new ProcessExecutor().command(command)
-                    .readOutput(true)
-                    .redirectOutput(outStream)
-                    .redirectError(errStream);
-            final ProcessResult result = executor.execute();
-            if (result.getExitValue() != 0) {
-                LOG.error(result.getOutput().getString());
-                throw new RuntimeException(String.format("mongoimport failed with exit code %d: %s", result.getExitValue(),
-                        result.getOutput().getString()));
-            }
-
-        } catch (final IOException e) {
-            throw new RuntimeException(e.getMessage(), e);
-        } catch (final InterruptedException e) {
-            throw new RuntimeException(e.getMessage(), e);
-        } catch (final TimeoutException e) {
-            throw new RuntimeException(e.getMessage(), e);
-        }
     }
 
     public MongoClient getClient(final MongoClientURI uri) {

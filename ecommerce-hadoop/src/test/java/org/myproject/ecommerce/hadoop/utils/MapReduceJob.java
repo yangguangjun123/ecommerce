@@ -1,10 +1,16 @@
 package org.myproject.ecommerce.hadoop.utils;
 
 import com.mongodb.MongoClientURI;
-import org.myproject.ecommerce.hadoop.HadoopVersionFilter;
 import com.mongodb.hadoop.MongoInputFormat;
 import com.mongodb.hadoop.MongoOutputFormat;
 import com.mongodb.hadoop.util.MongoTool;
+import org.apache.commons.exec.CommandLine;
+import org.apache.commons.exec.DefaultExecuteResultHandler;
+import org.apache.commons.exec.DefaultExecutor;
+import org.apache.commons.exec.ExecuteWatchdog;
+import org.apache.commons.exec.LogOutputStream;
+import org.apache.commons.exec.PumpStreamHandler;
+import org.apache.commons.exec.environment.EnvironmentUtils;
 import org.apache.commons.io.FileUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.mapreduce.InputFormat;
@@ -12,38 +18,36 @@ import org.apache.hadoop.mapreduce.OutputCommitter;
 import org.apache.hadoop.mapreduce.OutputFormat;
 import org.apache.hadoop.util.ToolRunner;
 import org.myproject.ecommerce.hadoop.BaseHadoopTest;
+import org.myproject.ecommerce.hadoop.HadoopVersionFilter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.zeroturnaround.exec.ProcessExecutor;
+import org.zeroturnaround.exec.stream.slf4j.Slf4jStream;
 
 import java.io.File;
 import java.io.IOException;
 import java.net.URI;
-import java.net.URISyntaxException;
-import java.net.URL;
-import java.net.URLClassLoader;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.TreeMap;
 import java.util.concurrent.TimeoutException;
+import java.util.stream.Collectors;
 
-import static org.myproject.ecommerce.hadoop.BaseHadoopTest.HADOOP_HOME;
-import static org.myproject.ecommerce.hadoop.BaseHadoopTest.HADOOP_VERSION;
-import static org.myproject.ecommerce.hadoop.BaseHadoopTest.PROJECT_HOME;
-import static org.myproject.ecommerce.hadoop.BaseHadoopTest.isHadoopV1;
 import static com.mongodb.hadoop.util.MongoConfigUtil.INPUT_URI;
 import static com.mongodb.hadoop.util.MongoConfigUtil.JOB_INPUT_FORMAT;
 import static com.mongodb.hadoop.util.MongoConfigUtil.JOB_OUTPUT_FORMAT;
 import static com.mongodb.hadoop.util.MongoConfigUtil.OUTPUT_URI;
 import static java.lang.String.format;
+import static java.util.stream.Collectors.joining;
+import static org.myproject.ecommerce.hadoop.BaseHadoopTest.HADOOP_HOME;
+import static org.myproject.ecommerce.hadoop.BaseHadoopTest.HADOOP_VERSION;
+import static org.myproject.ecommerce.hadoop.BaseHadoopTest.PROJECT_HOME;
 import static org.myproject.ecommerce.hadoop.BaseHadoopTest.isHadoopV1;
 
 public class MapReduceJob {
@@ -60,6 +64,8 @@ public class MapReduceJob {
     private Class<? extends org.apache.hadoop.mapred.InputFormat> mapredInputFormat;
     private Class<? extends org.apache.hadoop.mapred.OutputFormat> mapredOutputFormat;
     private Class<? extends OutputCommitter> outputCommitter;
+
+    private static final int MAX_MINUTES_SUBPROCESS_RUN = 3;
 
     public MapReduceJob(final String className) {
         this.className = className;
@@ -114,49 +120,53 @@ public class MapReduceJob {
     }
 
     public void executeExternal() throws IOException, TimeoutException, InterruptedException {
-        List<String> cmd = new ArrayList<String>();
-        cmd.add(new File(HADOOP_HOME, "bin/hadoop").getCanonicalPath());
-        cmd.add("jar");
-        cmd.add(jarPath.getAbsolutePath());
-        cmd.add(className);
+        LOG.info("executeExternal");
 
+        CommandLine cmdLine = new CommandLine(new File(HADOOP_HOME, "bin/hadoop").getCanonicalPath());
+        cmdLine.addArgument("jar");
+        cmdLine.addArgument(jarPath.getAbsolutePath());
+        cmdLine.addArgument(className);
         for (Pair<String, String> entry : processSettings()) {
-            cmd.add(format("-D%s=%s", entry.getKey(), entry.getValue()));
+            cmdLine.addArgument(format("-D%s=%s", entry.getKey(), entry.getValue()));
         }
 
         Map<String, String> env = new TreeMap<String, String>(System.getenv());
         if (HADOOP_VERSION.startsWith("cdh")) {
+//            env.put("MAPRED_DIR", "share/hadoop/mapreduce2");
             env.put("MAPRED_DIR", "share/hadoop/mapreduce2");
         }
 
-        LOG.info("Executing hadoop job:");
+        LOG.info("Environment variables: " + env);
 
         StringBuilder output = new StringBuilder();
-        Iterator<String> iterator = cmd.iterator();
-        while (iterator.hasNext()) {
-            final String s = iterator.next();
-            if (output.length() != 0) {
-                output.append("\t");
-            } else {
-                output.append("\n");
-            }
-            output.append(s);
-            if (iterator.hasNext()) {
-                output.append(" \\");
-            }
-            output.append("\n");
-        }
+        Arrays.stream(cmdLine.toStrings())
+              .forEach(s -> {
+                  if (output.length() != 0) {
+                      output.append("\t");
+                  } else {
+                      output.append("\n");
+                  }
+                  output.append(s);
+                  output.append(" \\");
+                  output.append("\n");
+              });
 
+        LOG.info("Executing hadoop job");
         LOG.info(output.toString());
-        new ProcessExecutor().command(cmd)
-                .environment(env)
-                .redirectError(System.out)
-                .execute();
 
+        DefaultExecuteResultHandler resultHandler = new DefaultExecuteResultHandler();
+        DefaultExecutor executor = new DefaultExecutor();
+        executor.setExitValue(1);
+        ExecuteWatchdog watchdog = new ExecuteWatchdog(60000 * MAX_MINUTES_SUBPROCESS_RUN);
+        executor.setWatchdog(watchdog);
+        executor.execute(cmdLine, env, resultHandler);
+        resultHandler.waitFor();
+        LOG.info("executeExternal return: " + resultHandler.getExitValue());
     }
 
     @SuppressWarnings("unchecked")
     public void executeInVM() throws Exception {
+        LOG.info("executeInVM");
 
         List<String> cmd = new ArrayList<String>();
         for (Pair<String, String> entry : processSettings()) {
@@ -204,14 +214,18 @@ public class MapReduceJob {
         } else if (mapredInputFormat != null) {
             entries.add(new Pair<String, String>(JOB_INPUT_FORMAT, mapredInputFormat.getName()));
         } else {
-            String name;
-            if (BaseHadoopTest.isHadoopV1()) {
-                name = com.mongodb.hadoop.mapred.MongoInputFormat.class.getName();
-            } else {
-                name = MongoInputFormat.class.getName();
-            }
+//            String name;
+//            if (BaseHadoopTest.isHadoopV1()) {
+//                name = com.mongodb.hadoop.mapred.MongoInputFormat.class.getName();
+//            } else {
+//                name = MongoInputFormat.class.getName();
+//            }
+
+            String name = isHadoopV1()
+                    ? com.mongodb.hadoop.mapred.MongoInputFormat.class.getName()
+                    : MongoInputFormat.class.getName();
             entries.add(new Pair<String, String>(JOB_INPUT_FORMAT, name));
-            LOG.info("No input format defined.  Defaulting to '%s'", name);
+            LOG.info(format("No input format defined.  Defaulting to '%s'", name));
         }
 
         if (outputFormat != null) {
@@ -332,4 +346,5 @@ public class MapReduceJob {
             return String.format("Pair{key=%s, value=%s}", key, value);
         }
     }
+
 }
