@@ -65,7 +65,7 @@ public class MapReduceJob {
     private Class<? extends org.apache.hadoop.mapred.OutputFormat> mapredOutputFormat;
     private Class<? extends OutputCommitter> outputCommitter;
 
-    private static final int MAX_MINUTES_SUBPROCESS_RUN = 3;
+    private static final int MAX_MINUTES_SUBPROCESS_RUN = 20;
 
     public MapReduceJob(final String className) {
         this.className = className;
