@@ -45,7 +45,6 @@ public class MapReduceJob {
 
     private Map<String, String> params = new LinkedHashMap<String, String>();
     private final String className;
-
     private final List<String> inputUris = new ArrayList<String>();
     private MongoClientURI outputUri;
     private File jarPath;
@@ -296,6 +295,46 @@ public class MapReduceJob {
     public MapReduceJob mapredOutputFormat(final Class<? extends org.apache.hadoop.mapred.OutputFormat> outputFormat) {
         this.mapredOutputFormat = outputFormat;
         return this;
+    }
+
+    public Map<String, String> getParams() {
+        return params;
+    }
+
+    public String getClassName() {
+        return className;
+    }
+
+    public List<String> getInputUris() {
+        return inputUris;
+    }
+
+    public MongoClientURI getOutputUri() {
+        return outputUri;
+    }
+
+    public File getJarPath() {
+        return jarPath;
+    }
+
+    public Class<? extends InputFormat> getInputFormat() {
+        return inputFormat;
+    }
+
+    public Class<? extends OutputFormat> getOutputFormat() {
+        return outputFormat;
+    }
+
+    public Class<? extends org.apache.hadoop.mapred.InputFormat> getMapredInputFormat() {
+        return mapredInputFormat;
+    }
+
+    public Class<? extends org.apache.hadoop.mapred.OutputFormat> getMapredOutputFormat() {
+        return mapredOutputFormat;
+    }
+
+    public Class<? extends OutputCommitter> getOutputCommitter() {
+        return outputCommitter;
     }
 
     @Override

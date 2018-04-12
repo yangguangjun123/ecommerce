@@ -49,7 +49,7 @@
 
         <dependency>
             <groupId>org.mongodb</groupId>
-            <artifactId>mongodb-driver</artifactId>
+            <artifactId>mongo-java-driver</artifactId>
         </dependency>
 
         <dependency>
