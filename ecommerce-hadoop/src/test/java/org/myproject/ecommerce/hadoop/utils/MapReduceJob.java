@@ -116,12 +116,14 @@ public class MapReduceJob {
         cmdLine.addArgument(jarPath.getAbsolutePath());
         cmdLine.addArgument(className);
         for (Pair<String, String> entry : processSettings()) {
+            LOG.info("format(key): " + entry.getKey());
+            LOG.info("format(value): " + entry.getValue());
+            LOG.info("formatted as: " + format("-D%s=%s", entry.getKey(), entry.getValue()));
             cmdLine.addArgument(format("-D%s=%s", entry.getKey(), entry.getValue()));
         }
 
         Map<String, String> env = new TreeMap<String, String>(System.getenv());
         if (HADOOP_VERSION.startsWith("cdh")) {
-//            env.put("MAPRED_DIR", "share/hadoop/mapreduce2");
             env.put("MAPRED_DIR", "share/hadoop/mapreduce2");
         }
 
@@ -142,6 +144,7 @@ public class MapReduceJob {
 
         LOG.info("Executing hadoop job");
         LOG.info(output.toString());
+        LOG.info("cmdLine - " + cmdLine.toString());
 
         DefaultExecuteResultHandler resultHandler = new DefaultExecuteResultHandler();
         DefaultExecutor executor = new DefaultExecutor();
@@ -180,6 +183,7 @@ public class MapReduceJob {
     private List<Pair<String, String>> processSettings() {
         List<Pair<String, String>> entries = new ArrayList<Pair<String, String>>();
         for (Entry<String, String> entry : params.entrySet()) {
+            LOG.info(entry.getKey() + " = " + entry.getValue());
             entries.add(new Pair<String, String>(entry.getKey(), entry.getValue()));
         }
 
@@ -203,13 +207,6 @@ public class MapReduceJob {
         } else if (mapredInputFormat != null) {
             entries.add(new Pair<String, String>(JOB_INPUT_FORMAT, mapredInputFormat.getName()));
         } else {
-//            String name;
-//            if (BaseHadoopTest.isHadoopV1()) {
-//                name = com.mongodb.hadoop.mapred.MongoInputFormat.class.getName();
-//            } else {
-//                name = MongoInputFormat.class.getName();
-//            }
-
             String name = isHadoopV1()
                     ? com.mongodb.hadoop.mapred.MongoInputFormat.class.getName()
                     : MongoInputFormat.class.getName();
@@ -243,16 +240,6 @@ public class MapReduceJob {
     private void copyJars() {
         String hadoopLib = format(isHadoopV1() ? HADOOP_HOME + "/lib" : HADOOP_HOME + "/share/hadoop/common");
         try {
-//            URLClassLoader classLoader = (URLClassLoader) getClass().getClassLoader();
-//            for (URL url : classLoader.getURLs()) {
-//                boolean contains = url.getPath().contains("mongo-java-driver");
-//                if (contains) {
-//                    File file = new File(url.toURI());
-//                    FileUtils.copyFile(file, new File(hadoopLib, "mongo-java-driver.jar"));
-//                }
-//            }
-
-//            File coreJar = new File(PROJECT_HOME, "library_3rdparty").listFiles(new HadoopVersionFilter())[0];
             File hadoopCommonLib = new File(PROJECT_HOME, "library_3rdparty/hadoop_common_lib");
             Arrays.stream(hadoopCommonLib.listFiles((d, name) -> name.endsWith(".jar")))
                   .forEach(f -> {

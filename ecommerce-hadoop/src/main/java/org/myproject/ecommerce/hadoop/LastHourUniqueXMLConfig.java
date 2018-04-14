@@ -45,6 +45,7 @@ public class LastHourUniqueXMLConfig extends MongoTool {
 
     public static void main(final String[] pArgs) throws Exception {
         logger.info("pArgs: " + Arrays.stream(pArgs).collect(joining(",")));
-        System.exit(ToolRunner.run(new LastHourUniqueXMLConfig(), pArgs));
+        System.exit(ToolRunner.run(new LastHourUniqueXMLConfig(), Arrays.stream(pArgs)
+                .map(s -> s.replace("'", "")).toArray(String[]::new)));
     }
 }
