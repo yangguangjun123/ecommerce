@@ -10,7 +10,9 @@ public class HVDFClientApplicationConfiguration {
 
     @Bean(name="hvdfServiceUrl")
     public String serviceUrl(){
-        return "http://localhost:8080";
+        return System.getProperty("hvdfServiceUrl") == null ? "http://localhost:8080" :
+                System.getProperty("hvdfServiceUrl");
+//        return "http://localhost:8080";
     }
 
     @Bean

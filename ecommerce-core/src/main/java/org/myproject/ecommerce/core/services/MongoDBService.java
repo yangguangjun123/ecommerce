@@ -78,12 +78,10 @@ public class MongoDBService {
         this(codecProvider, "localhost", 27017);
     }
 
-    @Autowired
     public MongoDBService(@Qualifier("codecProvider")  List<CodecProvider> codecProvider, String host) {
         this(codecProvider, host, 27017);
     }
 
-    @Autowired
     public MongoDBService(@Qualifier("codecProvider")  List<CodecProvider> codecProvider, String host, int port) {
         List<CodecProvider> allCodecProviders = new ArrayList<>();
         allCodecProviders.add(new CustomCodecProvider());
@@ -107,7 +105,10 @@ public class MongoDBService {
 
     private void configMongoClient(List<CodecProvider> codecProviderList, String host, int port) {
         MongoClientOptions options = getMongoClientOptions(codecProviderList);
-        mongoClient = new MongoClient(String.format("%s:%d", host, port), options);
+        mongoClient = System.getProperty("mongodb_host") == null ?
+                new MongoClient(String.format("%s:%d", host, port), options) :
+                new MongoClient(System.getProperty("mongodb_host"), options);
+//        mongoClient = new MongoClient(String.format("%s:%d", host, port), options);
     }
 
     private MongoClientOptions getMongoClientOptions(List<CodecProvider> codecProviderList) {
