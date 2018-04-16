@@ -60,10 +60,10 @@ public class HVDFClientService {
     private final MappingJackson2HttpMessageConverter mappingJackson2HttpMessageConverter;
     private ObjectMapper objectMapper;
     private final String serviceUrl;
+    private final String querySample;
 
     private static final String CONFIG_URL = "/feed/{feed}/{channel}/config";
     private static final String POST_SAMPLE_URL = "/feed/{feed}/{channel}/data";
-    private static final String QUERY_SAMPLE = "http://localhost:8080/feed/ecommerce/activity/data";
     private static final Logger logger = LoggerFactory.getLogger(HVDFClientService.class);
 
     @Autowired
@@ -72,6 +72,7 @@ public class HVDFClientService {
                              MappingJackson2HttpMessageConverter mappingJackson2HttpMessageConverter) {
         Objects.requireNonNull(serviceUrl);
         this.serviceUrl = serviceUrl;
+        querySample = serviceUrl + "/feed/ecommerce/activity/data";
         this.mongoDBService = mongoDBService;
         this.restTemplate = restTemplate;
         this.mappingJackson2HttpMessageConverter = mappingJackson2HttpMessageConverter;
@@ -137,7 +138,7 @@ public class HVDFClientService {
     public List<Activity> query(Map<String, Object> criteriaMap) {
         HttpHeaders headers = new HttpHeaders();
         headers.set("Accept", MediaType.APPLICATION_JSON_VALUE);
-        UriComponentsBuilder builder = UriComponentsBuilder.fromHttpUrl(QUERY_SAMPLE);
+        UriComponentsBuilder builder = UriComponentsBuilder.fromHttpUrl(querySample);
         criteriaMap.keySet().stream()
                             .forEach(key -> {
                                 if(criteriaMap.get(key) instanceof String) {
