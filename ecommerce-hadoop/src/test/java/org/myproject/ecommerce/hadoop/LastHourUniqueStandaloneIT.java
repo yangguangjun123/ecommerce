@@ -8,6 +8,7 @@ import com.mongodb.hadoop.splitter.MultiMongoCollectionSplitter;
 import com.mongodb.hadoop.util.MongoClientURIBuilder;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.junit.Assume;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -94,6 +95,7 @@ public class LastHourUniqueStandaloneIT extends BaseHadoopTest {
 
     @Before
     public void checkConfiguration() {
+        Assume.assumeFalse(System.getProperty("os.name").toLowerCase().startsWith("win"));
 //        assumeFalse(isSharded(inputUri));
     }
 
