@@ -34,7 +34,7 @@ import static java.util.stream.Collectors.joining;
 import static org.junit.Assert.assertTrue;
 
 @RunWith(BlockJUnit4ClassRunner.class)
-public class LastHourUniqueStandaloneIT extends BaseHadoopTest {
+public class LastHourUniquesStandaloneIT extends BaseHadoopTest {
     private MongoDBService mongoDBService;
     private HVDFClientPropertyService hvdfClientPropertyService;
     private String mongoHost;
@@ -42,24 +42,17 @@ public class LastHourUniqueStandaloneIT extends BaseHadoopTest {
 
     //    private final MongoClientURI inputUri;
     private final MongoClientURI outputUri;
-    private final MongoClientURI inputUri;
     private final File ECOMMERC_HADOOP_HOME;
     private final File JOBJAR_PATH;
 
-    private static final Log logger = LogFactory.getLog(LastHourUniqueStandaloneIT.class);
+    private static final Log logger = LogFactory.getLog(LastHourUniquesStandaloneIT.class);
 
-    public LastHourUniqueStandaloneIT() {
+    public LastHourUniquesStandaloneIT() {
         ECOMMERC_HADOOP_HOME = new File(PROJECT_HOME, "ecommerce-hadoop");
         logger.info("ECOMMERC_HADOOP_HOME: " + ECOMMERC_HADOOP_HOME);
         JOBJAR_PATH = findProjectJar(ECOMMERC_HADOOP_HOME);
         logger.info("JOBJAR_PATH: " + JOBJAR_PATH);
 
-        inputUri = authCheck(System.getProperty("mongodb_host") != null ?
-                new MongoClientURIBuilder().host(System.getProperty("mongodb_host"))
-                        .collection("ecommerce", "yield_historical.in") :
-                new MongoClientURIBuilder()
-                        .collection("ecommerce", "yield_historical.in"))
-                .build();
         logger.info("mongodb_host: " + System.getProperty("mongodb_host"));
         outputUri = authCheck(System.getProperty("mongodb_host") != null ?
                 new MongoClientURIBuilder().host(System.getProperty("mongodb_host"))
