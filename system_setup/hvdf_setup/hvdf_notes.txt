@@ -1,0 +1,86 @@
+-- HVDF(High Volume Data Feed) Configuration
+To run HVDF component:
+java -jar ./target/hvdf-0.0.1-SNAPSHOT.jar server hvdf-config.yml
+
+To open debug port of HVDF component, run
+java -Xdebug -Xrunjdwp:transport=dt_socket,address=8585,server=y,suspend=n -jar ./target/hvdf-0.0.1-SNAPSHOT.jar server hvdf-config.yml
+
+The connectivity configuration of HVDF is specified in the hvdf-config.yml file.
+The channel configuration of HVDF for E-Cmmerce is specified in the hvdf-channel-config.json file.
+
+-- HVDF Client User Insights Pipeline Operation
+-- pipeline: Recent number of views, purchases, etc for user
+[{
+  "$match": {
+    "data.userId": "u123",
+    "ts": {
+      "$gt": 1516147200000
+    }
+  }
+  },
+
+{ "$group": {
+    "_id": "$data.type",
+    "count": {
+      "$sum": 1
+    }
+  }
+  }
+]
+
+-- pipeline: Recent total sales for a user
+[{
+  "$match": {
+    "data.userId": "u457",
+	"data.type": "ORDER",
+    "ts": {
+      "$gt": 1516147200000
+    }
+  }
+  },
+
+{ "$group": {
+    "_id": "result",
+    "count": {
+      "$sum": "$data.order.total"
+    }
+  }
+  }
+]
+
+-- pipline: Recent number of views, purchases, etc for item
+[{
+  "$match": {
+    "data.itemId": "301671",
+    "ts": {
+      "$gt": 1516147200000
+    }
+  }
+  },
+
+{ "$group": {
+    "_id": "$data.type",
+    "count": {
+      "$sum": 1
+    }
+  }
+  }
+]
+
+-- How to use user insights
+There are, of course, many different things the results of these queries might tell us about our user’s behaviors.
+For example, over time, we might see that the same user has viewed the same item multiple times, meaning we might
+want to suggest that item to them the next time they visit our site. Similarly, we may find that a particular
+item has had a surge in purchases due to a sale or ad campaign, meaning we might want to suggest it to users more
+frequently to further drive up sales.
+
+Up-selling is a big possibility here as well. For example, let’s say we know a user has looked at several different
+low-end cell phones, but that in general their total purchases are relatively high. In this case, we might suggest
+that they look at a higher-end device that is popular amongst users with similar stats.
+
+-- Summarization
+Performing user analytics, whether in real-time or incrementally, is no small task. Every step of the process from
+capturing user data, to data storage, to data retrieval, to crunching the numbers present challenges that require
+significant planning if the system is to perform well. Luckily, MongoDB and HVDF can be great tools for accomplishing
+these types of tasks, either on their own or used in conjunction with other tools like Hadoop.
+

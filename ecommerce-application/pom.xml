@@ -11,7 +11,7 @@
 
     <artifactId>ecommerce-application</artifactId>
 
-    <name>ECommerce Application Module</name>
+    <name>E-Commerce Application Module</name>
     <description>ecommerce-application module</description>
 
     <dependencies>
@@ -23,7 +23,7 @@
 
         <dependency>
             <groupId>org.myproject</groupId>
-            <artifactId>hvdf-client</artifactId>
+            <artifactId>ecommerce-hvdf-client</artifactId>
             <version>1.0-SNAPSHOT</version>
         </dependency>
 
@@ -41,6 +41,22 @@
 
     <build>
         <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+            </plugin>
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>findbugs-maven-plugin</artifactId>
+                <version>3.0.5</version>
+                <configuration>
+                    <effort>Max</effort>
+                    <threshold>Low</threshold>
+                    <xmlOutput>true</xmlOutput>
+                    <xmlOutputDirectory>target/findbugs</xmlOutputDirectory>
+                    <excludeFilterFile>${project.parent.basedir}/findbugs/findbugs-exclude.xml</excludeFilterFile>
+                </configuration>
+            </plugin>
             <plugin>
                 <!-- Build an executable JAR -->
                 <groupId>org.apache.maven.plugins</groupId>
@@ -68,5 +84,21 @@
         </plugins>
     </build>
 
+    <reporting>
+        <plugins>
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>findbugs-maven-plugin</artifactId>
+                <version>3.0.5</version>
+                <configuration>
+                    <effort>Max</effort>
+                    <threshold>Low</threshold>
+                    <xmlOutput>true</xmlOutput>
+                    <xmlOutputDirectory>target/findbugs</xmlOutputDirectory>
+                    <excludeFilterFile>${project.parent.basedir}/findbugs/findbugs-exclude.xml</excludeFilterFile>
+                </configuration>
+            </plugin>
+        </plugins>
+    </reporting>
 
 </project>

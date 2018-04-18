@@ -12,13 +12,13 @@
     <artifactId>ecommerce-core</artifactId>
     <packaging>jar</packaging>
 
-    <name>ECommerce Core Module</name>
+    <name>E-Commerce Core Module</name>
     <description>ecommerce-core module</description>
 
     <dependencies>
         <dependency>
             <groupId>org.mongodb</groupId>
-            <artifactId>mongodb-driver</artifactId>
+            <artifactId>mongo-java-driver</artifactId>
         </dependency>
 
         <dependency>

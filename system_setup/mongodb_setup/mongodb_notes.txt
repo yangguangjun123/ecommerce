@@ -1,0 +1,117 @@
+-- start configuration server and initiate the server
+start mongod --configsvr --config E:\E-Commerce\database\mongodb_sharding\config_server\config\config_server.conf
+mongo --port 27019
+rs.status()
+rs.intiate()
+(in production, recommend to run a config server cluster with at least 3 config servers)
+
+-- start route server and add shard servers
+start mongos --configdb configSet/Lenovo-PC:27019 --config E:\E-Commerce\database\mongodb_sharding\route_server\config\route_server.conf
+
+mongo --port 27017
+sh.addShard("Lenovo-PC:30001")
+sh.addShard("Lenovo-PC:30002")
+
+-- start shard servers
+start mongod --config E:\E-Commerce\database\mongodb_sharding\m1\config\mongod.conf
+start mongod --config E:\E-Commerce\database\mongodb_sharding\m2\config\mongod.conf
+
+Login into MongoDB route server to configure sharding
+mongo --port 27017
+
+-- create shard key index
+db.product.createIndex({type:1, genre:1, sku:1})
+db.variations.createIndex({productId:1})
+db.store_inventory.createIndex({storeId:1, productId:1})
+
+-- shard collection
+sh.enableSharding("ecommerce")
+db.runCommand({shardCollection:"ecommerce.product", key:{type:1, genre:1, sku:1}})
+db.runCommand({shardCollection:"ecommerce.variations", key:{productId: "hashed"}})
+db.runCommand({shardCollection:"ecommerce.prices", key:{_id: "hashed"}})
+db.runCommand({shardCollection:"ecommerce.store_inventory", key:{storeId:1, productId:1}})
+sh.status()
+db.product.getShardDistribution()
+db.product.stats()
+db.variations.getShardDistribution()
+db.variations.stats()
+db.prices.getShardDistribution()
+db.prices.stats()
+
+-- create other indexes for improving performance
+db.product.createIndex({type:1, "details.genre_others":1, "details.issue_date":-1})
+db.product.createIndex({"pricing.pct_savings":1})
+db.product.createIndex({type:1, "details.actor":1, "details.issue_date":-1})
+db.product.createIndex({type:1, "details.issue_date":-1, title:1})
+db.product.createIndex({productId:1})
+db.cart.createIndex({status:1, last_modified:1})
+db.store.createIndex({"storeId": 1}, {"unique": true})
+db.store.createIndex({"name": 1})
+db.store.createIndex({"address.zip": 1})
+db.store.createIndex({"location": "2dsphere"})
+db.store_inventory.createIndex({storeId: 1})
+db.store_inventory.createIndex({productId:1, location: "2dsphere"})
+
+{“name”:1}: Get a store by name.
+{“address.zip”:1}: Get all stores within a zip code, i.e. store locator.
+{“location”: 2dsphere}: Get all stores around a specified geolocation.
+
+-- To model a product category hierarchy, this solution keeps each category in its own document that also has a list
+-- of its ancestors or “parents.” This document uses music genres as the basis of its examples.
+
+db.categories.insert({ "_id" : ObjectId("4f5ec858eb03303a11000000"),
+  "name" : "Ragtime",
+  "slug" : "ragtime"
+})
+
+db.categories.insert({ "_id" : ObjectId("4f5ec858eb03303a11000001"),
+  "name" : "Bop",
+  "parent" : ObjectId("4f5ec858eb03303a11000000"),
+  "slug" : "bop",
+  "ancestors" : [
+         { "_id" : ObjectId("4f5ec858eb03303a11000000"),
+           "slug" : "ragtime",
+           "name" : "Ragtime" } ]
+})
+
+db.categories.insert({ "_id" : ObjectId("4f5ec858eb03303a11000002"),
+  "name" : "Modal Jazz",
+  "parent" : ObjectId("4f5ec858eb03303a11000001"),
+  "slug" : "modal-jazz",
+  "ancestors" : [
+         { "_id" : ObjectId("4f5ec858eb03303a11000001"),
+        "slug" : "bop",
+        "name" : "Bop" },
+         { "_id" : ObjectId("4f5ec858eb03303a11000000"),
+           "slug" : "ragtime",
+           "name" : "Ragtime" } ]
+})
+
+db.categories.insert({ "_id" : ObjectId("4f5ec858eb03303a11000003"),
+  "name" : "Hard Bop",
+  "parent" : ObjectId("4f5ec858eb03303a11000001"),
+  "slug" : "hard-bop",
+  "ancestors" : [
+         { "_id" : ObjectId("4f5ec858eb03303a11000001"),
+        "slug" : "bop",
+        "name" : "Bop" },
+         { "_id" : ObjectId("4f5ec858eb03303a11000000"),
+           "slug" : "ragtime",
+           "name" : "Ragtime" } ]
+})
+
+db.categories.insert({ "_id" : ObjectId("4f5ec858eb03303a11000004"),
+  "name" : "Free Jazz",
+  "parent" : ObjectId("4f5ec858eb03303a11000001"),
+  "slug" : "free-jazz",
+  "ancestors" : [
+         { "_id" : ObjectId("4f5ec858eb03303a11000001"),
+        "slug" : "bop",
+        "name" : "Bop" },
+         { "_id" : ObjectId("4f5ec858eb03303a11000000"),
+           "slug" : "ragtime",
+           "name" : "Ragtime" } ]
+})
+
+-- create index on categories collection
+db.categories.createIndex({slug:1}, {unique:true})

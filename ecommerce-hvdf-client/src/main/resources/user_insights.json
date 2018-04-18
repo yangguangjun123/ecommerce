@@ -1,0 +1,18 @@
+[
+  {
+    "$match": {
+      "data.userId": "USERID",
+      "ts": {
+        "$gt": "DATE_NUMERICVALUE"
+      }
+    }
+  },
+  {
+    "$group": {
+      "_id": "$data.type",
+      "count": {
+        "$sum": 1
+      }
+    }
+  }
+]

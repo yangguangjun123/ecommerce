@@ -1,0 +1,37 @@
+-- Hadoop Integration
+For many applications, either using the aggregation framework for real-time data analytics, or the map-reduce function
+for less frequent handling of large data sets in MongoDB are great options, but clearly, for complex number crunching
+of truly massive datasets, Hadoop is going to be the tool of choice. For this reason, we have created a Hadoop
+connector for MongoDB that makes processing data from a MongoDB cluster in Hadoop a much simpler task. Here are just
+a few of the features:
+
+Read/write from MongoDB or exported BSON
+Integration with Pig, Spark, Hive, MapReduce and others
+Works with Apache Hadoop, Cloudera CDH, Hortonworks HDP
+Open source
+Support for filtering with MongoDB queries, authentication, reading from replica set tags, and more
+
+-- Install Hadoop 2.7.2
+Download and install VMware Workstation 14 Payer
+Download and install latest Ubuntu 64-bit on VMware Workstation
+Download Hadoop 2.7.2 from https://archive.apache.org/dist/hadoop/core/hadoop-2.7.2/
+Extract Hadoop into hadoop-binaries directory
+
+Find jars files in the library_3rdparty directory:
+Install mongodb-driver-3.5.0.jar file in the $HADOOP_HOME/share/hadoop/common directory
+Install mongo-hadoop-core-2.0.2.jar file in the $HADOOP_HOME/share/hadoop/common directory
+Install jackson-core-2.9.0.jar file in the $HADOOP_HOME/share/hadoop/common directory
+Install jackson-databind-2.9.0.jar file in the $HADOOP_HOME/share/hadoop/common directory
+Install jackson-annotations-2.9.0.jar file in the $HADOOP_HOME/share/hadoop/common directory
+Install ecommerce-core-1.0-SNAPSHOT.jar file in the $HADOOP_HOME/share/hadoop/common directory
+Install ecommerce-hvdf-client-1.0-SNAPSHOT.jar file in the $HADOOP_HOME/share/hadoop/common directory
+Install ecommerce-hadoop-1.0-SNAPSHOT.jar file in the $HADOOP_HOME/share/hadoop/common directory
+
+
+
+
+
+
+
+
+

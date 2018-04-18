@@ -1,0 +1,1 @@
+Install and extract Hadoop binary distribution file here.

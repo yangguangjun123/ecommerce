@@ -9,19 +9,24 @@
     <version>1.0-SNAPSHOT</version>
     <packaging>pom</packaging>
 
-    <name>ECommerce-Parent</name>
+    <name>E-Commerce Parent</name>
     <description>Development of a Java Application to demostrate MongoDB Sharding</description>
 
     <modules>
+        <!-- The repository module must be first in order to ensure
+        that the local repository is populated -->
+        <module>ecommerce-repository</module>
         <module>ecommerce-application</module>
         <module>ecommerce-core</module>
-        <module>hvdf-client</module>
+        <module>ecommerce-hvdf-client</module>
+        <module>ecommerce-hadoop</module>
     </modules>
 
     <properties>
+        <main.basedir>${project.basedir}</main.basedir>
         <java.version>1.9</java.version>
-        <maven.compiler.source>1.9</maven.compiler.source>
-        <maven.compiler.target>1.9</maven.compiler.target>
+        <!--<maven.compiler.source>${java.version}</maven.compiler.source>-->
+        <!--<maven.compiler.target>${java.version}</maven.compiler.target>-->
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
         <junit.version>4.12</junit.version>
@@ -75,7 +80,7 @@
         <dependencies>
             <dependency>
                 <groupId>org.mongodb</groupId>
-                <artifactId>mongodb-driver</artifactId>
+                <artifactId>mongo-java-driver</artifactId>
                 <version>3.5.0</version>
             </dependency>
 
@@ -162,8 +167,12 @@
                     <artifactId>maven-compiler-plugin</artifactId>
                     <version>${compiler-plugin.version}</version>
                     <configuration>
-                        <release>9</release>
+                        <source>${java.version}</source>
+                        <target>${java.version}</target>
                     </configuration>
+                    <!--<configuration>-->
+                        <!--<release>9</release>-->
+                    <!--</configuration>-->
                 </plugin>
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>

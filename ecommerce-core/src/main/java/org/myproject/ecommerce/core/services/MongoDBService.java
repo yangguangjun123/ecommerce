@@ -1,6 +1,5 @@
 package org.myproject.ecommerce.core.services;
 
-import com.mongodb.Block;
 import com.mongodb.MongoClient;
 import com.mongodb.MongoClientOptions;
 import com.mongodb.WriteConcern;
@@ -76,22 +75,51 @@ public class MongoDBService {
 
     @Autowired
     public MongoDBService(@Qualifier("codecProvider")  List<CodecProvider> codecProvider) {
+        this(codecProvider, "localhost", 27017);
+    }
+
+    public MongoDBService(@Qualifier("codecProvider")  List<CodecProvider> codecProvider, String host) {
+        this(codecProvider, host, 27017);
+    }
+
+    public MongoDBService(@Qualifier("codecProvider")  List<CodecProvider> codecProvider, String host, int port) {
         List<CodecProvider> allCodecProviders = new ArrayList<>();
         allCodecProviders.add(new CustomCodecProvider());
         allCodecProviders.addAll(codecProvider);
-        configMongoClient(allCodecProviders);
+        configMongoClient(allCodecProviders, host, port);
     }
 
-    private void configMongoClient(List<CodecProvider> codecProviderList) {
+    public <T> MongoDBService(List<T> ts, Optional<String> mongodb_host) {
+    }
+
+//    private void configMongoClient(List<CodecProvider> codecProviderList) {
+//        MongoClientOptions options = getMongoClientOptions(codecProviderList);
+//        mongoClient = new MongoClient(System.getProperty("mongodb_host") == null ? "localhost" :
+//                System.getProperty("mongodb_host"), options);
+//    }
+//
+//    private void configMongoClient(List<CodecProvider> codecProviderList, String host) {
+//        MongoClientOptions options = getMongoClientOptions(codecProviderList);
+//        mongoClient = new MongoClient(String.format("%s:%d", host, 27017), options);
+//    }
+
+    private void configMongoClient(List<CodecProvider> codecProviderList, String host, int port) {
+        MongoClientOptions options = getMongoClientOptions(codecProviderList);
+        mongoClient = System.getProperty("mongodb_host") == null ?
+                new MongoClient(String.format("%s:%d", host, port), options) :
+                new MongoClient(System.getProperty("mongodb_host"), options);
+//        mongoClient = new MongoClient(String.format("%s:%d", host, port), options);
+    }
+
+    private MongoClientOptions getMongoClientOptions(List<CodecProvider> codecProviderList) {
         CodecRegistry pojoCodecRegistry = CodecRegistries.fromRegistries(MongoClient.getDefaultCodecRegistry(),
                 CodecRegistries.fromProviders(PojoCodecProvider.builder().automatic(true).build()));
         CodecRegistry codecRegistry = CodecRegistries.fromRegistries(
                 MongoClient.getDefaultCodecRegistry(),
                 CodecRegistries.fromProviders(codecProviderList.toArray(new CodecProvider[codecProviderList.size()])),
                 pojoCodecRegistry);
-        MongoClientOptions options = MongoClientOptions.builder().codecRegistry(codecRegistry)
+        return MongoClientOptions.builder().codecRegistry(codecRegistry)
                 .build();
-        mongoClient = new MongoClient("localhost", options);
     }
 
     public <T> void createOne(String databaseName, String collectionName, Class<T> clazz, T document) {
