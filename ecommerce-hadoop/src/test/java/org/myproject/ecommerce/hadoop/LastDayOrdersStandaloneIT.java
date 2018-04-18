@@ -11,8 +11,6 @@ import org.apache.commons.logging.LogFactory;
 import org.junit.Assume;
 import org.junit.Before;
 import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.BlockJUnit4ClassRunner;
 import org.myproject.ecommerce.core.services.MongoDBService;
 import org.myproject.ecommerce.hadoop.utils.MapReduceJob;
 import org.myproject.ecommerce.hvdfclient.HVDFClientPropertyService;
@@ -33,8 +31,7 @@ import static java.util.Comparator.reverseOrder;
 import static java.util.stream.Collectors.joining;
 import static org.junit.Assert.assertTrue;
 
-@RunWith(BlockJUnit4ClassRunner.class)
-public class LastHourUniquesStandaloneIT extends BaseHadoopTest {
+public class LastDayOrdersStandaloneIT extends BaseHadoopTest {
     private MongoDBService mongoDBService;
     private HVDFClientPropertyService hvdfClientPropertyService;
     private String mongoHost;
@@ -44,9 +41,9 @@ public class LastHourUniquesStandaloneIT extends BaseHadoopTest {
     private final File ECOMMERC_HADOOP_HOME;
     private final File JOBJAR_PATH;
 
-    private static final Log logger = LogFactory.getLog(LastHourUniquesStandaloneIT.class);
+    private static final Log logger = LogFactory.getLog(LastDayOrdersStandaloneIT.class);
 
-    public LastHourUniquesStandaloneIT() {
+    public LastDayOrdersStandaloneIT() {
         ECOMMERC_HADOOP_HOME = new File(PROJECT_HOME, "ecommerce-hadoop");
         logger.info("ECOMMERC_HADOOP_HOME: " + ECOMMERC_HADOOP_HOME);
         JOBJAR_PATH = findProjectJar(ECOMMERC_HADOOP_HOME);
@@ -55,9 +52,9 @@ public class LastHourUniquesStandaloneIT extends BaseHadoopTest {
         logger.info("mongodb_host: " + System.getProperty("mongodb_host"));
         outputUri = authCheck(System.getProperty("mongodb_host") != null ?
                 new MongoClientURIBuilder().host(System.getProperty("mongodb_host"))
-                        .collection("ecommerce", "lastHourUniques") :
+                        .collection("ecommerce", "lastDayOrders") :
                 new MongoClientURIBuilder()
-                        .collection("ecommerce", "lastHourUniques"))
+                        .collection("ecommerce", "lastDayOrders"))
                 .build();
 
         logger.info("outputUri: " + outputUri);
@@ -92,10 +89,10 @@ public class LastHourUniquesStandaloneIT extends BaseHadoopTest {
     }
 
     @Test
-    public void shouldPerformLastHourUniqueMapReduceJob() {
+    public void shouldPerformLastDayOrderMapAndReduceJob() {
         // when
-        MapReduceJob lastHourUniqueJob =
-                new MapReduceJob(LastHourUniqueXMLConfig.class.getName())
+        MapReduceJob lastDayOrderJob =
+                new MapReduceJob(LastDayOrderXMLConfig.class.getName())
                         .jar(JOBJAR_PATH)
                         .param("mongo.input.notimeout", "true")
                         .param(MONGO_SPLITTER_CLASS, MultiMongoCollectionSplitter.class.getName())
@@ -103,22 +100,22 @@ public class LastHourUniquesStandaloneIT extends BaseHadoopTest {
                         .outputUri(outputUri);
         if (isHadoopV1()) {
             logger.info("isHadoopV1: " + isHadoopV1());
-            lastHourUniqueJob.outputCommitter(MongoOutputCommitter.class);
+            lastDayOrderJob.outputCommitter(MongoOutputCommitter.class);
         }
-        logger.info("lastHourUniqueJob: " + lastHourUniqueJob.toString());
+        logger.info("lastDayOrderJob: " + lastDayOrderJob.toString());
         logger.info("isRunTestInVm: " + isRunTestInVm());
-        logger.info("jar: " + lastHourUniqueJob.getJarPath().getAbsolutePath());
-        logger.info("inputUri: " + lastHourUniqueJob.getInputUris().stream().collect(joining(",")));
-        logger.info("outputUri: " + lastHourUniqueJob.getOutputUri());
+        logger.info("jar: " + lastDayOrderJob.getJarPath().getAbsolutePath());
+        logger.info("inputUri: " + lastDayOrderJob.getInputUris().stream().collect(joining(",")));
+        logger.info("outputUri: " + lastDayOrderJob.getOutputUri());
         logger.info("mongo.input.multi_uri.json: " + collectionSettings());
-        logger.info("params: " + lastHourUniqueJob.getParams());
-        mongoDBService.deleteAll("ecommerce", "lastHourUniques");
+        logger.info("params: " + lastDayOrderJob.getParams());
+        mongoDBService.deleteAll("ecommerce", "lastDayOrders");
 
         // given
-        lastHourUniqueJob.execute(isRunTestInVm());
+        lastDayOrderJob.execute(isRunTestInVm());
 
         // verify
-        assertTrue(mongoDBService.count("ecommerce", "lastHourUniques") > 0);
+        assertTrue(mongoDBService.count("ecommerce", "lastDayOrders") > 0);
     }
 
     private String collectionSettings() {
@@ -151,6 +148,5 @@ public class LastHourUniquesStandaloneIT extends BaseHadoopTest {
 
         return builder.toJSON();
     }
-
 
 }
