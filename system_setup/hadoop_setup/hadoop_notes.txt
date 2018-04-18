@@ -15,14 +15,16 @@ Support for filtering with MongoDB queries, authentication, reading from replica
 Download and install VMware Workstation 14 Payer
 Download and install latest Ubuntu 64-bit on VMware Workstation
 Download Hadoop 2.7.2 from https://archive.apache.org/dist/hadoop/core/hadoop-2.7.2/
-Extract Hadoop into hadoop-binaries directory
+Extract Hadoop into hadoop-binaries directory hadoop-binaries/hadoop-2.7.2
 
-Find jars files in the library_3rdparty directory:
+-- Install jars files from the library_3rdparty directory:
 Install mongodb-driver-3.5.0.jar file in the $HADOOP_HOME/share/hadoop/common directory
 Install mongo-hadoop-core-2.0.2.jar file in the $HADOOP_HOME/share/hadoop/common directory
 Install jackson-core-2.9.0.jar file in the $HADOOP_HOME/share/hadoop/common directory
 Install jackson-databind-2.9.0.jar file in the $HADOOP_HOME/share/hadoop/common directory
 Install jackson-annotations-2.9.0.jar file in the $HADOOP_HOME/share/hadoop/common directory
+
+-- Install E-Commerce jar files
 Install ecommerce-core-1.0-SNAPSHOT.jar file in the $HADOOP_HOME/share/hadoop/common directory
 Install ecommerce-hvdf-client-1.0-SNAPSHOT.jar file in the $HADOOP_HOME/share/hadoop/common directory
 Install ecommerce-hadoop-1.0-SNAPSHOT.jar file in the $HADOOP_HOME/share/hadoop/common directory
