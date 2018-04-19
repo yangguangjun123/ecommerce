@@ -18,7 +18,7 @@ import java.util.Arrays;
 import static java.util.stream.Collectors.joining;
 
 public class LastDayOrderXMLConfig extends MongoTool {
-    private static final Log logger = LogFactory.getLog(LastHourUniqueXMLConfig.class);
+    private static final Log logger = LogFactory.getLog(LastDayOrderXMLConfig.class);
 
     public LastDayOrderXMLConfig() {
         this(new Configuration());
@@ -45,7 +45,7 @@ public class LastDayOrderXMLConfig extends MongoTool {
 
     public static void main(final String[] pArgs) throws Exception {
         logger.info("pArgs: " + Arrays.stream(pArgs).collect(joining(",")));
-        System.exit(ToolRunner.run(new LastHourUniqueXMLConfig(), Arrays.stream(pArgs)
+        System.exit(ToolRunner.run(new LastDayOrderXMLConfig(), Arrays.stream(pArgs)
                 .map(s -> s.replace("'", "")).toArray(String[]::new)));
     }
 }
