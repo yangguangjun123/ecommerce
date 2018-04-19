@@ -8,6 +8,7 @@ import com.mongodb.hadoop.splitter.MultiMongoCollectionSplitter;
 import com.mongodb.hadoop.util.MongoClientURIBuilder;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.bson.Document;
 import org.junit.Assume;
 import org.junit.Before;
 import org.junit.Test;
@@ -21,6 +22,7 @@ import java.time.ZoneId;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.stream.LongStream;
@@ -115,7 +117,12 @@ public class LastDayOrdersStandaloneIT extends BaseHadoopTest {
         lastDayOrderJob.execute(isRunTestInVm());
 
         // verify
-        assertTrue(mongoDBService.count("ecommerce", "lastDayOrders") > 0);
+        List<Document> documents = mongoDBService.readAll("ecommerce",
+                "lastDayOrders", Document.class);
+        assertTrue(documents.size() > 0);
+        documents.stream()
+                 .map(d -> d.get("items"))
+                 .forEach(o -> assertTrue(((List<Integer>) o).size() > 0));
     }
 
     private String collectionSettings() {
