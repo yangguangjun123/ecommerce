@@ -11,6 +11,7 @@ import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.IntWritable;
 import org.apache.hadoop.io.Text;
+import org.apache.hadoop.io.WritableComparator;
 import org.apache.hadoop.util.ToolRunner;
 
 import java.util.Arrays;
@@ -38,9 +39,12 @@ public class LastDayOrderXMLConfig extends MongoTool {
         MongoConfigUtil.setMapperOutputKey(conf, Text.class);
         MongoConfigUtil.setMapperOutputValue(conf, IntWritable.class);
 
+
         MongoConfigUtil.setReducer(conf, LastDayOrderReducer.class);
         MongoConfigUtil.setOutputKey(conf, Text.class);
         MongoConfigUtil.setOutputValue(conf, BSONWritable.class);
+
+        MongoConfigUtil.setSortComparator(conf, WritableComparator.class);
     }
 
     public static void main(final String[] pArgs) throws Exception {
@@ -48,4 +52,5 @@ public class LastDayOrderXMLConfig extends MongoTool {
         System.exit(ToolRunner.run(new LastDayOrderXMLConfig(), Arrays.stream(pArgs)
                 .map(s -> s.replace("'", "")).toArray(String[]::new)));
     }
+
 }

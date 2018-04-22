@@ -38,6 +38,7 @@ public class LastDayOrderReducer extends Reducer<Text, IntWritable, NullWritable
         List<Integer> items =
                 StreamSupport.stream(pValues.spliterator(), false)
                              .mapToInt(v -> v.get())
+                             .sorted()
                              .collect(ArrayList::new, List::add, List::addAll);
         BasicBSONObject items_list = new BasicBSONObject("items", items);
         BasicBSONObject update = new BasicBSONObject("$pushAll", items_list);
@@ -52,6 +53,7 @@ public class LastDayOrderReducer extends Reducer<Text, IntWritable, NullWritable
         List<Integer> items =
                 StreamSupport.stream(Spliterators.spliteratorUnknownSize(values, Spliterator.ORDERED), false)
                         .mapToInt(v -> v.get())
+                        .sorted()
                         .collect(ArrayList::new, List::add, List::addAll);
         BasicBSONObject items_list = new BasicBSONObject("items", items);
         BasicBSONObject update = new BasicBSONObject("$pushAll", items_list);
