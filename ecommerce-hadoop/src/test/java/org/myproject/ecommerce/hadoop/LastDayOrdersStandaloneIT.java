@@ -139,6 +139,10 @@ public class LastDayOrdersStandaloneIT extends BaseHadoopTest {
         startTimeQueryMap.put("data.ts", startTime);
         filterMap.put("$gt", startTimeQueryMap);
 
+        BasicDBObject projection = new BasicDBObject("_id", true).append("data.userId", true)
+                                        .append("data.itemId", true)
+                                        .append("data.ts", true);
+
         MultiCollectionSplitBuilder builder = new MultiCollectionSplitBuilder();
         String mongoDBHost = System.getProperty("mongodb_host") == null ? "mongodb://localhost:27017/ecommerce." :
                 ("mongodb://" + System.getProperty("mongodb_host") + "/ecommerce.");
@@ -149,7 +153,7 @@ public class LastDayOrdersStandaloneIT extends BaseHadoopTest {
                 .sorted(reverseOrder())
                 .map(time -> mongoDBHost + hvdfClientPropertyService.getChannelPrefix() + String.valueOf(time))
                 .forEach(url -> builder.add(new
-                                MongoClientURI(url), null, true, null, null, query,
+                                MongoClientURI(url), null, true, projection, null, query,
                         false, null));
         logger.info("MultiCollectionSplitBuilder: " + builder.toJSON());
 
