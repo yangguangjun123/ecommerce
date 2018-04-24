@@ -36,7 +36,7 @@ public class ItemPairsStandaloneIT extends BaseHadoopTest {
     private final File ECOMMERC_HADOOP_HOME;
     private final File JOBJAR_PATH;
 
-    private static final Log logger = LogFactory.getLog(LastHourUniquesStandaloneIT.class);
+    private static final Log logger = LogFactory.getLog(ItemPairsStandaloneIT.class);
 
     public ItemPairsStandaloneIT() {
         ECOMMERC_HADOOP_HOME = new File(PROJECT_HOME, "ecommerce-hadoop");
@@ -92,7 +92,7 @@ public class ItemPairsStandaloneIT extends BaseHadoopTest {
     public void shouldPerformItemPairMapReduceJob() {
         // when
         MapReduceJob pairJob =
-                new MapReduceJob(LastHourUniqueXMLConfig.class.getName())
+                new MapReduceJob(ItemPairXMLConfig.class.getName())
                         .jar(JOBJAR_PATH)
                         .param("mongo.input.notimeout", "true")
                         .param(MONGO_SPLITTER_CLASS, MongoCollectionSplitter.class.getName())
