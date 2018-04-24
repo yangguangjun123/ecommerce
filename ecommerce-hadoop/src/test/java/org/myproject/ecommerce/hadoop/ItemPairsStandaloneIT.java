@@ -118,7 +118,7 @@ public class ItemPairsStandaloneIT extends BaseHadoopTest {
                 "pairs", Document.class);
         assertTrue(documents.size() > 0);
         documents.stream()
-                .map(d -> (Integer) d.get("value"))
+                .map(d -> d.getInteger("value"))
                 .forEach(v -> assertTrue( v > 0));
     }
 
