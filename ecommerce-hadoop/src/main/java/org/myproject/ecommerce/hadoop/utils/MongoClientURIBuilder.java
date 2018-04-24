@@ -1,4 +1,4 @@
-package org.myproject.ecommerce.hadoop.util;
+package org.myproject.ecommerce.hadoop.utils;
 
 import com.mongodb.MongoClientOptions;
 import com.mongodb.MongoClientURI;

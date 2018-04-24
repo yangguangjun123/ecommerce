@@ -12,6 +12,8 @@ import org.bson.Document;
 import org.junit.Assume;
 import org.junit.Before;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.BlockJUnit4ClassRunner;
 import org.myproject.ecommerce.core.services.MongoDBService;
 import org.myproject.ecommerce.hadoop.utils.MapReduceJob;
 import org.myproject.ecommerce.hvdfclient.HVDFClientPropertyService;
@@ -33,6 +35,7 @@ import static java.util.Comparator.reverseOrder;
 import static java.util.stream.Collectors.joining;
 import static org.junit.Assert.assertTrue;
 
+@RunWith(BlockJUnit4ClassRunner.class)
 public class LastDayOrdersStandaloneIT extends BaseHadoopTest {
     private MongoDBService mongoDBService;
     private HVDFClientPropertyService hvdfClientPropertyService;
@@ -111,7 +114,7 @@ public class LastDayOrdersStandaloneIT extends BaseHadoopTest {
         logger.info("outputUri: " + lastDayOrderJob.getOutputUri());
         logger.info("mongo.input.multi_uri.json: " + collectionSettings());
         logger.info("params: " + lastDayOrderJob.getParams());
-        mongoDBService.deleteAll("ecommerce", "lastDayOrders");
+//        mongoDBService.deleteAll("ecommerce", "lastDayOrders");
 
         // given
         lastDayOrderJob.execute(isRunTestInVm());
