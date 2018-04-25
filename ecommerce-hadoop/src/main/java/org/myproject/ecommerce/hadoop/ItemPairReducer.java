@@ -36,11 +36,9 @@ public class ItemPairReducer extends Reducer<ItemPair, IntWritable, BSONWritable
     public void reduce(ItemPair pKey, Iterable<IntWritable> pValues, Context pContext)
             throws IOException, InterruptedException {
         logger.info("Reduce processing with Context class");
-        BasicBSONObject query = new BasicBSONObject("_id", pKey.toString());
         int total = StreamSupport.stream(pValues.spliterator(), false)
                                .mapToInt(i -> i.get()).sum();
-        reduceKey.setDoc(new BasicBSONObject("_id", new BasicBSONObject().append("a", pKey.getA())
-                                        .append("b", pKey.getB())));
+        reduceKey.setDoc(new BasicBSONObject().append("a", pKey.getA()).append("b", pKey.getB()));
         reduceResult.setDoc(new BasicBSONObject().append("value", total));
         pContext.write(reduceKey, reduceResult);
     }
@@ -49,11 +47,9 @@ public class ItemPairReducer extends Reducer<ItemPair, IntWritable, BSONWritable
     public void reduce(ItemPair key, Iterator<IntWritable> values, OutputCollector<BSONWritable,
             BSONWritable> output, Reporter reporter) throws IOException {
         logger.info("Reduce processing with OutputCollector class");
-        BasicBSONObject query = new BasicBSONObject("_id", key.toString());
         int total = StreamSupport.stream(Spliterators.spliteratorUnknownSize(values, Spliterator.ORDERED), false)
                 .mapToInt(i -> i.get()).sum();
-        reduceKey.setDoc(new BasicBSONObject("_id", new BasicBSONObject().append("a", key.getA())
-                .append("b", key.getB())));
+        reduceKey.setDoc(new BasicBSONObject().append("a", key.getA()).append("b", key.getB()));
         reduceResult.setDoc(new BasicBSONObject().append("value", total));
         output.collect(reduceKey, reduceResult);
     }

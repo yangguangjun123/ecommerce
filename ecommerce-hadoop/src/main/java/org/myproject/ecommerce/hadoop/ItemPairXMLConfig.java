@@ -10,7 +10,6 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.IntWritable;
-import org.apache.hadoop.io.Text;
 import org.apache.hadoop.io.WritableComparator;
 import org.apache.hadoop.util.ToolRunner;
 
@@ -36,9 +35,8 @@ public class ItemPairXMLConfig extends MongoTool {
             MongoConfigUtil.setOutputFormat(conf, MongoOutputFormat.class);
         }
         MongoConfigUtil.setMapper(conf, ItemPairMapper.class);
-        MongoConfigUtil.setMapperOutputKey(conf, Text.class);
+        MongoConfigUtil.setMapperOutputKey(conf, ItemPair.class);
         MongoConfigUtil.setMapperOutputValue(conf, IntWritable.class);
-
 
         MongoConfigUtil.setReducer(conf, ItemPairReducer.class);
         MongoConfigUtil.setOutputKey(conf, BSONWritable.class);
@@ -48,6 +46,8 @@ public class ItemPairXMLConfig extends MongoTool {
     }
 
     public static void main(final String[] pArgs) throws Exception {
+//        logger.info("pArgs: " + Arrays.stream(pArgs).collect(joining(",")));
+//        System.exit(ToolRunner.run(new ItemPairXMLConfig(), pArgs));
         logger.info("pArgs: " + Arrays.stream(pArgs).collect(joining(",")));
         System.exit(ToolRunner.run(new ItemPairXMLConfig(), Arrays.stream(pArgs)
                 .map(s -> s.replace("'", "")).toArray(String[]::new)));

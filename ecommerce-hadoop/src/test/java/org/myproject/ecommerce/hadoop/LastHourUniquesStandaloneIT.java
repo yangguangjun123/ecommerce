@@ -112,7 +112,7 @@ public class LastHourUniquesStandaloneIT extends BaseHadoopTest {
         logger.info("outputUri: " + lastHourUniqueJob.getOutputUri());
         logger.info("mongo.input.multi_uri.json: " + collectionSettings());
         logger.info("params: " + lastHourUniqueJob.getParams());
-//        mongoDBService.deleteAll("ecommerce", "lastHourUniques");
+        mongoDBService.deleteAll("ecommerce", "lastHourUniques");
 
         // given
         lastHourUniqueJob.execute(isRunTestInVm());

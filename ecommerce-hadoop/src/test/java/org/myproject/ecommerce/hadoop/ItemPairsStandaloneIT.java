@@ -2,7 +2,8 @@ package org.myproject.ecommerce.hadoop;
 
 import com.mongodb.MongoClientURI;
 import com.mongodb.hadoop.mapred.output.MongoOutputCommitter;
-import com.mongodb.hadoop.splitter.MongoCollectionSplitter;
+import com.mongodb.hadoop.splitter.MultiCollectionSplitBuilder;
+import com.mongodb.hadoop.splitter.MultiMongoCollectionSplitter;
 import com.mongodb.hadoop.util.MongoClientURIBuilder;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -21,6 +22,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 
+import static com.mongodb.hadoop.splitter.MultiMongoCollectionSplitter.MULTI_COLLECTION_CONF_KEY;
 import static com.mongodb.hadoop.util.MongoConfigUtil.MONGO_SPLITTER_CLASS;
 import static java.util.stream.Collectors.joining;
 import static org.junit.Assert.assertTrue;
@@ -95,8 +97,8 @@ public class ItemPairsStandaloneIT extends BaseHadoopTest {
                 new MapReduceJob(ItemPairXMLConfig.class.getName())
                         .jar(JOBJAR_PATH)
                         .param("mongo.input.notimeout", "true")
-                        .param(MONGO_SPLITTER_CLASS, MongoCollectionSplitter.class.getName())
-                        .inputUris(inputUri)
+                        .param(MONGO_SPLITTER_CLASS, MultiMongoCollectionSplitter.class.getName())
+                        .param(MULTI_COLLECTION_CONF_KEY, collectionSettings())
                         .outputUri(outputUri);
         if (isHadoopV1()) {
             logger.info("isHadoopV1: " + isHadoopV1());
@@ -108,7 +110,7 @@ public class ItemPairsStandaloneIT extends BaseHadoopTest {
         logger.info("inputUri: " + pairJob.getInputUris().stream().collect(joining(",")));
         logger.info("outputUri: " + pairJob.getOutputUri());
         logger.info("params: " + pairJob.getParams());
-//        mongoDBService.deleteAll("ecommerce", "pairs");
+        mongoDBService.deleteAll("ecommerce", "pairs");
 
         // given
         pairJob.execute(isRunTestInVm());
@@ -120,6 +122,22 @@ public class ItemPairsStandaloneIT extends BaseHadoopTest {
         documents.stream()
                 .map(d -> d.getInteger("value"))
                 .forEach(v -> assertTrue( v > 0));
+    }
+
+    private String collectionSettings() {
+        MultiCollectionSplitBuilder builder = new MultiCollectionSplitBuilder();
+        String url = System.getProperty("mongodb_host") == null ?
+                 "mongodb://localhost:27017/ecommerce.lastDayOrders" :
+                ("mongodb://" + System.getProperty("mongodb_host") + "/ecommerce.lastDayOrders");
+
+        logger.info("input url: " + url);
+
+        builder.add(new MongoClientURI(url), null, true, null, null,
+                null, false, null);
+
+        logger.info("MultiCollectionSplitBuilder: " + builder.toJSON());
+
+        return builder.toJSON();
     }
 
 }

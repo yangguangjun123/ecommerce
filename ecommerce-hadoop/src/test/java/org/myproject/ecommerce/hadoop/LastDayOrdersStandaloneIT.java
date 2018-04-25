@@ -114,7 +114,7 @@ public class LastDayOrdersStandaloneIT extends BaseHadoopTest {
         logger.info("outputUri: " + lastDayOrderJob.getOutputUri());
         logger.info("mongo.input.multi_uri.json: " + collectionSettings());
         logger.info("params: " + lastDayOrderJob.getParams());
-//        mongoDBService.deleteAll("ecommerce", "lastDayOrders");
+        mongoDBService.deleteAll("ecommerce", "lastDayOrders");
 
         // given
         lastDayOrderJob.execute(isRunTestInVm());
