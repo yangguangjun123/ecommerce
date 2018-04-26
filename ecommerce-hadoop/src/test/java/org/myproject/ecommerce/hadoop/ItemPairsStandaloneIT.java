@@ -97,8 +97,9 @@ public class ItemPairsStandaloneIT extends BaseHadoopTest {
                 new MapReduceJob(ItemPairXMLConfig.class.getName())
                         .jar(JOBJAR_PATH)
                         .param("mongo.input.notimeout", "true")
-                        .param(MONGO_SPLITTER_CLASS, MultiMongoCollectionSplitter.class.getName())
-                        .param(MULTI_COLLECTION_CONF_KEY, collectionSettings())
+//                        .param(MONGO_SPLITTER_CLASS, MultiMongoCollectionSplitter.class.getName())
+//                        .param(MULTI_COLLECTION_CONF_KEY, collectionSettings())
+                        .inputUris(inputUri)
                         .outputUri(outputUri);
         if (isHadoopV1()) {
             logger.info("isHadoopV1: " + isHadoopV1());

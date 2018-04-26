@@ -10,6 +10,7 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.IntWritable;
+import org.apache.hadoop.io.Text;
 import org.apache.hadoop.io.WritableComparator;
 import org.apache.hadoop.util.ToolRunner;
 
@@ -35,7 +36,7 @@ public class ItemPairXMLConfig extends MongoTool {
             MongoConfigUtil.setOutputFormat(conf, MongoOutputFormat.class);
         }
         MongoConfigUtil.setMapper(conf, ItemPairMapper.class);
-        MongoConfigUtil.setMapperOutputKey(conf, ItemPair.class);
+        MongoConfigUtil.setMapperOutputKey(conf, Text.class);
         MongoConfigUtil.setMapperOutputValue(conf, IntWritable.class);
 
         MongoConfigUtil.setReducer(conf, ItemPairReducer.class);

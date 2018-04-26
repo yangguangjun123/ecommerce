@@ -2,6 +2,7 @@ package org.myproject.ecommerce.hadoop;
 
 import com.mongodb.hadoop.io.BSONWritable;
 import org.apache.hadoop.io.IntWritable;
+import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapred.JobConf;
 import org.apache.hadoop.mapred.OutputCollector;
 import org.apache.hadoop.mapred.Reporter;
@@ -18,14 +19,14 @@ import java.util.stream.IntStream;
  * ItemPairMapper/ItemPairReducer crunch lastDayOrders collection to compute the number of
  * occurrences of each item pair and store it in pair collection.
  */
-public class ItemPairMapper extends Mapper<Object, BSONObject, ItemPair, IntWritable>
-        implements org.apache.hadoop.mapred.Mapper<Object, BSONWritable, ItemPair, IntWritable> {
-    private final ItemPair itemPair;
+public class ItemPairMapper extends Mapper<Object, BSONObject, Text, IntWritable>
+        implements org.apache.hadoop.mapred.Mapper<Object, BSONWritable, Text, IntWritable> {
+    private final Text keyText;
     private final IntWritable valueIntWritable;
     private static final Logger logger = LoggerFactory.getLogger(ItemPairMapper.class);
 
     public ItemPairMapper() {
-        itemPair = new ItemPair();
+        keyText = new Text();
         valueIntWritable = new IntWritable(1);
     }
 
@@ -38,10 +39,11 @@ public class ItemPairMapper extends Mapper<Object, BSONObject, ItemPair, IntWrit
                  .flatMap(a -> IntStream.rangeClosed(a, items.size() - 2)
                                         .mapToObj(b -> new int[] { a, b }))
                  .forEach(pair -> {
-                     itemPair.setA(pair[0]);
-                     itemPair.setB(pair[1]);
+                     keyText.set(String.valueOf(pair[0]) + " " + String.valueOf(pair[1]));
+//                     itemPair.setA(pair[0]);
+//                     itemPair.setB(pair[1]);
                      try {
-                         context.write(itemPair, valueIntWritable);
+                         context.write(keyText, valueIntWritable);
                      } catch (IOException | InterruptedException e) {
                          logger.info(e.toString());
                          e.printStackTrace();
@@ -50,7 +52,7 @@ public class ItemPairMapper extends Mapper<Object, BSONObject, ItemPair, IntWrit
     }
 
     @Override
-    public void map(Object key, BSONWritable bsonWritable, OutputCollector<ItemPair, IntWritable> output,
+    public void map(Object key, BSONWritable bsonWritable, OutputCollector<Text, IntWritable> output,
                     Reporter reporter) throws IOException {
         logger.info("Map processing with OutputCollector class");
         BSONObject doc = bsonWritable.getDoc();
@@ -59,10 +61,11 @@ public class ItemPairMapper extends Mapper<Object, BSONObject, ItemPair, IntWrit
                 .flatMap(a -> IntStream.rangeClosed(a, items.size() - 2)
                         .mapToObj(b -> new int[] { a, b }))
                 .forEach(pair -> {
-                    itemPair.setA(pair[0]);
-                    itemPair.setB(pair[1]);
+                    keyText.set(String.valueOf(pair[0]) + " " + String.valueOf(pair[1]));
+//                    itemPair.setA(pair[0]);
+//                    itemPair.setB(pair[1]);
                     try {
-                        output.collect(itemPair, valueIntWritable);
+                        output.collect(keyText, valueIntWritable);
                     } catch (IOException e) {
                         logger.info(e.toString());
                         e.printStackTrace();
