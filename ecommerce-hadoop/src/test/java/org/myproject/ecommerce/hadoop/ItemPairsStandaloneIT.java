@@ -1,13 +1,15 @@
 package org.myproject.ecommerce.hadoop;
 
+import com.mongodb.BasicDBObject;
 import com.mongodb.MongoClientURI;
 import com.mongodb.hadoop.mapred.output.MongoOutputCommitter;
 import com.mongodb.hadoop.splitter.MultiCollectionSplitBuilder;
-import com.mongodb.hadoop.splitter.MultiMongoCollectionSplitter;
+import com.mongodb.hadoop.splitter.ShardChunkMongoSplitter;
 import com.mongodb.hadoop.util.MongoClientURIBuilder;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.bson.Document;
+import org.bson.conversions.Bson;
 import org.junit.Assume;
 import org.junit.Before;
 import org.junit.Test;
@@ -22,7 +24,8 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 
-import static com.mongodb.hadoop.splitter.MultiMongoCollectionSplitter.MULTI_COLLECTION_CONF_KEY;
+import static com.mongodb.hadoop.util.MongoConfigUtil.INPUT_MONGOS_HOSTS;
+import static com.mongodb.hadoop.util.MongoConfigUtil.JOB_VERBOSE;
 import static com.mongodb.hadoop.util.MongoConfigUtil.MONGO_SPLITTER_CLASS;
 import static java.util.stream.Collectors.joining;
 import static org.junit.Assert.assertTrue;
@@ -85,6 +88,14 @@ public class ItemPairsStandaloneIT extends BaseHadoopTest {
     }
 
     @Before
+    public void setUp() {
+        checkConfiguration();
+        mongoDBService.dropCollection("ecommerce", "pairs");
+        Bson cmd = new BasicDBObject("shardCollection", "ecommerce.pairs").
+                append("key", new BasicDBObject("_id", "hashed"));
+        mongoDBService.runAdminCommand(cmd);
+    }
+
     public void checkConfiguration() {
         Assume.assumeFalse(System.getProperty("os.name").toLowerCase().startsWith("win"));
 //        assumeFalse(isSharded(inputUri));
@@ -97,7 +108,9 @@ public class ItemPairsStandaloneIT extends BaseHadoopTest {
                 new MapReduceJob(ItemPairXMLConfig.class.getName())
                         .jar(JOBJAR_PATH)
                         .param("mongo.input.notimeout", "true")
-//                        .param(MONGO_SPLITTER_CLASS, MultiMongoCollectionSplitter.class.getName())
+                        .param(INPUT_MONGOS_HOSTS, "mongodb://" + System.getProperty("mongodb_host"))
+                        .param(MONGO_SPLITTER_CLASS, ShardChunkMongoSplitter.class.getName())
+                        .param(JOB_VERBOSE, "true")
 //                        .param(MULTI_COLLECTION_CONF_KEY, collectionSettings())
                         .inputUris(inputUri)
                         .outputUri(outputUri);

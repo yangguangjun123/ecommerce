@@ -13,6 +13,7 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 /**
@@ -35,6 +36,7 @@ public class ItemPairMapper extends Mapper<Object, BSONObject, Text, IntWritable
             throws IOException, InterruptedException {
         logger.info("Map processing with Context class");
         List<Integer> items = ((List<Integer>) value.get("items"));
+        logger.info("items - " + items.stream().map(String::valueOf).collect(Collectors.joining(",")));
         IntStream.rangeClosed(0, items.size() - 1).boxed()
                  .flatMap(a -> IntStream.rangeClosed(a, items.size() - 2)
                                         .mapToObj(b -> new int[] { a, b }))

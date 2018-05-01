@@ -9,6 +9,7 @@ import com.mongodb.hadoop.util.MongoClientURIBuilder;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.bson.Document;
+import org.bson.conversions.Bson;
 import org.junit.Assume;
 import org.junit.Before;
 import org.junit.Test;
@@ -88,6 +89,14 @@ public class LastDayOrdersStandaloneIT extends BaseHadoopTest {
     }
 
     @Before
+    public void setUp() {
+        checkConfiguration();
+        mongoDBService.dropCollection("ecommerce", "lastDayOrders");
+        Bson cmd = new BasicDBObject("shardCollection", "ecommerce.lastDayOrders").
+                append("key", new BasicDBObject("_id", "hashed"));
+        mongoDBService.runAdminCommand(cmd);
+    }
+
     public void checkConfiguration() {
         Assume.assumeFalse(System.getProperty("os.name").toLowerCase().startsWith("win"));
 //        assumeFalse(isSharded(inputUri));

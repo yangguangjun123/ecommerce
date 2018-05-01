@@ -1,5 +1,6 @@
 package org.myproject.ecommerce.hadoop;
 
+//import com.mongodb.MongoClientURI;
 import com.mongodb.hadoop.MongoInputFormat;
 import com.mongodb.hadoop.MongoOutputFormat;
 import com.mongodb.hadoop.io.BSONWritable;
@@ -42,6 +43,16 @@ public class ItemPairXMLConfig extends MongoTool {
         MongoConfigUtil.setReducer(conf, ItemPairReducer.class);
         MongoConfigUtil.setOutputKey(conf, BSONWritable.class);
         MongoConfigUtil.setOutputValue(conf, BSONWritable.class);
+
+//        MongoConfigUtil.setInputMongosHosts(
+//                conf, Arrays.asList("mongo.sh01.dc1:27018", "mongo.sh02.dc2:27018"));
+//        MongoConfigUtil.setInputURI(
+//                conf, new MongoClientURI("mongodb://mongo.dc1:27018,mongo.dc2:27018/hadoop.test"));
+
+//        MongoConfigUtil.setInputMongosHosts(
+//                conf, Arrays.asList("192.168.116.1:27017"));
+//        MongoConfigUtil.setInputURI(
+//                conf, new MongoClientURI("mongodb://192.168.116.1:27017/ecommerce.lastDayOrders"));
 
         MongoConfigUtil.setSortComparator(conf, WritableComparator.class);
     }

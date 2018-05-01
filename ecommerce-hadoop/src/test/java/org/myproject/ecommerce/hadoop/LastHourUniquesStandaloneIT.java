@@ -8,6 +8,7 @@ import com.mongodb.hadoop.splitter.MultiMongoCollectionSplitter;
 import com.mongodb.hadoop.util.MongoClientURIBuilder;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.bson.conversions.Bson;
 import org.junit.Assume;
 import org.junit.Before;
 import org.junit.Test;
@@ -86,6 +87,14 @@ public class LastHourUniquesStandaloneIT extends BaseHadoopTest {
     }
 
     @Before
+    public void setUp() {
+        checkConfiguration();
+        mongoDBService.dropCollection("ecommerce", "lastHourUniques");
+        Bson sharding = new BasicDBObject("shardCollection", "ecommerce.lastHourUniques").
+                append("key", new BasicDBObject("_id", "hashed"));
+        mongoDBService.runAdminCommand(sharding);
+    }
+
     public void checkConfiguration() {
         Assume.assumeFalse(System.getProperty("os.name").toLowerCase().startsWith("win"));
 //        assumeFalse(isSharded(inputUri));

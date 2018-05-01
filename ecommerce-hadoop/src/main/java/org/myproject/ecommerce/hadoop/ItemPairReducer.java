@@ -20,14 +20,16 @@ import java.util.stream.StreamSupport;
 /**
  * ItemPairMapper/ItemPairReducer crunch lastDayOrders collection to produce pair collection.
  */
-public class ItemPairReducer extends Reducer<Text, IntWritable, Text, BSONWritable>
+public class ItemPairReducer extends Reducer<Text, IntWritable, BSONWritable, BSONWritable>
                 implements org.apache.hadoop.mapred.Reducer<Text, IntWritable,
-        Text, BSONWritable> {
+        BSONWritable, BSONWritable> {
+    private BSONWritable keyBSONWritable;
     private BSONWritable reduceResult;
     private static final Logger logger = LoggerFactory.getLogger(ItemPairReducer.class);
 
     public ItemPairReducer() {
         super();
+        keyBSONWritable = new BSONWritable();
         reduceResult = new BSONWritable();
     }
 
@@ -37,24 +39,22 @@ public class ItemPairReducer extends Reducer<Text, IntWritable, Text, BSONWritab
         logger.info("Reduce processing with Context class");
         int total = StreamSupport.stream(pValues.spliterator(), false)
                                .mapToInt(i -> i.get()).sum();
-        BasicBSONObject doc = new BasicBSONObject();
-        doc.put("value", total);
+        BasicBSONObject doc = new BasicBSONObject().append("value", total);
+        keyBSONWritable.setDoc(new BasicBSONObject("_id", pKey.toString()));
         reduceResult.setDoc(doc);
-        reduceResult.setDoc(doc);
-        pContext.write(pKey, reduceResult);
+        pContext.write(keyBSONWritable, reduceResult);
     }
 
     @Override
-    public void reduce(Text key, Iterator<IntWritable> values, OutputCollector<Text,
+    public void reduce(Text key, Iterator<IntWritable> values, OutputCollector<BSONWritable,
             BSONWritable> output, Reporter reporter) throws IOException {
         logger.info("Reduce processing with OutputCollector class");
         int total = StreamSupport.stream(Spliterators.spliteratorUnknownSize(values, Spliterator.ORDERED), false)
                 .mapToInt(i -> i.get()).sum();
-        BasicBSONObject doc = new BasicBSONObject();
-        doc.put("value", total);
+        BasicBSONObject doc = new BasicBSONObject().append("value", total);
         reduceResult.setDoc(doc);
-        reduceResult.setDoc(doc);
-        output.collect(key, reduceResult);
+        keyBSONWritable.setDoc(new BasicBSONObject("_id", key.toString()));
+        output.collect(keyBSONWritable, reduceResult);
     }
 
     @Override
@@ -64,4 +64,5 @@ public class ItemPairReducer extends Reducer<Text, IntWritable, Text, BSONWritab
     @Override
     public void configure(JobConf job) {
     }
+
 }
