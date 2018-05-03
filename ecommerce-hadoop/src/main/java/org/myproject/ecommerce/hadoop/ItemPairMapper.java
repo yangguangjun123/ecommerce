@@ -13,7 +13,6 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.util.List;
-import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 /**
@@ -32,18 +31,15 @@ public class ItemPairMapper extends Mapper<Object, BSONObject, Text, IntWritable
     }
 
     @Override
-    public void map(Object key, BSONObject value, final Context context)
-            throws IOException, InterruptedException {
-        logger.info("Map processing with Context class");
+    public void map(Object key, BSONObject value, final Context context) {
+        logger.info("Map processing with Context class(_id): " + value.get("_id"));
         List<Integer> items = ((List<Integer>) value.get("items"));
-        logger.info("items - " + items.stream().map(String::valueOf).collect(Collectors.joining(",")));
-        IntStream.rangeClosed(0, items.size() - 1).boxed()
-                 .flatMap(a -> IntStream.rangeClosed(a, items.size() - 2)
+//        logger.info("items - " + items.stream().map(String::valueOf).collect(Collectors.joining(",")));
+        IntStream.rangeClosed(0, items.size() - 2).boxed()
+                 .flatMap(a -> IntStream.rangeClosed(a + 1, items.size() - 1)
                                         .mapToObj(b -> new int[] { a, b }))
                  .forEach(pair -> {
-                     keyText.set(String.valueOf(pair[0]) + " " + String.valueOf(pair[1]));
-//                     itemPair.setA(pair[0]);
-//                     itemPair.setB(pair[1]);
+                     keyText.set(String.valueOf(items.get(pair[0])) + " " + String.valueOf(items.get(pair[1])));
                      try {
                          context.write(keyText, valueIntWritable);
                      } catch (IOException | InterruptedException e) {
@@ -55,17 +51,17 @@ public class ItemPairMapper extends Mapper<Object, BSONObject, Text, IntWritable
 
     @Override
     public void map(Object key, BSONWritable bsonWritable, OutputCollector<Text, IntWritable> output,
-                    Reporter reporter) throws IOException {
-        logger.info("Map processing with OutputCollector class");
+                    Reporter reporter) {
         BSONObject doc = bsonWritable.getDoc();
+        logger.info("Map processing with OutputCollector class(_id): " + doc.get("_id"));
         List<Integer> items = ((List<Integer>) doc.get("items"));
-        IntStream.rangeClosed(0, items.size() - 1).boxed()
-                .flatMap(a -> IntStream.rangeClosed(a, items.size() - 2)
+//        logger.info("items(OutputCollector) - " + items.stream().map(String::valueOf)
+//                                .collect(Collectors.joining(",")));
+        IntStream.rangeClosed(0, items.size() - 2).boxed()
+                .flatMap(a -> IntStream.rangeClosed(a+1, items.size() - 1)
                         .mapToObj(b -> new int[] { a, b }))
                 .forEach(pair -> {
-                    keyText.set(String.valueOf(pair[0]) + " " + String.valueOf(pair[1]));
-//                    itemPair.setA(pair[0]);
-//                    itemPair.setB(pair[1]);
+                    keyText.set(String.valueOf(items.get(pair[0])) + " " + String.valueOf(items.get(pair[1])));
                     try {
                         output.collect(keyText, valueIntWritable);
                     } catch (IOException e) {

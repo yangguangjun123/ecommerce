@@ -3,8 +3,7 @@ package org.myproject.ecommerce.hadoop;
 import com.mongodb.BasicDBObject;
 import com.mongodb.MongoClientURI;
 import com.mongodb.hadoop.mapred.output.MongoOutputCommitter;
-import com.mongodb.hadoop.splitter.MultiCollectionSplitBuilder;
-import com.mongodb.hadoop.splitter.ShardChunkMongoSplitter;
+import com.mongodb.hadoop.splitter.ShardMongoSplitter;
 import com.mongodb.hadoop.util.MongoClientURIBuilder;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -25,8 +24,8 @@ import java.util.List;
 import java.util.Optional;
 
 import static com.mongodb.hadoop.util.MongoConfigUtil.INPUT_MONGOS_HOSTS;
-import static com.mongodb.hadoop.util.MongoConfigUtil.JOB_VERBOSE;
 import static com.mongodb.hadoop.util.MongoConfigUtil.MONGO_SPLITTER_CLASS;
+import static com.mongodb.hadoop.util.MongoConfigUtil.SPLITS_USE_SHARDS;
 import static java.util.stream.Collectors.joining;
 import static org.junit.Assert.assertTrue;
 
@@ -109,9 +108,8 @@ public class ItemPairsStandaloneIT extends BaseHadoopTest {
                         .jar(JOBJAR_PATH)
                         .param("mongo.input.notimeout", "true")
                         .param(INPUT_MONGOS_HOSTS, "mongodb://" + System.getProperty("mongodb_host"))
-                        .param(MONGO_SPLITTER_CLASS, ShardChunkMongoSplitter.class.getName())
-                        .param(JOB_VERBOSE, "true")
-//                        .param(MULTI_COLLECTION_CONF_KEY, collectionSettings())
+                        .param(MONGO_SPLITTER_CLASS, ShardMongoSplitter.class.getName())
+                        .param(SPLITS_USE_SHARDS, "true")
                         .inputUris(inputUri)
                         .outputUri(outputUri);
         if (isHadoopV1()) {
@@ -136,22 +134,6 @@ public class ItemPairsStandaloneIT extends BaseHadoopTest {
         documents.stream()
                 .map(d -> d.getInteger("value"))
                 .forEach(v -> assertTrue( v > 0));
-    }
-
-    private String collectionSettings() {
-        MultiCollectionSplitBuilder builder = new MultiCollectionSplitBuilder();
-        String url = System.getProperty("mongodb_host") == null ?
-                 "mongodb://localhost:27017/ecommerce.lastDayOrders" :
-                ("mongodb://" + System.getProperty("mongodb_host") + "/ecommerce.lastDayOrders");
-
-        logger.info("input url: " + url);
-
-        builder.add(new MongoClientURI(url), null, true, null, null,
-                null, false, null);
-
-        logger.info("MultiCollectionSplitBuilder: " + builder.toJSON());
-
-        return builder.toJSON();
     }
 
 }

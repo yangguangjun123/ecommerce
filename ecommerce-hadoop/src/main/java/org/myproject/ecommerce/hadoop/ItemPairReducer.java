@@ -39,8 +39,12 @@ public class ItemPairReducer extends Reducer<Text, IntWritable, BSONWritable, BS
         logger.info("Reduce processing with Context class");
         int total = StreamSupport.stream(pValues.spliterator(), false)
                                .mapToInt(i -> i.get()).sum();
+        logger.info("reduce pKey: " + pKey.toString());
+        logger.info("reduce value: " + total);
         BasicBSONObject doc = new BasicBSONObject().append("value", total);
-        keyBSONWritable.setDoc(new BasicBSONObject("_id", pKey.toString()));
+        String[] pairs = pKey.toString().split(" ");
+        keyBSONWritable.setDoc(new BasicBSONObject("_id", new BasicBSONObject().append("a", pairs[0])
+                                    .append("b", pairs[1])));
         reduceResult.setDoc(doc);
         pContext.write(keyBSONWritable, reduceResult);
     }
@@ -51,9 +55,13 @@ public class ItemPairReducer extends Reducer<Text, IntWritable, BSONWritable, BS
         logger.info("Reduce processing with OutputCollector class");
         int total = StreamSupport.stream(Spliterators.spliteratorUnknownSize(values, Spliterator.ORDERED), false)
                 .mapToInt(i -> i.get()).sum();
+        logger.info("reduce pKey: " + key.toString());
+        logger.info("reduce value: " + total);
         BasicBSONObject doc = new BasicBSONObject().append("value", total);
         reduceResult.setDoc(doc);
-        keyBSONWritable.setDoc(new BasicBSONObject("_id", key.toString()));
+        String[] pairs = key.toString().split(" ");
+        keyBSONWritable.setDoc(new BasicBSONObject("_id", new BasicBSONObject().append("a", pairs[0])
+                .append("b", pairs[1])));
         output.collect(keyBSONWritable, reduceResult);
     }
 
