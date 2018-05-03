@@ -1,6 +1,5 @@
 package org.myproject.ecommerce.hadoop;
 
-import com.mongodb.hadoop.io.BSONWritable;
 import org.apache.hadoop.io.IntWritable;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapred.JobConf;
@@ -18,7 +17,7 @@ import java.io.IOException;
  * the number activities for unique users
  */
 public class LastHourUniqueMapper extends Mapper<Object, BSONObject, Text, IntWritable>
-        implements org.apache.hadoop.mapred.Mapper<Object, BSONWritable, Text, IntWritable> {
+        implements org.apache.hadoop.mapred.Mapper<Object, BSONObject, Text, IntWritable> {
     private final Text keyText;
     private final IntWritable valueIntWritable;
     private static final Logger logger = LoggerFactory.getLogger(LastHourUniqueMapper.class);
@@ -36,16 +35,15 @@ public class LastHourUniqueMapper extends Mapper<Object, BSONObject, Text, IntWr
     }
 
     @Override
-    public void map(Object key, BSONWritable value, OutputCollector<Text, IntWritable> output,
+    public void map(Object key, BSONObject value, OutputCollector<Text, IntWritable> output,
                     Reporter reporter) throws IOException {
         logger.info("Map processing with OutputCollector class(Hadoop V1)");
-        BSONObject pValue = value.getDoc();
-        keyText.set((String) ((BSONObject) pValue.get("data")).get("userId"));
+        keyText.set((String) ((BSONObject) value.get("data")).get("userId"));
         output.collect(keyText, valueIntWritable);
     }
 
     @Override
-    public void close() throws IOException {
+    public void close() {
     }
 
     @Override

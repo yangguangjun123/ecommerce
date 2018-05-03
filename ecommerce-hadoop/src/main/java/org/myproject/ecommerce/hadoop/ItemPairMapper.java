@@ -1,6 +1,5 @@
 package org.myproject.ecommerce.hadoop;
 
-import com.mongodb.hadoop.io.BSONWritable;
 import org.apache.hadoop.io.IntWritable;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapred.JobConf;
@@ -20,7 +19,7 @@ import java.util.stream.IntStream;
  * occurrences of each item pair and store it in pair collection.
  */
 public class ItemPairMapper extends Mapper<Object, BSONObject, Text, IntWritable>
-        implements org.apache.hadoop.mapred.Mapper<Object, BSONWritable, Text, IntWritable> {
+        implements org.apache.hadoop.mapred.Mapper<Object, BSONObject, Text, IntWritable> {
     private final Text keyText;
     private final IntWritable valueIntWritable;
     private static final Logger logger = LoggerFactory.getLogger(ItemPairMapper.class);
@@ -50,11 +49,10 @@ public class ItemPairMapper extends Mapper<Object, BSONObject, Text, IntWritable
     }
 
     @Override
-    public void map(Object key, BSONWritable bsonWritable, OutputCollector<Text, IntWritable> output,
+    public void map(Object key, BSONObject value, OutputCollector<Text, IntWritable> output,
                     Reporter reporter) {
-        BSONObject doc = bsonWritable.getDoc();
-        logger.info("Map processing with OutputCollector class(_id): " + doc.get("_id"));
-        List<Integer> items = ((List<Integer>) doc.get("items"));
+        logger.info("Map processing with OutputCollector class(_id): " + value.get("_id"));
+        List<Integer> items = ((List<Integer>) value.get("items"));
 //        logger.info("items(OutputCollector) - " + items.stream().map(String::valueOf)
 //                                .collect(Collectors.joining(",")));
         IntStream.rangeClosed(0, items.size() - 2).boxed()
@@ -72,7 +70,7 @@ public class ItemPairMapper extends Mapper<Object, BSONObject, Text, IntWritable
     }
 
     @Override
-    public void close() throws IOException {
+    public void close() {
     }
 
     @Override
