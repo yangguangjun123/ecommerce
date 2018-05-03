@@ -14,7 +14,7 @@ import org.slf4j.LoggerFactory;
 import java.io.IOException;
 
 /**
- * In phase one, PairMapper/PairReducer crunch pairs collection to product most_popular_pairs collection.
+ * In phase one, ItemPairMapper/ItemPairReducer crunch pairs collection to product most_popular_pairs collection.
  * in phase two, ActivityWeightMapper/ActivityWeightReducer crunch activity collections(timed series) to
  * extract the weight values for product items.
  */

@@ -1,4 +1,6 @@
-package org.myproject.ecommerce.hadoop;
+package org.myproject.ecommerce.hadoop.utils;
+
+import org.myproject.ecommerce.hadoop.BaseHadoopTest;
 
 import java.io.File;
 import java.io.FileFilter;

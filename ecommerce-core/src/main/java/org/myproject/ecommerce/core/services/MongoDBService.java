@@ -32,7 +32,6 @@ import org.springframework.stereotype.Service;
 
 import javax.annotation.PreDestroy;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -695,6 +694,10 @@ public class MongoDBService {
             mapReduceIterable = mapReduceIterable.finalizeFunction(finalize.get());
         }
         mapReduceIterable.toCollection();
+    }
+
+    public Document runAdminCommand(Bson command) {
+        return mongoClient.getDatabase("admin").runCommand(command);
     }
 
     private void validateDB(String database, String collectionName) {

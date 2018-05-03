@@ -14,7 +14,6 @@ import org.apache.hadoop.mapreduce.InputFormat;
 import org.apache.hadoop.mapreduce.OutputCommitter;
 import org.apache.hadoop.mapreduce.OutputFormat;
 import org.apache.hadoop.util.ToolRunner;
-import org.myproject.ecommerce.hadoop.HadoopVersionFilter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

@@ -7,6 +7,7 @@ import com.mongodb.DBObject;
 import com.mongodb.MongoClient;
 import com.mongodb.MongoClientURI;
 import com.mongodb.hadoop.util.MongoClientURIBuilder;
+import org.myproject.ecommerce.hadoop.utils.HadoopVersionFilter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

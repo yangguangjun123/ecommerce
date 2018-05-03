@@ -31,14 +31,14 @@ import java.util.stream.LongStream;
 import static java.util.Comparator.reverseOrder;
 import static java.util.stream.Collectors.joining;
 
-public class LastHourUniqueMulti extends MongoTool {
-    private static final Log logger = LogFactory.getLog(LastHourUniqueMulti.class);
+public class LastHourUniqueMultiConfig extends MongoTool {
+    private static final Log logger = LogFactory.getLog(LastHourUniqueMultiConfig.class);
 
-    public LastHourUniqueMulti() {
+    public LastHourUniqueMultiConfig() {
         this(new Configuration());
     }
 
-    public LastHourUniqueMulti(final Configuration conf) {
+    public LastHourUniqueMultiConfig(final Configuration conf) {
         setMultiCollectionInput(conf);
         setConf(conf);
 
@@ -59,8 +59,6 @@ public class LastHourUniqueMulti extends MongoTool {
     }
 
     private void setMultiCollectionInput(final Configuration conf) {
-//        String mongoHost = "localhost";
-//        int mongoPort = 27017;
         String mongoHost = Optional.ofNullable(System.getProperty("mongodb_host"))
                                    .map(s -> s.split(":"))
                                    .map(Arrays::stream)
@@ -72,19 +70,9 @@ public class LastHourUniqueMulti extends MongoTool {
                                 .flatMap(s -> s.skip(1).findFirst())
                                 .map(s -> Integer.parseInt(s))
                                 .orElse(27017);
+
         logger.info("mongo host: " + mongoHost);
         logger.info("mongo port: " + mongoPort);
-
-//        if(System.getProperty("mongodb_host") != null) {
-//            String[] temp = System.getProperty("mongodb_host").split(":");
-//            if(temp != null && temp.length == 1 ) {
-//                mongoHost = temp[0];
-//            }
-//            if(temp != null && temp.length == 2 ) {
-//                mongoHost = temp[0];
-//                mongoPort = Integer.parseInt(temp[1]);
-//            }
-//        }
 
         MongoDBService mongoDBService = new MongoDBService(Collections.emptyList(), mongoHost, mongoPort);
         HVDFClientPropertyService hvdfClientPropertyService = new HVDFClientPropertyService(mongoDBService);
@@ -133,7 +121,7 @@ public class LastHourUniqueMulti extends MongoTool {
         logger.info("pArgs passed to ToolRunner: " +
                 Arrays.stream(pArgs)
                       .filter(s -> !s.contains("-Dmongodb_host=")).collect(joining(",")));
-        System.exit(ToolRunner.run(new LastHourUniqueMulti(), Arrays.stream(pArgs)
+        System.exit(ToolRunner.run(new LastHourUniqueMultiConfig(), Arrays.stream(pArgs)
                 .filter(s -> !s.contains("-Dmongodb_host=")).toArray(String[]::new)));
     }
 }
