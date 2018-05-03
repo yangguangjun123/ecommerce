@@ -1,0 +1,10 @@
+-- To Build E-Commerce Components
+Run command in the project root directory:
+mvn -Dmongodb_host=<mongo_hostname>:<mongo_hostport> -DhvdfServiceUrl=http://<hvdf_server>:8080 clean install
+(mvn -Dmongodb_host=Lenovo-PC:27017 -DhvdfServiceUrl=http://Lenovo-PC:8080 clean install)
+
+-- To Run Spring Boot Main Application (example)
+Run command in the ecommerce-application directory:
+mvn spring-boot:run -Dfork=true
+
+
