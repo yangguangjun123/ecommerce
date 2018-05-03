@@ -43,8 +43,9 @@ public class ItemPairReducer extends Reducer<Text, IntWritable, BSONWritable, BS
         logger.info("reduce value: " + total);
         BasicBSONObject doc = new BasicBSONObject().append("value", total);
         String[] pairs = pKey.toString().split(" ");
-        keyBSONWritable.setDoc(new BasicBSONObject("_id", new BasicBSONObject().append("a", pairs[0])
-                                    .append("b", pairs[1])));
+        keyBSONWritable.setDoc(new BasicBSONObject("_id", new BasicBSONObject()
+                                    .append("a", Integer.parseInt(pairs[0]))
+                                    .append("b", Integer.parseInt(pairs[1]))));
         reduceResult.setDoc(doc);
         pContext.write(keyBSONWritable, reduceResult);
     }
@@ -60,8 +61,9 @@ public class ItemPairReducer extends Reducer<Text, IntWritable, BSONWritable, BS
         BasicBSONObject doc = new BasicBSONObject().append("value", total);
         reduceResult.setDoc(doc);
         String[] pairs = key.toString().split(" ");
-        keyBSONWritable.setDoc(new BasicBSONObject("_id", new BasicBSONObject().append("a", pairs[0])
-                .append("b", pairs[1])));
+        keyBSONWritable.setDoc(new BasicBSONObject("_id", new BasicBSONObject()
+                                    .append("a", Integer.parseInt(pairs[0]))
+                                    .append("b", Integer.parseInt(pairs[1]))));
         output.collect(keyBSONWritable, reduceResult);
     }
 
