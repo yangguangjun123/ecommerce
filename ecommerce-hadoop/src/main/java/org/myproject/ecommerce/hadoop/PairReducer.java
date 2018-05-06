@@ -25,7 +25,7 @@ public class PairReducer extends Reducer<Text, IntWritable, BSONWritable, BSONWr
         BSONWritable, BSONWritable> {
     private BSONWritable keyBSONWritable;
     private BSONWritable reduceResult;
-    private static final Logger logger = LoggerFactory.getLogger(ItemPairReducer.class);
+    private static final Logger logger = LoggerFactory.getLogger(PairReducer.class);
 
     public PairReducer() {
         super();

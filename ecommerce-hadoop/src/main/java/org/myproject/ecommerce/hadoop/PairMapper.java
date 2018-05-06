@@ -22,7 +22,7 @@ public class PairMapper extends Mapper<Object, BSONObject, Text, IntWritable>
         implements org.apache.hadoop.mapred.Mapper<Object, BSONObject, Text, IntWritable> {
     private final Text keyText;
     private final IntWritable valueIntWritable;
-    private static final Logger logger = LoggerFactory.getLogger(ItemPairMapper.class);
+    private static final Logger logger = LoggerFactory.getLogger(PairMapper.class);
 
     public PairMapper() {
         keyText = new Text();
