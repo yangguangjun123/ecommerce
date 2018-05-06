@@ -15,16 +15,16 @@ import java.util.List;
 import java.util.stream.IntStream;
 
 /**
- * ItemPairMapper/ItemPairReducer crunch lastDayOrders collection to compute the number of
+ * PairMapper/PairReducer crunch lastDayOrders collection to compute the number of
  * occurrences of each item pair and store it in pair collection.
  */
-public class ItemPairMapper extends Mapper<Object, BSONObject, Text, IntWritable>
+public class PairMapper extends Mapper<Object, BSONObject, Text, IntWritable>
         implements org.apache.hadoop.mapred.Mapper<Object, BSONObject, Text, IntWritable> {
     private final Text keyText;
     private final IntWritable valueIntWritable;
     private static final Logger logger = LoggerFactory.getLogger(ItemPairMapper.class);
 
-    public ItemPairMapper() {
+    public PairMapper() {
         keyText = new Text();
         valueIntWritable = new IntWritable(1);
     }

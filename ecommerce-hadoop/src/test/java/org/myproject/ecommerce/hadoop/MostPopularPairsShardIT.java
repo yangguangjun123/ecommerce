@@ -52,9 +52,9 @@ public class MostPopularPairsShardIT extends BaseHadoopTest {
 
         inputUri = authCheck(System.getProperty("mongodb_host") != null ?
                 new MongoClientURIBuilder().host(System.getProperty("mongodb_host"))
-                        .collection("ecommerce", "most_popular_pairs") :
+                        .collection("ecommerce", "pairs") :
                 new MongoClientURIBuilder()
-                        .collection("ecommerce", "most_popular_pairs"))
+                        .collection("ecommerce", "pairs"))
                 .build();
         outputUri = authCheck(System.getProperty("mongodb_host") != null ?
                 new MongoClientURIBuilder().host(System.getProperty("mongodb_host"))
@@ -104,7 +104,7 @@ public class MostPopularPairsShardIT extends BaseHadoopTest {
     public void shouldPerformItemPairMapReduceJob() {
         // when
         MapReduceJob pairJob =
-                new MapReduceJob(ItemPairXMLConfig.class.getName())
+                new MapReduceJob(MostPopularPairXMLConfig.class.getName())
                         .jar(JOBJAR_PATH)
                         .param("mongo.input.notimeout", "true")
                         .param(INPUT_MONGOS_HOSTS, "mongodb://" + System.getProperty("mongodb_host"))

@@ -104,7 +104,7 @@ public class PairsShardIT extends BaseHadoopTest {
     public void shouldPerformItemPairMapReduceJob() {
         // when
         MapReduceJob pairJob =
-                new MapReduceJob(ItemPairXMLConfig.class.getName())
+                new MapReduceJob(PairXMLConfig.class.getName())
                         .jar(JOBJAR_PATH)
                         .param("mongo.input.notimeout", "true")
                         .param(INPUT_MONGOS_HOSTS, "mongodb://" + System.getProperty("mongodb_host"))
