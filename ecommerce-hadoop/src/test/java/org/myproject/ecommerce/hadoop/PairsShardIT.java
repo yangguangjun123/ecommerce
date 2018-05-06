@@ -30,7 +30,7 @@ import static java.util.stream.Collectors.joining;
 import static org.junit.Assert.assertTrue;
 
 @RunWith(BlockJUnit4ClassRunner.class)
-public class ItemPairsStandaloneIT extends BaseHadoopTest {
+public class PairsShardIT extends BaseHadoopTest {
     private MongoDBService mongoDBService;
     private String mongoHost;
     private int mongoPort;
@@ -40,9 +40,9 @@ public class ItemPairsStandaloneIT extends BaseHadoopTest {
     private final File ECOMMERC_HADOOP_HOME;
     private final File JOBJAR_PATH;
 
-    private static final Log logger = LogFactory.getLog(ItemPairsStandaloneIT.class);
+    private static final Log logger = LogFactory.getLog(PairsShardIT.class);
 
-    public ItemPairsStandaloneIT() {
+    public PairsShardIT() {
         ECOMMERC_HADOOP_HOME = new File(PROJECT_HOME, "ecommerce-hadoop");
         logger.info("ECOMMERC_HADOOP_HOME: " + ECOMMERC_HADOOP_HOME);
         JOBJAR_PATH = findProjectJar(ECOMMERC_HADOOP_HOME);
