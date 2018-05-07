@@ -101,7 +101,7 @@ public class PairsShardIT extends BaseHadoopTest {
     }
 
     @Test
-    public void shouldPerformItemPairMapReduceJob() {
+    public void shouldPerformPairMapReduceJob() {
         // when
         MapReduceJob pairJob =
                 new MapReduceJob(PairXMLConfig.class.getName())

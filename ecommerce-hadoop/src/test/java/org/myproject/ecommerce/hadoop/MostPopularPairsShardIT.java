@@ -101,9 +101,9 @@ public class MostPopularPairsShardIT extends BaseHadoopTest {
     }
 
     @Test
-    public void shouldPerformItemPairMapReduceJob() {
+    public void shouldPerformMostPopularPairMapReduceJob() {
         // when
-        MapReduceJob pairJob =
+        MapReduceJob mostPopularPairJob =
                 new MapReduceJob(MostPopularPairXMLConfig.class.getName())
                         .jar(JOBJAR_PATH)
                         .param("mongo.input.notimeout", "true")
@@ -114,18 +114,18 @@ public class MostPopularPairsShardIT extends BaseHadoopTest {
                         .outputUri(outputUri);
         if (isHadoopV1()) {
             logger.info("isHadoopV1: " + isHadoopV1());
-            pairJob.outputCommitter(MongoOutputCommitter.class);
+            mostPopularPairJob.outputCommitter(MongoOutputCommitter.class);
         }
-        logger.info("mostPopularPairJob: " + pairJob.toString());
+        logger.info("mostPopularPairJob: " + mostPopularPairJob.toString());
         logger.info("isRunTestInVm: " + isRunTestInVm());
-        logger.info("jar: " + pairJob.getJarPath().getAbsolutePath());
-        logger.info("inputUri: " + pairJob.getInputUris().stream().collect(joining(",")));
-        logger.info("outputUri: " + pairJob.getOutputUri());
-        logger.info("params: " + pairJob.getParams());
+        logger.info("jar: " + mostPopularPairJob.getJarPath().getAbsolutePath());
+        logger.info("inputUri: " + mostPopularPairJob.getInputUris().stream().collect(joining(",")));
+        logger.info("outputUri: " + mostPopularPairJob.getOutputUri());
+        logger.info("params: " + mostPopularPairJob.getParams());
         mongoDBService.deleteAll("ecommerce", "most_popular_pairs");
 
         // given
-        pairJob.execute(isRunTestInVm());
+        mostPopularPairJob.execute(isRunTestInVm());
 
         // verify
         List<Document> documents = mongoDBService.readAll("ecommerce",
