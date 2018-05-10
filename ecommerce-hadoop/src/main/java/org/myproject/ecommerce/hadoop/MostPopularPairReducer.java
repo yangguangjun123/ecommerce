@@ -36,7 +36,9 @@ public class MostPopularPairReducer extends Reducer<Text, Text, BSONWritable, BS
     @Override
     public void reduce(Text pKey, Iterable<Text> pValues, Context pContext)
                             throws IOException, InterruptedException {
-        logger.info("Reduce processing with Context class");
+        logger.info("Reduce processing with Context class(key): " + pKey.toString());
+        logger.info("pValues: " + StreamSupport.stream(pValues.spliterator(), false)
+                .map(t -> t.toString()).collect(toList()));
         keyBSONWritable.setDoc(new BasicBSONObject("_id", new BasicBSONObject()
                 .append("itemId", pKey.toString())));
         List<BasicBSONObject> items =
@@ -45,7 +47,7 @@ public class MostPopularPairReducer extends Reducer<Text, Text, BSONWritable, BS
                              .map(s -> s.split(" "))
                              .map(s -> new BasicBSONObject().append("itemId", Integer.parseInt(s[0]))
                                             .append("count", Integer.parseInt(s[1])))
-                             .sorted((o1, o2) -> Integer.compare(o1.getInt("count"), o2.getInt("o2")))
+                             .sorted((o1, o2) -> Integer.compare(o1.getInt("count"), o2.getInt("count")))
                              .collect(toList());
         BasicBSONObject doc = new BasicBSONObject().append("recom", new BasicBSONList().addAll(items));
         resultWriteable.setDoc(doc);
@@ -55,7 +57,9 @@ public class MostPopularPairReducer extends Reducer<Text, Text, BSONWritable, BS
     @Override
     public void reduce(Text key, Iterator<Text> values, OutputCollector<BSONWritable, BSONWritable> output,
                        Reporter reporter) throws IOException {
-        logger.info("Reduce processing with OutputCollector class");
+        logger.info("Reduce processing with OutputCollector class(key): " + key.toString());
+        logger.info("values: " + StreamSupport.stream(Spliterators.spliteratorUnknownSize(values,
+                Spliterator.ORDERED), false).map(t -> t.toString()).collect(toList()));
         keyBSONWritable.setDoc(new BasicBSONObject("_id", new BasicBSONObject()
                 .append("itemId", key.toString())));
         List<BasicBSONObject> items = StreamSupport
@@ -64,7 +68,7 @@ public class MostPopularPairReducer extends Reducer<Text, Text, BSONWritable, BS
                 .map(s -> s.split(" "))
                 .map(s -> new BasicBSONObject().append("itemId", Integer.parseInt(s[0]))
                         .append("count", Integer.parseInt(s[1])))
-                .sorted((o1, o2) -> Integer.compare(o1.getInt("count"), o2.getInt("o2")))
+                .sorted((o1, o2) -> Integer.compare(o1.getInt("count"), o2.getInt("count")))
                 .collect(toList());
         BasicBSONObject doc = new BasicBSONObject().append("recom", new BasicBSONList().addAll(items));
         resultWriteable.setDoc(doc);

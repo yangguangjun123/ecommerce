@@ -31,7 +31,9 @@ public class MostPopularPairMapper extends Mapper<Object, BSONObject, Text, Text
         logger.info("_id class type: " + value.get("_id").getClass());
 
         String a = ((BasicDBObject) value.get("_id")).getString("a");
+        logger.info("a: " + a);
         String b = ((BasicDBObject) value.get("_id")).getString("b");
+        logger.info("b: " + b);
         String count = String.valueOf(value.get("value"));
         keyText.set(a);
         valueText.set(a + " " + count);
