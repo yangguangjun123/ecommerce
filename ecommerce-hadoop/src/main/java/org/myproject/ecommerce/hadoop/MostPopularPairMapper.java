@@ -30,15 +30,15 @@ public class MostPopularPairMapper extends Mapper<Object, BSONObject, Text, Text
         logger.info("Map processing with Context class(value): " + value.get("value"));
         logger.info("_id class type: " + value.get("_id").getClass());
 
-        String a = ((BasicDBObject) value.get("_id")).getString("a");
+        int a = ((BasicDBObject) value.get("_id")).getInt("a");
         logger.info("a: " + a);
-        String b = ((BasicDBObject) value.get("_id")).getString("b");
+        int b = ((BasicDBObject) value.get("_id")).getInt("b");
         logger.info("b: " + b);
         String count = String.valueOf(value.get("value"));
-        keyText.set(a);
+        keyText.set(String.valueOf(a));
         valueText.set(a + " " + count);
         context.write(keyText, valueText);
-        if(!a.equals(b)) {
+        if(a != b) {
             valueText.set(b + " " + count);
             context.write(keyText, valueText);
         }
@@ -50,13 +50,13 @@ public class MostPopularPairMapper extends Mapper<Object, BSONObject, Text, Text
         logger.info("Map processing with Context class(key): " + key.toString());
         logger.info("Map processing with Context class(_id): " + value.get("_id"));
         logger.info("Map processing with Context class(value): " + value.get("value"));
-        String a = ((BSONObject) value.get("_id")).get("a").toString();
-        String b = ((BSONObject) value.get("_id")).get("b").toString();
+        int a = ((BasicDBObject) value.get("_id")).getInt("a");
+        int b = ((BasicDBObject) value.get("_id")).getInt("b");
         String count = ((BSONObject) value.get("_id")).get("value").toString();
-        keyText.set(a);
+        keyText.set(String.valueOf(a));
         valueText.set(a + " " + count);
         output.collect(keyText, valueText);
-        if(!a.equals(b)) {
+        if(a != b) {
             valueText.set(b + " " + count);
             output.collect(keyText, valueText);
         }
