@@ -18,16 +18,16 @@ import java.util.Spliterators;
 import java.util.stream.StreamSupport;
 
 /**
- * ItemPairMapper/ItemPairReducer crunch lastDayOrders collection to produce pair collection.
+ * PairMapper/PairReducer crunch lastDayOrders collection to produce pair collection.
  */
-public class ItemPairReducer extends Reducer<Text, IntWritable, BSONWritable, BSONWritable>
+public class PairReducer extends Reducer<Text, IntWritable, BSONWritable, BSONWritable>
                 implements org.apache.hadoop.mapred.Reducer<Text, IntWritable,
         BSONWritable, BSONWritable> {
     private BSONWritable keyBSONWritable;
     private BSONWritable reduceResult;
-    private static final Logger logger = LoggerFactory.getLogger(ItemPairReducer.class);
+    private static final Logger logger = LoggerFactory.getLogger(PairReducer.class);
 
-    public ItemPairReducer() {
+    public PairReducer() {
         super();
         keyBSONWritable = new BSONWritable();
         reduceResult = new BSONWritable();

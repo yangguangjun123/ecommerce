@@ -30,7 +30,7 @@ import static java.util.stream.Collectors.joining;
 import static org.junit.Assert.assertTrue;
 
 @RunWith(BlockJUnit4ClassRunner.class)
-public class ItemPairsStandaloneIT extends BaseHadoopTest {
+public class MostPopularPairsShardIT extends BaseHadoopTest {
     private MongoDBService mongoDBService;
     private String mongoHost;
     private int mongoPort;
@@ -40,9 +40,9 @@ public class ItemPairsStandaloneIT extends BaseHadoopTest {
     private final File ECOMMERC_HADOOP_HOME;
     private final File JOBJAR_PATH;
 
-    private static final Log logger = LogFactory.getLog(ItemPairsStandaloneIT.class);
+    private static final Log logger = LogFactory.getLog(MostPopularPairsShardIT.class);
 
-    public ItemPairsStandaloneIT() {
+    public MostPopularPairsShardIT() {
         ECOMMERC_HADOOP_HOME = new File(PROJECT_HOME, "ecommerce-hadoop");
         logger.info("ECOMMERC_HADOOP_HOME: " + ECOMMERC_HADOOP_HOME);
         JOBJAR_PATH = findProjectJar(ECOMMERC_HADOOP_HOME);
@@ -52,15 +52,15 @@ public class ItemPairsStandaloneIT extends BaseHadoopTest {
 
         inputUri = authCheck(System.getProperty("mongodb_host") != null ?
                 new MongoClientURIBuilder().host(System.getProperty("mongodb_host"))
-                        .collection("ecommerce", "lastDayOrders") :
-                new MongoClientURIBuilder()
-                        .collection("ecommerce", "lastDayOrders"))
-                .build();
-        outputUri = authCheck(System.getProperty("mongodb_host") != null ?
-                new MongoClientURIBuilder().host(System.getProperty("mongodb_host"))
                         .collection("ecommerce", "pairs") :
                 new MongoClientURIBuilder()
                         .collection("ecommerce", "pairs"))
+                .build();
+        outputUri = authCheck(System.getProperty("mongodb_host") != null ?
+                new MongoClientURIBuilder().host(System.getProperty("mongodb_host"))
+                        .collection("ecommerce", "most_popular_pairs") :
+                new MongoClientURIBuilder()
+                        .collection("ecommerce", "most_popular_pairs"))
                 .build();
 
         logger.info("outputUri: " + outputUri);
@@ -89,8 +89,8 @@ public class ItemPairsStandaloneIT extends BaseHadoopTest {
     @Before
     public void setUp() {
         checkConfiguration();
-        mongoDBService.dropCollection("ecommerce", "pairs");
-        Bson cmd = new BasicDBObject("shardCollection", "ecommerce.pairs").
+        mongoDBService.dropCollection("ecommerce", "most_popular_pairs");
+        Bson cmd = new BasicDBObject("shardCollection", "ecommerce.most_popular_pairs").
                 append("key", new BasicDBObject("_id", "hashed"));
         mongoDBService.runAdminCommand(cmd);
     }
@@ -101,10 +101,10 @@ public class ItemPairsStandaloneIT extends BaseHadoopTest {
     }
 
     @Test
-    public void shouldPerformItemPairMapReduceJob() {
+    public void shouldPerformMostPopularPairMapReduceJob() {
         // when
-        MapReduceJob pairJob =
-                new MapReduceJob(ItemPairXMLConfig.class.getName())
+        MapReduceJob mostPopularPairJob =
+                new MapReduceJob(MostPopularPairXMLConfig.class.getName())
                         .jar(JOBJAR_PATH)
                         .param("mongo.input.notimeout", "true")
                         .param(INPUT_MONGOS_HOSTS, "mongodb://" + System.getProperty("mongodb_host"))
@@ -114,26 +114,30 @@ public class ItemPairsStandaloneIT extends BaseHadoopTest {
                         .outputUri(outputUri);
         if (isHadoopV1()) {
             logger.info("isHadoopV1: " + isHadoopV1());
-            pairJob.outputCommitter(MongoOutputCommitter.class);
+            mostPopularPairJob.outputCommitter(MongoOutputCommitter.class);
         }
-        logger.info("pairJob: " + pairJob.toString());
+        logger.info("mostPopularPairJob: " + mostPopularPairJob.toString());
         logger.info("isRunTestInVm: " + isRunTestInVm());
-        logger.info("jar: " + pairJob.getJarPath().getAbsolutePath());
-        logger.info("inputUri: " + pairJob.getInputUris().stream().collect(joining(",")));
-        logger.info("outputUri: " + pairJob.getOutputUri());
-        logger.info("params: " + pairJob.getParams());
-        mongoDBService.deleteAll("ecommerce", "pairs");
+        logger.info("jar: " + mostPopularPairJob.getJarPath().getAbsolutePath());
+        logger.info("inputUri: " + mostPopularPairJob.getInputUris().stream().collect(joining(",")));
+        logger.info("outputUri: " + mostPopularPairJob.getOutputUri());
+        logger.info("params: " + mostPopularPairJob.getParams());
+        mongoDBService.deleteAll("ecommerce", "most_popular_pairs");
 
         // given
-        pairJob.execute(isRunTestInVm());
+        mostPopularPairJob.execute(isRunTestInVm());
 
         // verify
         List<Document> documents = mongoDBService.readAll("ecommerce",
-                "pairs", Document.class);
+                "most_popular_pairs", Document.class);
         assertTrue(documents.size() > 0);
         documents.stream()
-                .map(d -> d.getInteger("value"))
-                .forEach(v -> assertTrue( v > 0));
+                .map(d -> (List<Document>) d.get("recom"))
+                .flatMap(List::stream)
+                .forEach(d -> {
+                    assertTrue(d.getInteger("itemId") > 0);
+                    assertTrue(d.getInteger("count") > 0);
+                });
     }
 
 }

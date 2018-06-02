@@ -19,14 +19,14 @@ import java.util.Arrays;
 
 import static java.util.stream.Collectors.joining;
 
-public class ItemPairXMLConfig extends MongoTool {
-    private static final Log logger = LogFactory.getLog(ItemPairXMLConfig.class);
+public class PairXMLConfig extends MongoTool {
+    private static final Log logger = LogFactory.getLog(PairXMLConfig.class);
 
-    public ItemPairXMLConfig() {
+    public PairXMLConfig() {
         this(new Configuration());
     }
 
-    public ItemPairXMLConfig(final Configuration conf) {
+    public PairXMLConfig(final Configuration conf) {
         setConf(conf);
 
         if (MongoTool.isMapRedV1()) {
@@ -36,11 +36,11 @@ public class ItemPairXMLConfig extends MongoTool {
             MongoConfigUtil.setInputFormat(conf, MongoInputFormat.class);
             MongoConfigUtil.setOutputFormat(conf, MongoOutputFormat.class);
         }
-        MongoConfigUtil.setMapper(conf, ItemPairMapper.class);
+        MongoConfigUtil.setMapper(conf, PairMapper.class);
         MongoConfigUtil.setMapperOutputKey(conf, Text.class);
         MongoConfigUtil.setMapperOutputValue(conf, IntWritable.class);
 
-        MongoConfigUtil.setReducer(conf, ItemPairReducer.class);
+        MongoConfigUtil.setReducer(conf, PairReducer.class);
         MongoConfigUtil.setOutputKey(conf, BSONWritable.class);
         MongoConfigUtil.setOutputValue(conf, BSONWritable.class);
 
@@ -59,9 +59,9 @@ public class ItemPairXMLConfig extends MongoTool {
 
     public static void main(final String[] pArgs) throws Exception {
 //        logger.info("pArgs: " + Arrays.stream(pArgs).collect(joining(",")));
-//        System.exit(ToolRunner.run(new ItemPairXMLConfig(), pArgs));
+//        System.exit(ToolRunner.run(new PairXMLConfig(), pArgs));
         logger.info("pArgs: " + Arrays.stream(pArgs).collect(joining(",")));
-        System.exit(ToolRunner.run(new ItemPairXMLConfig(), Arrays.stream(pArgs)
+        System.exit(ToolRunner.run(new PairXMLConfig(), Arrays.stream(pArgs)
                 .map(s -> s.replace("'", "")).toArray(String[]::new)));
     }
 

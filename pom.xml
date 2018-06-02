@@ -24,9 +24,7 @@
 
     <properties>
         <main.basedir>${project.basedir}</main.basedir>
-        <java.version>1.9</java.version>
-        <!--<maven.compiler.source>${java.version}</maven.compiler.source>-->
-        <!--<maven.compiler.target>${java.version}</maven.compiler.target>-->
+        <java.version>1.10</java.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
         <junit.version>4.12</junit.version>
@@ -93,13 +91,13 @@
             <dependency>
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-starter</artifactId>
-                <version>1.5.6.RELEASE</version>
+                <version>2.0.1.RELEASE</version>
             </dependency>
 
             <dependency>
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-dependencies</artifactId>
-                <version>1.5.6.RELEASE</version>
+                <version>2.0.1.RELEASE</version>
                 <type>pom</type>
                 <scope>import</scope>
             </dependency>
@@ -167,12 +165,10 @@
                     <artifactId>maven-compiler-plugin</artifactId>
                     <version>${compiler-plugin.version}</version>
                     <configuration>
+                        <!--<release>10</release>-->
                         <source>${java.version}</source>
                         <target>${java.version}</target>
                     </configuration>
-                    <!--<configuration>-->
-                        <!--<release>9</release>-->
-                    <!--</configuration>-->
                 </plugin>
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>

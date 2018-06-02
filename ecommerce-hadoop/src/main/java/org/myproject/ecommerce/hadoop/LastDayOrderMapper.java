@@ -1,6 +1,5 @@
 package org.myproject.ecommerce.hadoop;
 
-import com.mongodb.hadoop.io.BSONWritable;
 import org.apache.hadoop.io.IntWritable;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapred.JobConf;
@@ -18,7 +17,7 @@ import java.io.IOException;
  * collection(compute the number of occurrences of each item pair).
  */
 public class LastDayOrderMapper extends Mapper<Object, BSONObject, Text, IntWritable>
-            implements org.apache.hadoop.mapred.Mapper<Object, BSONWritable, Text, IntWritable> {
+            implements org.apache.hadoop.mapred.Mapper<Object, BSONObject, Text, IntWritable> {
     private final Text keyText;
     private final IntWritable valueIntWritable;
     private static final Logger logger = LoggerFactory.getLogger(LastDayOrderMapper.class);
@@ -37,17 +36,16 @@ public class LastDayOrderMapper extends Mapper<Object, BSONObject, Text, IntWrit
     }
 
     @Override
-    public void map(Object key, BSONWritable value, OutputCollector<Text, IntWritable> output,
+    public void map(Object key, BSONObject value, OutputCollector<Text, IntWritable> output,
                     Reporter reporter) throws IOException {
         logger.info("Map processing with OutputCollector class(Hadoop V1)");
-        BSONObject pValue = value.getDoc();
-        keyText.set((String) ((BSONObject) pValue.get("data")).get("userId"));
-        valueIntWritable.set(Integer.parseInt((String) ((BSONObject) pValue.get("data")).get("itemId")));
+        keyText.set((String) ((BSONObject) value.get("data")).get("userId"));
+        valueIntWritable.set(Integer.parseInt((String) ((BSONObject) value.get("data")).get("itemId")));
         output.collect(keyText, valueIntWritable);
     }
 
     @Override
-    public void close() throws IOException {
+    public void close() {
     }
 
     @Override
