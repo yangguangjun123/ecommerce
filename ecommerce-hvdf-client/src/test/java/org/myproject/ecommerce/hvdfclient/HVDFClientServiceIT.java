@@ -60,12 +60,6 @@ public class HVDFClientServiceIT {
 
     @After
     public void tearDown() {
-        ZonedDateTime ldtZoned = LocalDateTime.now().atZone(ZoneId.systemDefault());
-        ZonedDateTime utcZoned = ldtZoned.withZoneSameInstant(ZoneId.of("UTC"));
-        long time = utcZoned.toInstant().toEpochMilli();
-        String collection = hvdfClientPropertyService.getChannelPrefix() +
-                String.valueOf(time / hvdfClientPropertyService.getPeriod());
-        mongoDBService.dropCollection("ecommerce", collection);
     }
 
     @Test
